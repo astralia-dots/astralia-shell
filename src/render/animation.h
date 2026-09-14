@@ -17,6 +17,10 @@ enum class Easing : uint8_t {
 
 float applyEasing(Easing easing, float t);
 
+void animation_set_instant(bool value);
+
+bool animation_instant();
+
 struct Animation {
     float start_value = 0.0f;
     float end_value = 0.0f;

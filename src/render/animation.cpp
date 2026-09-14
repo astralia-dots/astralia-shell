@@ -2,6 +2,14 @@
 
 #include "render/animation.h"
 
+namespace {
+bool g_instant = false;
+} // namespace
+
+void animation_set_instant(bool value) { g_instant = value; }
+
+bool animation_instant() { return g_instant; }
+
 float applyEasing(Easing easing, float t) {
     t = std::clamp(t, 0.0f, 1.0f);
     switch (easing) {
@@ -70,7 +78,7 @@ void AnimationManager::tick(std::chrono::steady_clock::time_point now) {
 
 AnimationManager::Id AnimationManager::animate_internal(float from, float to, float duration_ms, Easing easing, std::function<void(float)> setter, std::function<void()> on_complete, uint64_t owner) {
     cancelForOwner(owner);
-    if (duration_ms <= 0.0f) {
+    if (duration_ms <= 0.0f || g_instant) {
         if (setter)
             setter(to);
         if (on_complete)

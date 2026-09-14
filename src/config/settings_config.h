@@ -18,7 +18,7 @@ enum class SettingsFieldId {
 };
 
 // tab count & labels
-constexpr int kSettingsTabCount = 6;
+constexpr int kSettingsTabCount = 7;
 
 inline constexpr const char *kSettingsDisplaysDefaultTag = "__default__";
 
@@ -172,5 +172,11 @@ struct SettingsTabDef {
 };
 
 inline constexpr const char *kSettingsTabLabels[kSettingsTabCount] = {
-    "Wallpaper", "Displays", "Idle", "Logout", "Visualizer", "Rain",
+    "Wallpaper",
+    "Displays",
+    "Idle",
+    "Logout",
+    "Visualizer",
+    "Rain",
+    "Animation",
 };

@@ -122,6 +122,7 @@ void overlay_panel_toggle(OverlayPanelBase &base) {
         klog("panel: %s acquired exclusive keyboard interactivity", base.name_space ? base.name_space : "?");
     }
 
+    overlay_panel_request_frame(base);
     base.animations.animate(base.opacity, opening ? 1.0f : 0.0f, kOverlayFadeMs, Easing::EaseOutCubic, [&base](float v) { base.opacity = v; }, [&base, opening] {
             if (opening)
                 return;
@@ -129,9 +130,7 @@ void overlay_panel_toggle(OverlayPanelBase &base) {
             zwlr_layer_surface_v1_set_keyboard_interactivity(base.layer_surface, ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
             overlay_panel_update_input_region(base);
             wl_surface_commit(base.surface);
-            klog("panel: %s released exclusive keyboard interactivity", base.name_space ? base.name_space : "?");
-        }, kOverlayFadeOwner);
-    overlay_panel_request_frame(base);
+            klog("panel: %s released exclusive keyboard interactivity", base.name_space ? base.name_space : "?"); }, kOverlayFadeOwner);
 }
 
 void panel_reveal_open(PanelHeightReveal &r) {
@@ -162,6 +161,5 @@ void panel_reveal_close(PanelHeightReveal &r, OverlayPanelBase &base, std::funct
             r.target = -1.0f;
             r.closing = false;
             if (on_done)
-                on_done();
-        }, kPanelHeightAnimOwner);
+                on_done(); }, kPanelHeightAnimOwner);
 }

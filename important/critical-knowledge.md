@@ -153,6 +153,7 @@ Drop an entry once newer knowledge fully supersedes it.
 - **The six ported noctalia wallpaper transition shaders take a CPU-computed uv scale+offset (`vec4`), not noctalia's in-shader fill-mode block.** kokusei has two fill modes (Crop/Fit); `transition_uv` reproduces the centred-cover/contain placement, returning `u_fill` for out-of-`[0,1]` samples.
 - **Fading one panel region independently of its chrome needs a second `Scene` drawn at a different `set_opacity`.** `set_opacity` is one global value per frame, so `settings` draws its tab into `state.tab_scene` at `opacity * tab_alpha`.
 - **A tab switch chains a fade-out, swaps `active_tab` in `on_complete`, then fades in.** This is one `Renderer`/`Scene` path invoked twice, not a divergent pipeline.
+- **A global "instant" switch inside `AnimationManager` can't safely reach a perpetually self-re-arming `on_complete` chain.** Forcing every step to `0 ms` recurses synchronously inside `tick()` forever; `marquee_scroll` checks the switch itself and skips starting instead.
 
 ## 3. Wayland protocol
 
@@ -231,6 +232,7 @@ Drop an entry once newer knowledge fully supersedes it.
 - **An async result polled on a slow throttle lands a throttle-period late, not a request late.** `gpu_temp_poll` starts `nvidia-smi` on one call, reads it next; poll every tick while running.
 - **Re-enabling idle management, or lowering a timeout mid-idle, must reset the per-monitor activity clock.** A stale `last_activity` otherwise fires the screensaver instantly; `apply_config_update` calls `idle_reset` on any idle-config change.
 - **A panel's staged dismissal must be coded identically in every dismiss path.** `Escape` collapsed the subpanel while outside-click closed the whole panel, because the branches were written separately.
+- **A closing overlay's `request_frame` call must run before its fade's `on_complete` flips `open` false, not after.** `overlay_panel_request_frame` no-ops once closed; a zero-duration animation runs `on_complete` synchronously, so a trailing call never arms the final frame.
 
 ## 5. Architecture and scale discipline
 

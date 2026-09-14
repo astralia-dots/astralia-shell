@@ -186,9 +186,13 @@ void wallpaper_column_upload_pending(WallpaperColumn &col, const WallpaperColumn
     if (col.pending_transition != WallpaperTransition::None && col.tex.id) {
         Texture fresh = make_texture_rgba(col.pending_width, col.pending_height, col.pending_pixels, true, col.pending_stride);
         if (fresh.id) {
-            col.tex_prev = std::move(col.tex);
-            col.tex = std::move(fresh);
-            transition_begin(col, col.pending_transition);
+            if (animation_instant()) {
+                col.tex = std::move(fresh);
+            } else {
+                col.tex_prev = std::move(col.tex);
+                col.tex = std::move(fresh);
+                transition_begin(col, col.pending_transition);
+            }
         }
         col.pending_transition = WallpaperTransition::None;
         delete[] col.pending_pixels;
@@ -283,7 +287,9 @@ void wallpaper_column_set_animated(WallpaperColumn &col, const WallpaperColumnGl
     uint64_t gen = ++col.generation;
     std::weak_ptr<int> life = col.life;
 
-    klog("wallpaper: animated column start '%s' zero_copy_supported=%d " "surface=%d", path.c_str(), video_texture_import_supported() ? 1 : 0, gl.surface != EGL_NO_SURFACE ? 1 : 0);
+    klog("wallpaper: animated column start '%s' zero_copy_supported=%d "
+         "surface=%d",
+         path.c_str(), video_texture_import_supported() ? 1 : 0, gl.surface != EGL_NO_SURFACE ? 1 : 0);
 
     std::string filter = animate_scale_filter(target_w, target_h, to_fit(mode));
 

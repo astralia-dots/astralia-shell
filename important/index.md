@@ -163,6 +163,7 @@
 - `logout_tab.h`+`.cpp`: Per-tab settings UI and commit logic (central-logo static/animated toggle).
 - `visualizer_tab.h`+`.cpp`: Per-tab settings UI and commit logic; `Bar`/`Sphere` shape selector, then a per-`VisualizerParams`-knob number field row.
 - `rain_tab.h`+`.cpp`: Per-tab settings UI and commit logic; `Matrix`/`Stiletto` `RainMode` selector row plus an `Asynchronous fall speed` toggle row.
+- `animation_tab.h`+`.cpp`: Per-tab settings UI and commit logic; single `Disable Animations` toggle row.
 
 ## src/modules/bar
 

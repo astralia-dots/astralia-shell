@@ -213,6 +213,10 @@ Config load_config() {
         cfg.logout_animated_logo =
             logout.value("animatedLogo", cfg.logout_animated_logo);
 
+        nlohmann::json animation = section(j, "animation", "animation");
+        cfg.animations_disabled =
+            animation.value("disabled", cfg.animations_disabled);
+
         nlohmann::json idle = section(j, "idle", "blink");
         cfg.idle_management_enabled =
             idle.value("enabled", cfg.idle_management_enabled);
@@ -332,6 +336,7 @@ void save_config(const Config &cfg) {
     j["wallpaper"] = wallpaper;
     j["displays"] = displays;
     j["logout"] = {{"animatedLogo", cfg.logout_animated_logo}};
+    j["animation"] = {{"disabled", cfg.animations_disabled}};
     j["idle"] = idle;
     j["visualizer"] = visualizer;
     j["rain"] = rain;

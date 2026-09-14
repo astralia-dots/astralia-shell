@@ -8,6 +8,7 @@
 #include "modules/bar.h"
 #include "modules/settings.h"
 
+#include "render/animation.h"
 #include "render/overlay_panel.h"
 
 #include "service/settings_service.h"
@@ -126,6 +127,8 @@ void apply_config_update(WaylandState &app, Config new_cfg) {
             nv->resync(app, *mon);
     }
 
+    animation_set_instant(new_cfg.animations_disabled);
+
     app.cfg = new_cfg;
     for (auto &m : app.overlays)
         m->apply_config(app, app.cfg);
@@ -157,11 +160,7 @@ MonitorOutput *active_target_monitor(WaylandState &app) {
 void settings_retarget(WaylandState &app, SettingsState &settings, MonitorOutput &target) {
     SettingsState &s = settings;
     SettingsEnv env = settings_env(app);
-    wl_output *bound = overlay_panel_retarget(s.base, app.display, app.settings_bound_output, target.output.wl, target.output.name.c_str(), [&](wl_output *out) {
-            return settings_create_surface(s, app.compositor, app.layer_shell, out);
-        }, [&] {
-            return settings_init_egl(s, app.cfg, app.renderer, app.egl_display, app.egl_config, app.egl_context, env.monitor_names_fn, env.focused_monitor_fn, env.decode_status_fn);
-        });
+    wl_output *bound = overlay_panel_retarget(s.base, app.display, app.settings_bound_output, target.output.wl, target.output.name.c_str(), [&](wl_output *out) { return settings_create_surface(s, app.compositor, app.layer_shell, out); }, [&] { return settings_init_egl(s, app.cfg, app.renderer, app.egl_display, app.egl_config, app.egl_context, env.monitor_names_fn, env.focused_monitor_fn, env.decode_status_fn); });
     if (bound)
         app.settings_bound_output = bound;
     else

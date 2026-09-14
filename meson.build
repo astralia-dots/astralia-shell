@@ -279,6 +279,7 @@ kokusei_settings_main_only_sources = [
   'src/modules/settings/logout_tab.cpp',
   'src/modules/settings/visualizer_tab.cpp',
   'src/modules/settings/rain_tab.cpp',
+  'src/modules/settings/animation_tab.cpp',
 ]
 
 kokusei_split_sources = [

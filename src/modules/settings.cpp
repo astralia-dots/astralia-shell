@@ -10,6 +10,7 @@
 #include "core/path_home.h"
 
 #include "modules/settings.h"
+#include "modules/settings/animation_tab.h"
 #include "modules/settings/displays_tab.h"
 #include "modules/settings/idle_tab.h"
 #include "modules/settings/logout_tab.h"
@@ -32,6 +33,7 @@ constexpr SettingsTabDef kSettingsTabs[kSettingsTabCount] = {
     {kSettingsTabLabels[3], icon::power},
     {kSettingsTabLabels[4], icon::wave_sine},
     {kSettingsTabLabels[5], icon::code},
+    {kSettingsTabLabels[6], icon::adjustments},
 };
 
 } // namespace
@@ -109,10 +111,14 @@ void settings_commit_focused_field(SettingsState &state, const Config &cfg, cons
 
 void settings_toggle(SettingsState &state, const Config &cfg, const SettingsCommitFn &on_commit) {
     if (!state.base.layer_surface || state.base.egl_surface == EGL_NO_SURFACE) {
-        klog("settings: toggle ignored, surface not ready (layer_surface=%p " "egl_surface_ready=%d)", static_cast<void *>(state.base.layer_surface), state.base.egl_surface != EGL_NO_SURFACE);
+        klog("settings: toggle ignored, surface not ready (layer_surface=%p "
+             "egl_surface_ready=%d)",
+             static_cast<void *>(state.base.layer_surface), state.base.egl_surface != EGL_NO_SURFACE);
         return;
     }
-    klog("settings: toggle called (was_open=%d opacity=%.2f " "focused_field=%d)", state.base.open, static_cast<double>(state.base.opacity), static_cast<int>(state.focused_field));
+    klog("settings: toggle called (was_open=%d opacity=%.2f "
+         "focused_field=%d)",
+         state.base.open, static_cast<double>(state.base.opacity), static_cast<int>(state.focused_field));
     bool opening = !state.base.open;
     if (state.base.open) {
         settings_commit_focused_field(state, cfg, on_commit);
@@ -161,7 +167,9 @@ void settings_handle_click(SettingsState &state, const Config &cfg, const Settin
         return r.w > 0 && x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
     };
 
-    klog("settings: handle_click at (%.0f,%.0f), panel_rect=%.0f,%.0f " "%.0fx%.0f", px, py, static_cast<double>(state.panel_rect.x), static_cast<double>(state.panel_rect.y), static_cast<double>(state.panel_rect.w), static_cast<double>(state.panel_rect.h));
+    klog("settings: handle_click at (%.0f,%.0f), panel_rect=%.0f,%.0f "
+         "%.0fx%.0f",
+         px, py, static_cast<double>(state.panel_rect.x), static_cast<double>(state.panel_rect.y), static_cast<double>(state.panel_rect.w), static_cast<double>(state.panel_rect.h));
     for (const PanelClickRegion &region : state.click_regions) {
         if (!hit(region.rect, px, py))
             continue;
@@ -179,15 +187,14 @@ void settings_handle_click(SettingsState &state, const Config &cfg, const Settin
                 state.base.animations.cancelForOwner(kSettingsTabFadeOwner);
                 state.base.animations.animate(state.tab_alpha, 0.0f, kSettingsTabFadeMs, Easing::EaseOutCubic, [&state](float v) { state.tab_alpha = v; }, [&state] {
                         state.active_tab = state.pending_tab;
-                        state.base.animations.animate(0.0f, 1.0f, kSettingsTabFadeMs, Easing::EaseOutCubic, [&state](float v) { state.tab_alpha = v; }, {}, kSettingsTabFadeOwner);
-                    }, kSettingsTabFadeOwner);
+                        state.base.animations.animate(0.0f, 1.0f, kSettingsTabFadeMs, Easing::EaseOutCubic, [&state](float v) { state.tab_alpha = v; }, {}, kSettingsTabFadeOwner); }, kSettingsTabFadeOwner);
             }
             settings_request_frame(state);
             return;
         }
         case PanelClickKind::ToggleFlip:
-            if (!wallpaper_tab_handle_click(state, cfg, on_commit, region) && !displays_tab_handle_click(state, cfg, on_commit, region) && !idle_tab_handle_click(state, cfg, on_commit, region) && !visualizer_tab_handle_click(state, cfg, on_commit, region) && !rain_tab_handle_click(state, cfg, on_commit, region))
-                logout_tab_handle_click(state, cfg, on_commit, region);
+            if (!wallpaper_tab_handle_click(state, cfg, on_commit, region) && !displays_tab_handle_click(state, cfg, on_commit, region) && !idle_tab_handle_click(state, cfg, on_commit, region) && !visualizer_tab_handle_click(state, cfg, on_commit, region) && !rain_tab_handle_click(state, cfg, on_commit, region) && !logout_tab_handle_click(state, cfg, on_commit, region))
+                animation_tab_handle_click(state, cfg, on_commit, region);
             return;
         case PanelClickKind::FieldFocus:
             settings_focus_field(state, cfg, on_commit, static_cast<SettingsFieldId>(std::stoi(region.tag)));
@@ -214,7 +221,9 @@ void settings_handle_click(SettingsState &state, const Config &cfg, const Settin
         }
     }
 
-    klog("settings: click (%.0f,%.0f) hit no region (%zu checked, " "panel_rect=%.0f,%.0f %.0fx%.0f)", px, py, state.click_regions.size(), static_cast<double>(state.panel_rect.x), static_cast<double>(state.panel_rect.y), static_cast<double>(state.panel_rect.w), static_cast<double>(state.panel_rect.h));
+    klog("settings: click (%.0f,%.0f) hit no region (%zu checked, "
+         "panel_rect=%.0f,%.0f %.0fx%.0f)",
+         px, py, state.click_regions.size(), static_cast<double>(state.panel_rect.x), static_cast<double>(state.panel_rect.y), static_cast<double>(state.panel_rect.w), static_cast<double>(state.panel_rect.h));
     if (!hit(state.panel_rect, px, py)) {
         settings_toggle(state, cfg, on_commit);
         return;
@@ -443,6 +452,11 @@ void settings_paint(SettingsState &state, const Config &cfg, const std::vector<s
         case SettingsTab::Rain: {
             float row_w = panel_x + panel_w - kPanelPadding - label_x;
             rain_tab_paint(state, tab_root, scale, label_x, y, row_w, cfg);
+            break;
+        }
+        case SettingsTab::Animation: {
+            float row_w = panel_x + panel_w - kPanelPadding - label_x;
+            animation_tab_paint(state, tab_root, scale, label_x, y, row_w, cfg);
             break;
         }
         }

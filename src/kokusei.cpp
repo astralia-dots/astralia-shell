@@ -21,6 +21,8 @@
 #include "core/log.h"
 #include "core/poll_source.h"
 
+#include "render/animation.h"
+
 inline void daemonize() {
     pid_t pid = fork();
     if (pid < 0) {
@@ -62,6 +64,7 @@ int main(int argc, char **argv) {
 
     WaylandState app;
     app.cfg = load_config();
+    animation_set_instant(app.cfg.animations_disabled);
     app.config_watch_fd = config_watch_init(config_path());
     DeferredCall::init();
 
@@ -78,7 +81,8 @@ int main(int argc, char **argv) {
     wl_display_roundtrip(app.display);
 
     if (!app.compositor || !app.layer_shell || !app.wm_base) {
-        klog("compositor is missing wl_compositor, zwlr_layer_shell_v1, or " "xdg_wm_base");
+        klog("compositor is missing wl_compositor, zwlr_layer_shell_v1, or "
+             "xdg_wm_base");
         return 1;
     }
     if (app.outputs.empty()) {
@@ -247,7 +251,7 @@ int main(int argc, char **argv) {
         }
 
         std::vector<pollfd> fds;
-        fds.push_back({.fd = wl_display_get_fd(app.display),.events = POLLIN,.revents = 0});
+        fds.push_back({.fd = wl_display_get_fd(app.display), .events = POLLIN, .revents = 0});
         struct SourceRange {
             PollSource *src;
             std::size_t start;

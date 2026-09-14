@@ -66,15 +66,14 @@ size_t utf8_len(const std::string &s) {
 }
 
 void animate_card(PolkitState &state, bool opening) {
+    overlay_panel_request_frame(state.base);
     state.base.animations.animate(state.card_scale, opening ? 1.0f : kPolkitScaleHidden, kPolkitAnimMs, opening ? Easing::EaseOutBack : Easing::EaseInBack, [&state](float v) { state.card_scale = v; }, [&state, opening] {
             if (opening)
                 return;
             state.base.open = false;
             zwlr_layer_surface_v1_set_keyboard_interactivity(state.base.layer_surface, ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
             overlay_panel_update_input_region(state.base);
-            wl_surface_commit(state.base.surface);
-        }, kPolkitCardScaleOwner);
-    overlay_panel_request_frame(state.base);
+            wl_surface_commit(state.base.surface); }, kPolkitCardScaleOwner);
 }
 
 void open_card(PolkitState &state) {
@@ -112,11 +111,7 @@ bool polkit_init_egl(PolkitState &state, Renderer &renderer, WaylandState &app, 
 }
 
 void polkit_retarget(PolkitState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_display *display, Renderer &renderer, WaylandState &app, EGLDisplay egl_display, EGLConfig egl_config, EGLContext egl_context, wl_output *target_output, const char *target_name) {
-    wl_output *bound = overlay_panel_retarget(state.base, display, state.bound_output, target_output, target_name, [&](wl_output *out) {
-            return polkit_create_surface(state, compositor, layer_shell, out);
-        }, [&] {
-            return polkit_init_egl(state, renderer, app, egl_display, egl_config, egl_context);
-        });
+    wl_output *bound = overlay_panel_retarget(state.base, display, state.bound_output, target_output, target_name, [&](wl_output *out) { return polkit_create_surface(state, compositor, layer_shell, out); }, [&] { return polkit_init_egl(state, renderer, app, egl_display, egl_config, egl_context); });
     if (bound)
         state.bound_output = bound;
 }

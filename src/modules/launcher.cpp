@@ -79,7 +79,9 @@ void launcher_search_start(LauncherState &state) {
         auto ms =
             std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - state.search_started_at)
                 .count();
-        klog("launcher: CANCELLING still-running search after %lldms, " "deferring restart", static_cast<long long>(ms));
+        klog("launcher: CANCELLING still-running search after %lldms, "
+             "deferring restart",
+             static_cast<long long>(ms));
         state.pending_kill_dirs = async_process_cancel(state.search_dirs_proc);
         state.pending_kill_files =
             async_process_cancel(state.search_files_proc);
@@ -259,7 +261,9 @@ void launcher_search_start_pending(LauncherState &state) {
             .count();
     if (still_alive && elapsed < kLauncherKillGraceMs)
         return;
-    klog("launcher: pending restart fired (confirmed_dead=%d) after %lldms " "wait", !still_alive, static_cast<long long>(elapsed));
+    klog("launcher: pending restart fired (confirmed_dead=%d) after %lldms "
+         "wait",
+         !still_alive, static_cast<long long>(elapsed));
     state.awaiting_restart = false;
     state.pending_kill_dirs = -1;
     state.pending_kill_files = -1;
@@ -334,7 +338,9 @@ void launcher_toggle(LauncherState &state, bool global) {
         return;
 
     if (state.open) {
-        klog("launcher: CLOSE (was_search_running=%d dirs_pid=%d " "files_pid=%d)", state.search_running, async_process_pid(state.search_dirs_proc), async_process_pid(state.search_files_proc));
+        klog("launcher: CLOSE (was_search_running=%d dirs_pid=%d "
+             "files_pid=%d)",
+             state.search_running, async_process_pid(state.search_dirs_proc), async_process_pid(state.search_files_proc));
         state.search_dirty = false;
         async_process_cancel(state.search_dirs_proc);
         async_process_cancel(state.search_files_proc);
@@ -345,6 +351,7 @@ void launcher_toggle(LauncherState &state, bool global) {
         if (state.sync_text_input_focus)
             state.sync_text_input_focus(false);
 
+        launcher_request_frame(state);
         state.animations.animate(state.opacity, 0.0f, kOverlayFadeMs, Easing::EaseOutCubic, [&state](float v) { state.opacity = v; }, [&state] {
                 state.open = false;
                 state.search.text.clear();
@@ -364,9 +371,7 @@ void launcher_toggle(LauncherState &state, bool global) {
                 DeferredCall::call_later([&state] {
                     if (!state.open)
                         launcher_destroy_surface(state);
-                });
-            }, kOverlayFadeOwner);
-        launcher_request_frame(state);
+                }); }, kOverlayFadeOwner);
         return;
     }
 

@@ -58,6 +58,8 @@ struct Config {
 
     bool logout_animated_logo = true;
 
+    bool animations_disabled = false;
+
     bool idle_management_enabled = true;
     bool ambient_enabled = true;
     uint32_t ambient_timeout_seconds = 150;

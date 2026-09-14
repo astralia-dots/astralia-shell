@@ -45,14 +45,18 @@ void thunder_burst_draw(ThunderBurst &tb, Renderer &renderer, const ThunderParam
 
     if (!tb.bolt_logged) {
         tb.bolt_logged = true;
-        klog("logout: bolt thick=%.3f amp=%.2f intensity=%.3f progress=%.3f " "seed=%.2f quad=%.0fx%.0f a=(%.0f,%.0f) b=(%.0f,%.0f) time=%.2f", p.thick, p.amp, p.intensity, p.progress, p.seed, w, h, ax, ay, bx, by, p.time_s);
+        klog("logout: bolt thick=%.3f amp=%.2f intensity=%.3f progress=%.3f "
+             "seed=%.2f quad=%.0fx%.0f a=(%.0f,%.0f) b=(%.0f,%.0f) time=%.2f",
+             p.thick, p.amp, p.intensity, p.progress, p.seed, w, h, ax, ay, bx, by, p.time_s);
     }
 
     renderer.draw_custom(tb.bolt_program, min_x, min_y, w, h, [&](GLuint prog) {
         static bool loc_logged = false;
         if (!loc_logged) {
             loc_logged = true;
-            klog("logout: bolt loc a_pos=%d size=%d a=%d b=%d seed=%d " "time=%d", glGetAttribLocation(prog, "a_pos"), glGetUniformLocation(prog, "u_size"), glGetUniformLocation(prog, "u_a"), glGetUniformLocation(prog, "u_b"), glGetUniformLocation(prog, "u_seed"), glGetUniformLocation(prog, "u_time"));
+            klog("logout: bolt loc a_pos=%d size=%d a=%d b=%d seed=%d "
+                 "time=%d",
+                 glGetAttribLocation(prog, "a_pos"), glGetUniformLocation(prog, "u_size"), glGetUniformLocation(prog, "u_a"), glGetUniformLocation(prog, "u_b"), glGetUniformLocation(prog, "u_seed"), glGetUniformLocation(prog, "u_time"));
         }
         glUniform2f(glGetUniformLocation(prog, "u_size"), w, h);
         glUniform2f(glGetUniformLocation(prog, "u_a"), ax, ay);
@@ -79,7 +83,9 @@ void thunder_shock_draw(ThunderBurst &tb, Renderer &renderer, const ThunderShock
 
     if (!tb.shock_logged) {
         tb.shock_logged = true;
-        klog("logout: thunder shock draw radius=%.2f intensity=%.3f " "progress=%.3f", p.radius, p.intensity, p.progress);
+        klog("logout: thunder shock draw radius=%.2f intensity=%.3f "
+             "progress=%.3f",
+             p.radius, p.intensity, p.progress);
     }
 
     float min_x = p.cx - p.radius;
@@ -90,15 +96,15 @@ void thunder_shock_draw(ThunderBurst &tb, Renderer &renderer, const ThunderShock
     float lcy = p.cy - min_y;
 
     renderer.draw_custom(tb.shock_program, min_x, min_y, side, side, [&](GLuint prog) {
-            glUniform2f(glGetUniformLocation(prog, "u_size"), side, side);
-            glUniform2f(glGetUniformLocation(prog, "u_center"), lcx, lcy);
-            glUniform1f(glGetUniformLocation(prog, "u_time"), p.time_s);
-            glUniform1f(glGetUniformLocation(prog, "u_progress"), p.progress);
-            glUniform1f(glGetUniformLocation(prog, "u_radius"), p.radius);
-            glUniform1f(glGetUniformLocation(prog, "u_intensity"), p.intensity);
-            glUniform4fv(glGetUniformLocation(prog, "u_core"), 1, p.core);
-            glUniform4fv(glGetUniformLocation(prog, "u_glow"), 1, p.glow);
-        });
+        glUniform2f(glGetUniformLocation(prog, "u_size"), side, side);
+        glUniform2f(glGetUniformLocation(prog, "u_center"), lcx, lcy);
+        glUniform1f(glGetUniformLocation(prog, "u_time"), p.time_s);
+        glUniform1f(glGetUniformLocation(prog, "u_progress"), p.progress);
+        glUniform1f(glGetUniformLocation(prog, "u_radius"), p.radius);
+        glUniform1f(glGetUniformLocation(prog, "u_intensity"), p.intensity);
+        glUniform4fv(glGetUniformLocation(prog, "u_core"), 1, p.core);
+        glUniform4fv(glGetUniformLocation(prog, "u_glow"), 1, p.glow);
+    });
 }
 
 Rect logout_detail_button_rect(int index, float center_x, float center_y) {
@@ -223,8 +229,7 @@ void start_burst(LogoutState &state) {
     state.burst = 0.0f;
     state.base.animations.animate(0.0f, 1.0f, kLogoutBurstMs, Easing::EaseOutCubic, [&state](float v) { state.burst = v; }, [&state] {
             state.input_ready = true;
-            update_highlight(state, state.selected_index);
-        }, kLogoutBurstOwner);
+            update_highlight(state, state.selected_index); }, kLogoutBurstOwner);
 
     for (int i = 0; i < kLogoutButtonCount; ++i) {
         size_t idx = static_cast<size_t>(i);
@@ -251,8 +256,8 @@ void start_slashes(LogoutState &state) {
         size_t idx = static_cast<size_t>(e);
         float delay = static_cast<float>(e) * step;
         schedule_after(state.base.animations, delay, button_gate_owner(e), [&state, idx] {
-                state.base.animations.animate(0.0f, 1.0f, kLogoutSlashMs, Easing::EaseOutCubic, [&state, idx](float v) { state.slash[idx] = v; }, {}, edge_slash_owner(static_cast<int>(idx)));
-            });
+            state.base.animations.animate(0.0f, 1.0f, kLogoutSlashMs, Easing::EaseOutCubic, [&state, idx](float v) { state.slash[idx] = v; }, {}, edge_slash_owner(static_cast<int>(idx)));
+        });
     }
 
     float slash_time =
@@ -280,9 +285,7 @@ void start_open_sequence(LogoutState &state) {
         state.button_travel[static_cast<size_t>(i)] = 0.0f;
     }
 
-    state.base.animations.animate(0.0f, 1.0f, kLogoutLogoAnimMs, Easing::EaseOutBack, [&state](float v) { state.logo_scale = v; }, [&state] {
-            schedule_after(state.base.animations, kLogoutHoldMs, kLogoutHoldOwner, [&state] { start_slashes(state); });
-        }, kLogoutLogoOwner);
+    state.base.animations.animate(0.0f, 1.0f, kLogoutLogoAnimMs, Easing::EaseOutBack, [&state](float v) { state.logo_scale = v; }, [&state] { schedule_after(state.base.animations, kLogoutHoldMs, kLogoutHoldOwner, [&state] { start_slashes(state); }); }, kLogoutLogoOwner);
 }
 
 void start_close_sequence(LogoutState &state) {
@@ -385,11 +388,7 @@ bool logout_init_egl(LogoutState &state, Renderer &renderer, EGLDisplay display,
 }
 
 void logout_retarget(LogoutState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_display *display, Renderer &renderer, EGLDisplay egl_display, EGLConfig egl_config, EGLContext egl_context, wl_output *target_output, const char *target_name) {
-    wl_output *bound = overlay_panel_retarget(state.base, display, state.bound_output, target_output, target_name, [&](wl_output *out) {
-            return logout_create_surface(state, compositor, layer_shell, out);
-        }, [&] {
-            return logout_init_egl(state, renderer, egl_display, egl_config, egl_context);
-        });
+    wl_output *bound = overlay_panel_retarget(state.base, display, state.bound_output, target_output, target_name, [&](wl_output *out) { return logout_create_surface(state, compositor, layer_shell, out); }, [&] { return logout_init_egl(state, renderer, egl_display, egl_config, egl_context); });
     if (bound)
         state.bound_output = bound;
 }
@@ -445,11 +444,12 @@ void logout_toggle(LogoutState &state, bool by_widget) {
         overlay_panel_update_input_region(state.base);
         wl_surface_commit(state.base.surface);
         state.opened_by_widget = by_widget;
+        overlay_panel_request_frame(state.base);
         start_open_sequence(state);
     } else {
+        overlay_panel_request_frame(state.base);
         start_close_sequence(state);
     }
-    overlay_panel_request_frame(state.base);
 }
 
 std::vector<IpcHandler> logout_ipc_handlers(LogoutState &logout, WaylandState &state) {
