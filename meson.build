@@ -1,5 +1,5 @@
 project(
-  'kokusei',
+  'adastria-shell',
   'c',
   'cpp',
   version: '0.1.0',
@@ -35,25 +35,25 @@ gobject_dep        = dependency('gobject-2.0')
 polkit_gobject_dep = dependency('polkit-gobject-1')
 polkit_agent_dep   = dependency('polkit-agent-1')
 
-kokusei_inc = include_directories('src')
+adastria_shell_inc = include_directories('src')
 
-kokusei_data_dir   = get_option('prefix') / get_option('datadir') / 'kokusei'
-kokusei_font_dir   = kokusei_data_dir / 'fonts'
-kokusei_bullet_dir = kokusei_data_dir / 'constellation'
+adastria_shell_data_dir   = get_option('prefix') / get_option('datadir') / 'adastria-shell'
+adastria_shell_font_dir   = adastria_shell_data_dir / 'fonts'
+adastria_shell_bullet_dir = adastria_shell_data_dir / 'constellation'
 
-install_data('assets/fonts/tabler-icons.ttf', install_dir: kokusei_font_dir) # shell-wide icons
-install_data('assets/fonts/YujiMai.ttf', install_dir: kokusei_font_dir)      # logout module
-install_data('assets/stellar-restoration.png', install_dir: kokusei_data_dir)            # default wallpaper
-install_data('assets/stellar-restoration.svg', install_dir: kokusei_data_dir)         # idle screensaver logo (placeholder)
-install_data('assets/stiletto.svg', install_dir: kokusei_data_dir)
-install_data('assets/electro.png', install_dir: kokusei_data_dir)            # password echo glyph
-install_data('assets/gifs/profile.gif', install_dir: kokusei_data_dir / 'gifs') # lock avatar + settings pfp
-install_data('assets/logout/logo.gif', install_dir: kokusei_data_dir / 'logout') # logout centre logo (animated)
-install_data('assets/logout/logo.png', install_dir: kokusei_data_dir / 'logout') # logout centre logo (static)
-install_data('assets/pam/kokusei', install_dir: kokusei_data_dir / 'pam')    # lock PAM service
-install_subdir('assets/shaders', install_dir: kokusei_data_dir)              # all GLES shader sources
+install_data('assets/fonts/tabler-icons.ttf', install_dir: adastria_shell_font_dir) # shell-wide icons
+install_data('assets/fonts/YujiMai.ttf', install_dir: adastria_shell_font_dir)      # logout module
+install_data('assets/stellar-restoration.png', install_dir: adastria_shell_data_dir)            # default wallpaper
+install_data('assets/stellar-restoration.svg', install_dir: adastria_shell_data_dir)         # idle screensaver logo (placeholder)
+install_data('assets/stiletto.svg', install_dir: adastria_shell_data_dir)
+install_data('assets/electro.png', install_dir: adastria_shell_data_dir)            # password echo glyph
+install_data('assets/gifs/profile.gif', install_dir: adastria_shell_data_dir / 'gifs') # lock avatar + settings pfp
+install_data('assets/logout/logo.gif', install_dir: adastria_shell_data_dir / 'logout') # logout centre logo (animated)
+install_data('assets/logout/logo.png', install_dir: adastria_shell_data_dir / 'logout') # logout centre logo (static)
+install_data('assets/pam/adastria-shell', install_dir: adastria_shell_data_dir / 'pam')    # lock PAM service
+install_subdir('assets/shaders', install_dir: adastria_shell_data_dir)              # all GLES shader sources
 foreach n : ['1', '2', '3', '4', '5', '6']                                   # keqing constellations
-  install_data('assets/constellation/C' + n + '.png', install_dir: kokusei_bullet_dir)
+  install_data('assets/constellation/C' + n + '.png', install_dir: adastria_shell_bullet_dir)
 endforeach
 
 wayland_scanner = find_program('wayland-scanner')
@@ -111,7 +111,7 @@ proto_gen_test = [
 # header-only .hpp modules need no entry. *_test_sources are exercised by
 # test/**; *_main_only_sources pull in EGL/GL/cairo/pango/pipewire or generated
 # protocol code and have no test coverage.
-kokusei_core_split_sources = [
+adastria_shell_core_split_sources = [
   'src/core/log.cpp',
   'src/core/poll_source.cpp',
   'src/core/deferred_call.cpp',
@@ -119,7 +119,7 @@ kokusei_core_split_sources = [
   'src/core/path_home.cpp',
 ]
 
-kokusei_render_test_sources = [
+adastria_shell_render_test_sources = [
   'src/render/animation.cpp',
   'src/render/marquee_scroll.cpp',
   'src/render/texture.cpp',
@@ -127,7 +127,7 @@ kokusei_render_test_sources = [
   'src/render/text_elide.cpp',
 ]
 
-kokusei_render_main_only_sources = [
+adastria_shell_render_main_only_sources = [
   'src/render/gl.cpp',
   'src/render/renderer.cpp',
   'src/render/node.cpp',
@@ -150,7 +150,7 @@ kokusei_render_main_only_sources = [
   'src/render/video_texture.cpp',
 ]
 
-kokusei_service_test_sources = [
+adastria_shell_service_test_sources = [
   'src/service/bluetooth_service.cpp',
   'src/service/brightness_service.cpp',
   'src/service/network_service.cpp',
@@ -167,7 +167,7 @@ kokusei_service_test_sources = [
   'src/service/dock_service.cpp',
 ]
 
-kokusei_service_main_only_sources = [
+adastria_shell_service_main_only_sources = [
   'src/service/pipewire_service.cpp',
   'src/service/frame_service.cpp',
   'src/service/hyprland_service.cpp',
@@ -177,11 +177,11 @@ kokusei_service_main_only_sources = [
   'src/service/polkit_service.cpp',
 ]
 
-kokusei_launcher_main_only_sources = [
+adastria_shell_launcher_main_only_sources = [
   'src/modules/launcher.cpp',
 ]
 
-kokusei_launcher_test_sources = [
+adastria_shell_launcher_test_sources = [
   'src/modules/launcher/apps_provider.cpp',
   'src/modules/launcher/desktop_entry.cpp',
   'src/modules/launcher/files_provider.cpp',
@@ -191,9 +191,9 @@ kokusei_launcher_test_sources = [
   'src/modules/launcher/visit_store.cpp',
 ]
 
-kokusei_bar_test_sources = []
+adastria_shell_bar_test_sources = []
 
-kokusei_bar_panels_main_only_sources = [
+adastria_shell_bar_panels_main_only_sources = [
   'src/modules/bar/panel/tray_panel.cpp',
   'src/modules/bar/panel/network_panel.cpp',
   'src/modules/bar/panel/bluetooth_panel.cpp',
@@ -203,7 +203,7 @@ kokusei_bar_panels_main_only_sources = [
   'src/modules/bar/panel/clock_panel.cpp',
 ]
 
-kokusei_bar_main_only_sources = [
+adastria_shell_bar_main_only_sources = [
   'src/modules/bar.cpp',
   'src/modules/bar/widget/widget_capsule.cpp',
   'src/modules/bar/widget/clock_widget.cpp',
@@ -219,20 +219,20 @@ kokusei_bar_main_only_sources = [
   'src/modules/bar/widget/volume_widget.cpp',
 ]
 
-kokusei_idle_main_only_sources = [
+adastria_shell_idle_main_only_sources = [
   'src/modules/idle.cpp',
 ]
 
-kokusei_lock_test_sources = [
+adastria_shell_lock_test_sources = [
   'src/modules/lock/layout.cpp',
 ]
 
-kokusei_lock_main_only_sources = [
+adastria_shell_lock_main_only_sources = [
   'src/modules/lock.cpp',
   'src/modules/lock/pam_authenticator.cpp',
 ]
 
-kokusei_overlay_main_only_sources = [
+adastria_shell_overlay_main_only_sources = [
   'src/modules/dock.cpp',
   'src/modules/osd.cpp',
   'src/modules/wallpaper.cpp',
@@ -252,15 +252,15 @@ kokusei_overlay_main_only_sources = [
   'src/modules/polkit.cpp',
 ]
 
-kokusei_visualizer_test_sources = [
+adastria_shell_visualizer_test_sources = [
   'src/modules/visualizer/fft.cpp',
 ]
 
-kokusei_app_test_sources = [
+adastria_shell_app_test_sources = [
   'src/app/config.cpp',
 ]
 
-kokusei_app_main_only_sources = [
+adastria_shell_app_main_only_sources = [
   'src/app/single_instance_lock.cpp',
   'src/app/ipc.cpp',
   'src/app/key_dispatch.cpp',
@@ -271,7 +271,7 @@ kokusei_app_main_only_sources = [
   'src/app/wayland_registry.cpp',
 ]
 
-kokusei_settings_main_only_sources = [
+adastria_shell_settings_main_only_sources = [
   'src/modules/settings.cpp',
   'src/modules/settings/wallpaper_tab.cpp',
   'src/modules/settings/displays_tab.cpp',
@@ -282,36 +282,36 @@ kokusei_settings_main_only_sources = [
   'src/modules/settings/animation_tab.cpp',
 ]
 
-kokusei_split_sources = [
-  kokusei_core_split_sources,
-  kokusei_render_test_sources,
-  kokusei_render_main_only_sources,
-  kokusei_service_test_sources,
-  kokusei_service_main_only_sources,
-  kokusei_launcher_test_sources,
-  kokusei_launcher_main_only_sources,
-  kokusei_idle_main_only_sources,
-  kokusei_lock_test_sources,
-  kokusei_lock_main_only_sources,
-  kokusei_overlay_main_only_sources,
-  kokusei_visualizer_test_sources,
-  kokusei_app_test_sources,
-  kokusei_app_main_only_sources,
-  kokusei_settings_main_only_sources,
-  kokusei_bar_test_sources,
-  kokusei_bar_panels_main_only_sources,
-  kokusei_bar_main_only_sources,
+adastria_shell_split_sources = [
+  adastria_shell_core_split_sources,
+  adastria_shell_render_test_sources,
+  adastria_shell_render_main_only_sources,
+  adastria_shell_service_test_sources,
+  adastria_shell_service_main_only_sources,
+  adastria_shell_launcher_test_sources,
+  adastria_shell_launcher_main_only_sources,
+  adastria_shell_idle_main_only_sources,
+  adastria_shell_lock_test_sources,
+  adastria_shell_lock_main_only_sources,
+  adastria_shell_overlay_main_only_sources,
+  adastria_shell_visualizer_test_sources,
+  adastria_shell_app_test_sources,
+  adastria_shell_app_main_only_sources,
+  adastria_shell_settings_main_only_sources,
+  adastria_shell_bar_test_sources,
+  adastria_shell_bar_panels_main_only_sources,
+  adastria_shell_bar_main_only_sources,
 ]
 
-kokusei_test_split_sources = [
-  kokusei_core_split_sources,
-  kokusei_render_test_sources,
-  kokusei_service_test_sources,
-  kokusei_launcher_test_sources,
-  kokusei_lock_test_sources,
-  kokusei_bar_test_sources,
-  kokusei_visualizer_test_sources,
-  kokusei_app_test_sources,
+adastria_shell_test_split_sources = [
+  adastria_shell_core_split_sources,
+  adastria_shell_render_test_sources,
+  adastria_shell_service_test_sources,
+  adastria_shell_launcher_test_sources,
+  adastria_shell_lock_test_sources,
+  adastria_shell_bar_test_sources,
+  adastria_shell_visualizer_test_sources,
+  adastria_shell_app_test_sources,
 ]
 
 # ffmpeg's SONAME isn't stable across releases (see readme.md), so the only
@@ -319,10 +319,10 @@ kokusei_test_split_sources = [
 # only disables animated content (loader falls back gracefully) instead of
 # blocking startup.
 media_plugin = shared_module(
-  'kokusei-media',
+  'adastria-shell-media',
   'src/service/media_plugin.cpp',
   'src/core/log.cpp', # klog() isn't exported by the host (no -rdynamic); the plugin needs its own copy
-  include_directories: kokusei_inc,
+  include_directories: adastria_shell_inc,
   dependencies: [
     libavformat_dep,
     libavcodec_dep,
@@ -331,15 +331,15 @@ media_plugin = shared_module(
     libdrm_dep,
   ],
   install: true,
-  install_dir: kokusei_data_dir / 'plugins',
+  install_dir: adastria_shell_data_dir / 'plugins',
 )
 
 executable(
-  'kokusei',
-  'src/kokusei.cpp',
-  kokusei_split_sources,
+  'adastria-shell',
+  'src/adastria-shell.cpp',
+  adastria_shell_split_sources,
   proto_gen_all,
-  include_directories: kokusei_inc,
+  include_directories: adastria_shell_inc,
   dependencies: [
     wayland_client_dep,
     wayland_egl_dep,
@@ -365,28 +365,28 @@ executable(
     polkit_agent_dep,
   ],
   cpp_args: [
-    '-DKOKUSEI_FONT_DIR="' + kokusei_font_dir + '"',
-    '-DKOKUSEI_SHADER_DIR="' + kokusei_data_dir / 'shaders' + '"',
-    '-DKOKUSEI_DEFAULT_WALLPAPER="' + kokusei_data_dir / 'stellar-restoration.png' + '"',
-    '-DKOKUSEI_BULLET_DIR="' + kokusei_bullet_dir + '"',
-    '-DKOKUSEI_YUJIMAI_FONT="' + kokusei_font_dir / 'YujiMai.ttf' + '"',
-    '-DKOKUSEI_LOGOUT_LOGO="' + kokusei_data_dir / 'logout/logo.gif' + '"',
-    '-DKOKUSEI_LOGOUT_LOGO_STATIC="' + kokusei_data_dir / 'logout/logo.png' + '"',
-    '-DKOKUSEI_IDLE_LOGO="' + kokusei_data_dir / 'stellar-restoration.svg' + '"',
-    '-DKOKUSEI_STILETTO_SPRITE="' + kokusei_data_dir / 'stiletto.svg' + '"',
-    '-DKOKUSEI_INPUT_ECHO="' + kokusei_data_dir / 'electro.png' + '"',
-    '-DKOKUSEI_PAM_DIR="' + kokusei_data_dir / 'pam' + '"',
-    '-DKOKUSEI_PROFILE_MEDIA="' + kokusei_data_dir / 'gifs/profile.gif' + '"',
-    '-DKOKUSEI_MEDIA_PLUGIN="' + kokusei_data_dir / 'plugins/libkokusei-media.so' + '"',
+    '-DADASTRIA_SHELL_FONT_DIR="' + adastria_shell_font_dir + '"',
+    '-DADASTRIA_SHELL_SHADER_DIR="' + adastria_shell_data_dir / 'shaders' + '"',
+    '-DADASTRIA_SHELL_DEFAULT_WALLPAPER="' + adastria_shell_data_dir / 'stellar-restoration.png' + '"',
+    '-DADASTRIA_SHELL_BULLET_DIR="' + adastria_shell_bullet_dir + '"',
+    '-DADASTRIA_SHELL_YUJIMAI_FONT="' + adastria_shell_font_dir / 'YujiMai.ttf' + '"',
+    '-DADASTRIA_SHELL_LOGOUT_LOGO="' + adastria_shell_data_dir / 'logout/logo.gif' + '"',
+    '-DADASTRIA_SHELL_LOGOUT_LOGO_STATIC="' + adastria_shell_data_dir / 'logout/logo.png' + '"',
+    '-DADASTRIA_SHELL_IDLE_LOGO="' + adastria_shell_data_dir / 'stellar-restoration.svg' + '"',
+    '-DADASTRIA_SHELL_STILETTO_SPRITE="' + adastria_shell_data_dir / 'stiletto.svg' + '"',
+    '-DADASTRIA_SHELL_INPUT_ECHO="' + adastria_shell_data_dir / 'electro.png' + '"',
+    '-DADASTRIA_SHELL_PAM_DIR="' + adastria_shell_data_dir / 'pam' + '"',
+    '-DADASTRIA_SHELL_PROFILE_MEDIA="' + adastria_shell_data_dir / 'gifs/profile.gif' + '"',
+    '-DADASTRIA_SHELL_MEDIA_PLUGIN="' + adastria_shell_data_dir / 'plugins/libadastria-shell-media.so' + '"',
   ],
   install: true,
   install_dir: 'bin',
 )
 
-kokusei_test = executable(
-  'kokusei-test',
-  'test/kokusei-test.cpp',
-  kokusei_test_split_sources,
+adastria_shell_test = executable(
+  'adastria-shell-test',
+  'test/adastria-shell-test.cpp',
+  adastria_shell_test_split_sources,
   proto_gen_test,
   'test/app/test_config.cpp',
   'test/app/test_wallpaper_resolve.cpp',
@@ -413,7 +413,7 @@ kokusei_test = executable(
   'test/render/test_text_elide.cpp',
   'test/lock/test_layout.cpp',
   'test/visualizer/test_fft.cpp',
-  include_directories: kokusei_inc,
+  include_directories: adastria_shell_inc,
   dependencies: [
     threads_dep,
     xkbcommon_dep,
@@ -432,11 +432,11 @@ kokusei_test = executable(
   ],
   cpp_args: [
     # Source asset, not the install dir, so the test runs uninstalled.
-    '-DKOKUSEI_DEFAULT_WALLPAPER="' + meson.current_source_dir() / 'assets/stellar-restoration.png' + '"',
-    '-DKOKUSEI_BULLET_DIR="' + kokusei_bullet_dir + '"',
-    '-DKOKUSEI_FONT_DIR="' + kokusei_font_dir + '"',
-    '-DKOKUSEI_MEDIA_PLUGIN="' + kokusei_data_dir / 'plugins/libkokusei-media.so' + '"',
+    '-DADASTRIA_SHELL_DEFAULT_WALLPAPER="' + meson.current_source_dir() / 'assets/stellar-restoration.png' + '"',
+    '-DADASTRIA_SHELL_BULLET_DIR="' + adastria_shell_bullet_dir + '"',
+    '-DADASTRIA_SHELL_FONT_DIR="' + adastria_shell_font_dir + '"',
+    '-DADASTRIA_SHELL_MEDIA_PLUGIN="' + adastria_shell_data_dir / 'plugins/libadastria-shell-media.so' + '"',
   ],
 )
 
-test('kokusei', kokusei_test)
+test('adastria-shell', adastria_shell_test)

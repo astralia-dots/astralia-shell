@@ -35,7 +35,7 @@ struct MonitorOverride {
 };
 
 struct Config {
-    std::string wallpaper_path = KOKUSEI_DEFAULT_WALLPAPER;
+    std::string wallpaper_path = ADASTRIA_SHELL_DEFAULT_WALLPAPER;
     std::string wallpaper_dir = default_wallpaper_dir();
 
     std::map<std::string, std::vector<std::string>> wallpaper_columns;

@@ -13,11 +13,11 @@ cmd_build() {
 	else
 		meson setup --prefix=/usr build
 	fi
-	ninja -C build -j "${KOKUSEI_BUILD_JOBS:-4}"
+	ninja -C build -j "${ADASTRIA_SHELL_BUILD_JOBS:-4}"
 }
 
 cmd_install() { cmd_build; sudo ninja -C build install; }
-cmd_run() { kokusei kill || true; cmd_install; kokusei; }
+cmd_run() { adastria-shell kill || true; cmd_install; adastria-shell; }
 cmd_test() { cmd_build; meson test -C build --print-errorlogs; }
 cmd_uninstall() { sudo ninja -C build uninstall; }
 

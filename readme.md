@@ -1,4 +1,4 @@
-# Kokusei
+# Adastria Shell
 
 ## Important
 
@@ -17,8 +17,8 @@ sudo pacman -Syu --needed base-devel meson ninja mesa wayland wayland-protocols 
 ## Installation
 
 ```bash
-git clone https://github.com/Hq9afk/kokusei.git
-cd kokusei
+git clone https://github.com/Hq9afk/adastria-shell.git
+cd adastria-shell
 ./build.sh install
 ```
 
@@ -26,11 +26,11 @@ cd kokusei
 
 **Regular mode**
 ```bash
-kokusei
+adastria-shell
 ```
 
 **Debug mode**
 ```bash
-kokusei debug
+adastria-shell debug
 ```
-Or run kokusei in regular mode and read the logs at `~/.local/state/kokusei/kokusei.log`
+Or run adastria-shell in regular mode and read the logs at `~/.local/state/adastria-shell/adastria-shell.log`

@@ -84,7 +84,7 @@ float panel_height(const std::vector<PanelRow> &rows) {
 } // namespace bluetooth_panel_detail
 
 bool bluetooth_panel_create_surface(BluetoothPanelState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
-    return overlay_panel_create_surface(state.base, compositor, layer_shell, "kokusei-bluetooth-panel", output);
+    return overlay_panel_create_surface(state.base, compositor, layer_shell, "adastria-shell-bluetooth-panel", output);
 }
 
 bool bluetooth_panel_init_egl(BluetoothPanelState &state, Renderer &renderer, BluetoothState &bt, EGLDisplay display, EGLConfig config, EGLContext context) {

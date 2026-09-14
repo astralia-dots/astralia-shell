@@ -10,7 +10,7 @@ void test_text_elide() {
     assert(elide_middle("/home/user/a", 12) == "/home/user/a");
 
     std::string m =
-        elide_middle("/home/user/projects/kokusei/src/file.cpp", 20);
+        elide_middle("/home/user/projects/adastria-shell/src/file.cpp", 20);
     assert(m.find("…") != std::string::npos);
     assert(m.front() == '/');
     assert(m.back() == 'p');

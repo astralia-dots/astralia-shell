@@ -7,8 +7,8 @@
 
 #include "app/user_info.h"
 
-#ifndef KOKUSEI_PROFILE_MEDIA
-#define KOKUSEI_PROFILE_MEDIA ""
+#ifndef ADASTRIA_SHELL_PROFILE_MEDIA
+#define ADASTRIA_SHELL_PROFILE_MEDIA ""
 #endif
 
 namespace user_info {
@@ -52,7 +52,7 @@ std::string uptime_string() {
 }
 
 std::string profile_media_path() {
-    const char *candidates[] = {KOKUSEI_PROFILE_MEDIA,
+    const char *candidates[] = {ADASTRIA_SHELL_PROFILE_MEDIA,
                                 "assets/gifs/profile.gif"};
     for (const char *c : candidates) {
         if (c && *c) {

@@ -37,7 +37,7 @@ bool VisualizerAudioCapture::start() {
     have_data_ = false;
 
     pw_init(nullptr, nullptr);
-    loop_ = pw_thread_loop_new("kokusei-visualizer-audio", nullptr);
+    loop_ = pw_thread_loop_new("adastria-shell-visualizer-audio", nullptr);
     if (!loop_) {
         klog("visualizer_audio: failed to create pw_thread_loop");
         return false;
@@ -49,11 +49,11 @@ bool VisualizerAudioCapture::start() {
         return false;
     }
 
-    pw_properties *props = pw_properties_new(PW_KEY_MEDIA_TYPE, "Audio", PW_KEY_MEDIA_CATEGORY, "Capture", PW_KEY_MEDIA_ROLE, "Music", PW_KEY_MEDIA_NAME, "kokusei visualizer", PW_KEY_NODE_ALWAYS_PROCESS, "true", PW_KEY_STREAM_CAPTURE_SINK, "true", nullptr);
+    pw_properties *props = pw_properties_new(PW_KEY_MEDIA_TYPE, "Audio", PW_KEY_MEDIA_CATEGORY, "Capture", PW_KEY_MEDIA_ROLE, "Music", PW_KEY_MEDIA_NAME, "adastria-shell visualizer", PW_KEY_NODE_ALWAYS_PROCESS, "true", PW_KEY_STREAM_CAPTURE_SINK, "true", nullptr);
 
     pw_thread_loop_lock(loop_);
 
-    stream_ = pw_stream_new(core_, "kokusei-visualizer", props);
+    stream_ = pw_stream_new(core_, "adastria-shell-visualizer", props);
     static const pw_stream_events events = [] {
         pw_stream_events e{};
         e.version = PW_VERSION_STREAM_EVENTS;

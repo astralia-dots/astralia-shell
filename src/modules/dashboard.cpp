@@ -34,7 +34,7 @@ constexpr Color kGaugeColorDisk = color(kGaugeColorDiskHex);
 constexpr Color kTempWarnColor = color(kTempWarnColorHex);
 
 bool dashboard_create_surface(DashboardState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
-    return overlay_panel_create_surface(state.base, compositor, layer_shell, "kokusei-dashboard", output);
+    return overlay_panel_create_surface(state.base, compositor, layer_shell, "adastria-shell-dashboard", output);
 }
 
 bool dashboard_init_egl(DashboardState &state, Renderer &renderer, WaylandState &app, EGLDisplay display, EGLConfig config, EGLContext context) {

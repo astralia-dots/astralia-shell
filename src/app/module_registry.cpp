@@ -601,7 +601,7 @@ class LockModule final : public Module {
         state_.panel_gated_for = [&app](const std::string &output_name) {
             return lock_effective_enabled(app.cfg, output_name);
         };
-        state_.echo_glyph = load_image_texture_first_existing({KOKUSEI_INPUT_ECHO, "assets/electro.png"});
+        state_.echo_glyph = load_image_texture_first_existing({ADASTRIA_SHELL_INPUT_ECHO, "assets/electro.png"});
         return true;
     }
 

@@ -514,7 +514,7 @@ std::vector<MediaFrame> decode_frames(std::string path, std::string filter_desc,
 
 } // namespace
 
-extern "C" MediaDecodePlayback kokusei_media_plugin_stream(const std::string &path, const std::string &filter_desc, int fps, bool supports_row_length, MediaDecodeFrameCallback on_frame, MediaDecodeDrmFrameCallback on_drm_frame) {
+extern "C" MediaDecodePlayback adastria_shell_media_plugin_stream(const std::string &path, const std::string &filter_desc, int fps, bool supports_row_length, MediaDecodeFrameCallback on_frame, MediaDecodeDrmFrameCallback on_drm_frame) {
     MediaDecodePlayback playback;
     playback.stop_flag = std::make_shared<std::atomic<bool>>(false);
     playback.pause_flag = std::make_shared<std::atomic<bool>>(false);
@@ -525,11 +525,11 @@ extern "C" MediaDecodePlayback kokusei_media_plugin_stream(const std::string &pa
 }
 
 extern "C" std::vector<MediaFrame>
-kokusei_media_plugin_frames(const std::string &path, const std::string &filter_desc, int max_frames) {
+adastria_shell_media_plugin_frames(const std::string &path, const std::string &filter_desc, int max_frames) {
     return decode_frames(path, filter_desc, max_frames);
 }
 
-extern "C" void kokusei_media_plugin_release_drm_frame(void *avframe_handle) {
+extern "C" void adastria_shell_media_plugin_release_drm_frame(void *avframe_handle) {
     if (!avframe_handle)
         return;
     auto *frame = static_cast<AVFrame *>(avframe_handle);

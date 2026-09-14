@@ -63,7 +63,7 @@ std::string settings_detail_format_field(const Config &cfg, SettingsFieldId id, 
 }
 
 bool settings_create_surface(SettingsState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
-    return overlay_panel_create_surface(state.base, compositor, layer_shell, "kokusei-settings", output);
+    return overlay_panel_create_surface(state.base, compositor, layer_shell, "adastria-shell-settings", output);
 }
 
 bool settings_init_egl(SettingsState &state, const Config &cfg, Renderer &renderer, EGLDisplay display, EGLConfig config, EGLContext context, std::function<std::vector<std::string>()> monitor_names_fn, std::function<std::string()> focused_monitor_fn, std::function<MediaDecodeStatus(const std::string &, int)> wallpaper_decode_status_fn) {

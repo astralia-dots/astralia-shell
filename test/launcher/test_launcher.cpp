@@ -21,7 +21,7 @@
 #include "service/icon_service.h"
 
 void test_spawn_helpers() {
-    std::string marker = "/tmp/kokusei_test_spawn_" + std::to_string(getpid());
+    std::string marker = "/tmp/adastria_shell_test_spawn_" + std::to_string(getpid());
     spawn_detached("touch " + marker);
 
     bool created = false;
@@ -76,7 +76,7 @@ void test_desktop_entry() {
 }
 
 void test_visit_store() {
-    std::string path = "/tmp/kokusei_test_visits_" + std::to_string(getpid());
+    std::string path = "/tmp/adastria_shell_test_visits_" + std::to_string(getpid());
 
     VisitStore vs = visit_store_load(path);
     assert(visit_store_get(vs, visit_store_app_key("firefox.desktop")) == 0);
@@ -154,7 +154,7 @@ void test_files_provider() {
     assert(basename_of("/home/user/") == "user");
     assert(basename_of("/") == "/");
 
-    std::string tmp_dir = "/tmp/kokusei_test_fd_" + std::to_string(getpid());
+    std::string tmp_dir = "/tmp/adastria_shell_test_fd_" + std::to_string(getpid());
     system(("mkdir -p " + tmp_dir + "/subdir && touch " + tmp_dir + "/hello.txt").c_str());
 
     auto files = run_fd_search("**/*hello*", tmp_dir, false, 10);
@@ -229,7 +229,7 @@ void test_search() {
     std::vector<FileEntry> files = {dir_entry, file_entry};
 
     VisitStore visits;
-    visits.path = "/tmp/kokusei_test_search_unused";
+    visits.path = "/tmp/adastria_shell_test_search_unused";
     visit_store_record(visits, visit_store_app_key("b.desktop"));
 
     auto results = combined_drun_results(apps, files, visits, 10);

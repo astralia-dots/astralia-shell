@@ -199,7 +199,7 @@ bool point_in_rect(double px, double py, const Rect &r) {
 } // namespace
 
 bool overview_create_surface(OverviewState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
-    return overlay_panel_create_surface(state.base, compositor, layer_shell, "kokusei-overview", output);
+    return overlay_panel_create_surface(state.base, compositor, layer_shell, "adastria-shell-overview", output);
 }
 
 bool overview_init_egl(OverviewState &state, Renderer &renderer, EGLDisplay display, EGLConfig config, EGLContext context) {

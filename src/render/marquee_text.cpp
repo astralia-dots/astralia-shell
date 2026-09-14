@@ -8,7 +8,7 @@ void draw_marquee_text(Node *parent, TextureCache &cache, AnimationManager &anim
     if (!tex)
         return;
 
-    if (!state.marqueeing) {
+    if (static_cast<float>(tex->width) <= w) {
         node_add_texture(parent, x, y, *tex, color);
         return;
     }

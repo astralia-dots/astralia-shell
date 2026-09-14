@@ -217,7 +217,7 @@ void visualizer_shutdown(VisualizerState &state) {
 
 void visualizer_toggle(VisualizerState &state, WaylandState &app) {
     if (state.base.egl_surface == EGL_NO_SURFACE) {
-        if (!toplevel_window_create_surface(state.base, app.compositor, app.wm_base, "Visualizer", "kokusei-visualizer", kVisualizerDefaultWindow, kVisualizerDefaultWindow))
+        if (!toplevel_window_create_surface(state.base, app.compositor, app.wm_base, "Visualizer", "adastria-shell-visualizer", kVisualizerDefaultWindow, kVisualizerDefaultWindow))
             return;
         while (!state.base.configured)
             wl_display_dispatch(app.display);

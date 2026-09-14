@@ -57,7 +57,7 @@ float panel_height(const std::vector<PanelRow> &rows) {
 } // namespace volume_panel_detail
 
 bool volume_panel_create_surface(VolumePanelState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
-    return overlay_panel_create_surface(state.base, compositor, layer_shell, "kokusei-volume-panel", output);
+    return overlay_panel_create_surface(state.base, compositor, layer_shell, "adastria-shell-volume-panel", output);
 }
 
 bool volume_panel_init_egl(VolumePanelState &state, Renderer &renderer, PipewireState &pw, EGLDisplay display, EGLConfig config, EGLContext context) {

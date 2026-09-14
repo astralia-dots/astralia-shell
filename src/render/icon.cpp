@@ -24,7 +24,7 @@ IconFont &icon_font() {
             return f;
         }
         const char *candidates[] = {
-            KOKUSEI_FONT_DIR "/tabler-icons.ttf",
+            ADASTRIA_SHELL_FONT_DIR "/tabler-icons.ttf",
             "assets/fonts/tabler-icons.ttf",
         };
         for (const char *path : candidates) {
@@ -82,7 +82,7 @@ RasterizedText rasterize_icon(const std::string &codepoint_utf8, int32_t scale, 
     cairo_matrix_init_scale(&font_matrix, px * scale, px * scale);
     cairo_matrix_t ctm;
     cairo_matrix_init_identity(&ctm);
-    cairo_scaled_font_t *scaled_font = cairo_scaled_font_create(font.cairo_face, &font_matrix, &ctm, kokusei_icon_font_options());
+    cairo_scaled_font_t *scaled_font = cairo_scaled_font_create(font.cairo_face, &font_matrix, &ctm, adastria_shell_icon_font_options());
 
     cairo_glyph_t measure_glyph = {glyph_index, 0, 0};
     cairo_text_extents_t extents;

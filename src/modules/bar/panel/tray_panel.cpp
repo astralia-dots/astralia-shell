@@ -285,7 +285,7 @@ const Texture *tray_panel_detail_item_icon_texture(TrayPanelState &state, const 
 }
 
 bool tray_panel_create_surface(TrayPanelState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
-    return overlay_panel_create_surface(state.base, compositor, layer_shell, "kokusei-tray-panel", output);
+    return overlay_panel_create_surface(state.base, compositor, layer_shell, "adastria-shell-tray-panel", output);
 }
 
 bool tray_panel_init_egl(TrayPanelState &state, Renderer &renderer, TrayState &tray, EGLDisplay display, EGLConfig config, EGLContext context) {

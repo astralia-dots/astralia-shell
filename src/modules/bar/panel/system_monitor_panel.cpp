@@ -46,7 +46,7 @@ float panel_height(const std::vector<PanelRow> &rows) {
 } // namespace system_monitor_panel_detail
 
 bool system_monitor_panel_create_surface(SystemMonitorPanelState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
-    return overlay_panel_create_surface(state.base, compositor, layer_shell, "kokusei-system-monitor-panel", output);
+    return overlay_panel_create_surface(state.base, compositor, layer_shell, "adastria-shell-system-monitor-panel", output);
 }
 
 bool system_monitor_panel_init_egl(SystemMonitorPanelState &state, Renderer &renderer, const CpuTempState &cpu_temp, const GpuTempState &gpu_temp, const SystemStatsState &stats, EGLDisplay display, EGLConfig config, EGLContext context) {

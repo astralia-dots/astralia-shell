@@ -10,7 +10,7 @@
 #include "app/config.h"
 
 void test_config() {
-    char tmp_template[] = "/tmp/kokusei_test_config_XXXXXX";
+    char tmp_template[] = "/tmp/adastria_shell_test_config_XXXXXX";
     char *tmp_dir = mkdtemp(tmp_template);
     assert(tmp_dir != nullptr);
 
@@ -18,7 +18,7 @@ void test_config() {
     std::string old_home_str = old_home ? old_home : "";
     setenv("HOME", tmp_dir, 1);
 
-    std::string config_dir = std::string(tmp_dir) + "/.config/kokusei";
+    std::string config_dir = std::string(tmp_dir) + "/.config/adastria-shell";
     mkdir((std::string(tmp_dir) + "/.config").c_str(), 0755);
 
     std::string path = config_path();
@@ -47,7 +47,7 @@ void test_config() {
 
 void test_config_watch() {
     std::string path =
-        "/tmp/kokusei_test_config_watch_" + std::to_string(getpid()) + ".json";
+        "/tmp/adastria_shell_test_config_watch_" + std::to_string(getpid()) + ".json";
     {
         std::ofstream f(path);
         f << "{\"idle\":{\"timeoutSeconds\":300}}";

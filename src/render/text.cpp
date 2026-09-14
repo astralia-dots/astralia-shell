@@ -42,25 +42,25 @@ Texture make_text_texture(const std::string &text, int32_t scale) {
     return make_texture_from_raster(rasterize_text(text, scale));
 }
 
-PangoFontDescription *kokusei_font_description() {
+PangoFontDescription *adastria_shell_font_description() {
     static PangoFontDescription *desc =
-        pango_font_description_from_string(KOKUSEI_FONT);
+        pango_font_description_from_string(ADASTRIA_SHELL_FONT);
     return desc;
 }
 
-PangoFontDescription *kokusei_font_description_small() {
+PangoFontDescription *adastria_shell_font_description_small() {
     static PangoFontDescription *desc =
-        pango_font_description_from_string(KOKUSEI_FONT_SMALL);
+        pango_font_description_from_string(ADASTRIA_SHELL_FONT_SMALL);
     return desc;
 }
 
-PangoFontDescription *kokusei_font_description_large() {
+PangoFontDescription *adastria_shell_font_description_large() {
     static PangoFontDescription *desc =
-        pango_font_description_from_string(KOKUSEI_FONT_LARGE);
+        pango_font_description_from_string(ADASTRIA_SHELL_FONT_LARGE);
     return desc;
 }
 
-cairo_font_options_t *kokusei_font_options() {
+cairo_font_options_t *adastria_shell_font_options() {
     static cairo_font_options_t *options = [] {
         cairo_font_options_t *opts = cairo_font_options_create();
         cairo_font_options_set_antialias(opts, CAIRO_ANTIALIAS_GRAY);
@@ -71,7 +71,7 @@ cairo_font_options_t *kokusei_font_options() {
     return options;
 }
 
-cairo_font_options_t *kokusei_icon_font_options() {
+cairo_font_options_t *adastria_shell_icon_font_options() {
     static cairo_font_options_t *options = [] {
         cairo_font_options_t *opts = cairo_font_options_create();
         cairo_font_options_set_antialias(opts, CAIRO_ANTIALIAS_GRAY);
@@ -93,14 +93,14 @@ void font_ascent_descent(PangoFontDescription *desc, int &ascent, int &descent) 
     g_object_unref(context);
 }
 
-float kokusei_text_advance() {
+float adastria_shell_text_advance() {
     static float advance = [] {
         cairo_surface_t *surface =
             cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1, 1);
         cairo_t *cr = cairo_create(surface);
-        cairo_set_font_options(cr, kokusei_font_options());
+        cairo_set_font_options(cr, adastria_shell_font_options());
         PangoLayout *layout = pango_cairo_create_layout(cr);
-        pango_layout_set_font_description(layout, kokusei_font_description());
+        pango_layout_set_font_description(layout, adastria_shell_font_description());
         pango_layout_set_text(layout, "M", -1);
 
         PangoRectangle ink_rect, logical_rect;
@@ -119,7 +119,7 @@ RasterizedText rasterize_text_with(const std::string &text, PangoFontDescription
     cairo_surface_t *measure_surface =
         cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1, 1);
     cairo_t *measure_cr = cairo_create(measure_surface);
-    cairo_set_font_options(measure_cr, kokusei_font_options());
+    cairo_set_font_options(measure_cr, adastria_shell_font_options());
     PangoLayout *measure_layout = pango_cairo_create_layout(measure_cr);
     pango_layout_set_font_description(measure_layout, desc);
     pango_layout_set_text(measure_layout, text.c_str(), -1);
@@ -148,7 +148,7 @@ RasterizedText rasterize_text_with(const std::string &text, PangoFontDescription
     cairo_surface_t *surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, pixel_width, pixel_height);
     cairo_t *cr = cairo_create(surface);
     cairo_scale(cr, scale, scale);
-    cairo_set_font_options(cr, kokusei_font_options());
+    cairo_set_font_options(cr, adastria_shell_font_options());
     PangoLayout *layout = pango_cairo_create_layout(cr);
     pango_layout_set_font_description(layout, desc);
     pango_layout_set_text(layout, text.c_str(), -1);
@@ -172,15 +172,15 @@ RasterizedText rasterize_text_with(const std::string &text, PangoFontDescription
 }
 
 RasterizedText rasterize_text(const std::string &text, int32_t scale, int max_width_px) {
-    return rasterize_text_with(text, kokusei_font_description(), scale, max_width_px);
+    return rasterize_text_with(text, adastria_shell_font_description(), scale, max_width_px);
 }
 
 RasterizedText rasterize_text_small(const std::string &text, int32_t scale, int max_width_px) {
-    return rasterize_text_with(text, kokusei_font_description_small(), scale, max_width_px);
+    return rasterize_text_with(text, adastria_shell_font_description_small(), scale, max_width_px);
 }
 
 RasterizedText rasterize_text_large(const std::string &text, int32_t scale, int max_width_px) {
-    return rasterize_text_with(text, kokusei_font_description_large(), scale, max_width_px);
+    return rasterize_text_with(text, adastria_shell_font_description_large(), scale, max_width_px);
 }
 
 RasterizedText rasterize_text_px(const std::string &text, int px, bool bold, int32_t scale, int max_width_px) {

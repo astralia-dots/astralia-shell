@@ -125,7 +125,7 @@ float sub_panel_height(const std::string &mode) {
 } // namespace network_panel_detail
 
 bool network_panel_create_surface(NetworkPanelState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
-    return overlay_panel_create_surface(state.base, compositor, layer_shell, "kokusei-network-panel", output);
+    return overlay_panel_create_surface(state.base, compositor, layer_shell, "adastria-shell-network-panel", output);
 }
 
 bool network_panel_init_egl(NetworkPanelState &state, Renderer &renderer, NetworkState &net, EGLDisplay display, EGLConfig config, EGLContext context) {
@@ -501,7 +501,7 @@ void network_panel_paint(NetworkPanelState &state, NetworkState &net, float pill
             Rect field_rect = {inner_x, iy, inner_w, kPanelSubPanelRowHeight};
             node_add_rrect(root, field_rect.x, field_rect.y, field_rect.w, field_rect.h, 6.0f, 1.0f, rgba(palette::text_alpha08), rgba(palette::text_alpha15));
             if (state.password_dot_tex.id == 0) {
-                const char *dot_candidates[] = {KOKUSEI_INPUT_ECHO,
+                const char *dot_candidates[] = {ADASTRIA_SHELL_INPUT_ECHO,
                                                 "assets/electro.png"};
                 std::string dot_path = dot_candidates[1];
                 for (const char *candidate : dot_candidates) {

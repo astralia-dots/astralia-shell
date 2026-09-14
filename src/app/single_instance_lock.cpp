@@ -15,7 +15,7 @@ std::string single_instance_lock_path() {
     const char *runtime_dir = getenv("XDG_RUNTIME_DIR");
     if (!runtime_dir)
         runtime_dir = "/tmp";
-    return std::string(runtime_dir) + "/kokusei.lock";
+    return std::string(runtime_dir) + "/adastria-shell.lock";
 }
 
 } // namespace

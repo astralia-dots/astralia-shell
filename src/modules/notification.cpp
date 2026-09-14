@@ -163,7 +163,7 @@ void notification_start_progress(NotificationRenderModel &service, uint32_t id, 
 bool notification_view_create_surface(NotificationView &view, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
     LayerSurfaceConfig cfg{
         .layer = ZWLR_LAYER_SHELL_V1_LAYER_TOP,
-        .name_space = "kokusei-notification",
+        .name_space = "adastria-shell-notification",
         .anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT,
         .width = kNotificationSurfaceWidth,
         .height = kNotificationSurfaceHeight,

@@ -27,12 +27,10 @@ void type_anim_push(TextFieldTypeAnim &anim, AnimationManager &am, uint64_t owne
     anim.chars.push_back({0.0f, kTextFieldPopSlideOffsetPx});
     am.animate(0.0f, 1.0f, kTextFieldPopScaleMs, Easing::EaseOutBack, [&anim, idx](float v) {
             if (idx < anim.chars.size())
-                anim.chars[idx].scale = v;
-        }, {}, type_anim_owner(owner_base, idx, 0));
+                anim.chars[idx].scale = v; }, {}, type_anim_owner(owner_base, idx, 0));
     am.animate(kTextFieldPopSlideOffsetPx, 0.0f, kTextFieldPopSlideMs, Easing::Linear, [&anim, idx](float v) {
             if (idx < anim.chars.size())
-                anim.chars[idx].slide_x = v;
-        }, {}, type_anim_owner(owner_base, idx, 1));
+                anim.chars[idx].slide_x = v; }, {}, type_anim_owner(owner_base, idx, 1));
 }
 
 void type_anim_pop(TextFieldTypeAnim &anim, AnimationManager &am, uint64_t owner_base) {
@@ -59,15 +57,18 @@ TextFieldResult text_field_handle_key(TextFieldState &field, const KeyEvent &eve
         field.text += event.text;
         field.preedit.clear();
         field.cursor_idle_visible = true;
+        field.error_message.clear();
         return TextFieldResult::Changed;
     case KeyKind::Preedit:
         field.preedit = event.text;
         field.cursor_idle_visible = true;
+        field.error_message.clear();
         return TextFieldResult::Changed;
     case KeyKind::Backspace:
         text_field_backspace(field.text);
         field.preedit.clear();
         field.cursor_idle_visible = true;
+        field.error_message.clear();
         return TextFieldResult::Changed;
     case KeyKind::Enter:
         field.preedit.clear();
@@ -153,7 +154,7 @@ void text_field_row_slide_reset(TextFieldRowSlide &slide, AnimationManager &am, 
 }
 
 float draw_text_field_value(Node *parent, TextureCache &tcache, int32_t scale, const std::string &text, float x, float center_y, const float *color, const TextFieldTypeAnim *anim) {
-    float cell_w = kokusei_text_advance();
+    float cell_w = adastria_shell_text_advance();
 
     float cx = x;
     size_t char_index = 0;

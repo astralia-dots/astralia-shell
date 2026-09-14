@@ -26,7 +26,7 @@
 inline void daemonize() {
     pid_t pid = fork();
     if (pid < 0) {
-        perror("kokusei: fork");
+        perror("adastria-shell: fork");
         exit(1);
     }
     if (pid > 0)
@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
         return run_ipc_client(argc, argv);
 
     if (!single_instance_try_acquire()) {
-        fprintf(stderr, "kokusei: already running\n");
+        fprintf(stderr, "adastria-shell: already running\n");
         return 1;
     }
     if (want_daemonize || want_lock)

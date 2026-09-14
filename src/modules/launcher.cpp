@@ -153,7 +153,7 @@ bool launcher_create_surface(LauncherState &state, wl_compositor *compositor, zw
     state.compositor = compositor;
     LayerSurfaceConfig cfg{
         .layer = ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY,
-        .name_space = "kokusei-launcher",
+        .name_space = "adastria-shell-launcher",
         .anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT,
     };
     state.layer_surface =
@@ -186,7 +186,7 @@ bool launcher_init_egl(LauncherState &state, Renderer &renderer, EGLDisplay disp
     if (!gl_make_current(display, state.egl_surface, context))
         return false;
     for (int i = 0; i < kLauncherMaxVisible; ++i)
-        state.bullet_tex[i] = load_image_texture(KOKUSEI_BULLET_DIR "/C" + std::to_string(i + 1) + ".png");
+        state.bullet_tex[i] = load_image_texture(ADASTRIA_SHELL_BULLET_DIR "/C" + std::to_string(i + 1) + ".png");
     state.frame_clock.surface = state.surface;
     state.frame_clock.draw = [&state] { launcher_paint(state); };
     return true;

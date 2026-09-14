@@ -16,7 +16,7 @@
 
 namespace {
 
-constexpr const char *kPolkitNamespace = "kokusei-polkit";
+constexpr const char *kPolkitNamespace = "adastria-shell-polkit";
 
 constexpr float kPolkitAnimMs = 350.0f;
 constexpr float kPolkitScaleHidden = 0.0f;
@@ -91,6 +91,8 @@ void close_card(PolkitState &state) {
     if (!state.base.open)
         return;
     state.password.text.clear();
+    state.password.error_message.clear();
+    state.last_auth_error = false;
     text_field_type_anim_clear(state.pw_anim, state.base.animations, kPolkitDotAnimBase);
     animate_card(state, false);
 }
@@ -106,7 +108,7 @@ bool polkit_init_egl(PolkitState &state, Renderer &renderer, WaylandState &app, 
     if (!overlay_panel_init_egl(state.base, display, config, context))
         return false;
     state.base.frame_clock.draw = [&state, &app] { polkit_paint(state, app); };
-    state.echo_glyph = load_image_texture_first_existing({KOKUSEI_INPUT_ECHO, "assets/electro.png"});
+    state.echo_glyph = load_image_texture_first_existing({ADASTRIA_SHELL_INPUT_ECHO, "assets/electro.png"});
     return true;
 }
 
@@ -181,10 +183,14 @@ void polkit_paint(PolkitState &state, WaylandState &app) {
     bool needs_input = app.polkit.is_response_required();
     std::string supplementary = app.polkit.supplementary_message();
     bool supplementary_is_error = app.polkit.supplementary_is_error();
+    if (supplementary_is_error && !state.last_auth_error)
+        state.password.error_message = "Skill Issue";
+    state.last_auth_error = supplementary_is_error;
+    bool show_supplementary = !supplementary.empty() && !supplementary_is_error;
 
     Node *root = &state.scene.root;
 
-    float card_h = kPolkitCardPad * 2.0f + kPolkitTitleLineH + kPolkitSpacing + kPolkitMessageLineH + kPolkitSpacing + kPolkitFieldHeight + (supplementary.empty() ? 0.0f : kPolkitSpacing + kPolkitSupplementaryLineH);
+    float card_h = kPolkitCardPad * 2.0f + kPolkitTitleLineH + kPolkitSpacing + kPolkitMessageLineH + kPolkitSpacing + kPolkitFieldHeight + (show_supplementary ? kPolkitSpacing + kPolkitSupplementaryLineH : 0.0f);
     float card_x =
         (static_cast<float>(state.base.width) - kPolkitCardWidth) * 0.5f;
     float card_y = (static_cast<float>(state.base.height) - card_h) * 0.5f;
@@ -215,27 +221,33 @@ void polkit_paint(PolkitState &state, WaylandState &app) {
     int dots_w_px = static_cast<int>(dots_w);
     if (needs_input) {
         int n = static_cast<int>(utf8_len(state.password.text));
-        if (n == 0) {
+        if (!state.password.error_message.empty()) {
+            const Texture *et =
+                tc_text(state, state.password.error_message, 12, false, scale, dots_w_px);
+            if (et)
+                node_add_texture_rect(card, content_cx - px_w(et) * 0.5f, field_cy - px_h(et) * 0.5f, px_w(et), px_h(et), *et, rgba(palette::critical));
+        } else if (n == 0) {
             const Texture *pt =
                 tc_text(state, "Password", 12, false, scale, dots_w_px);
             if (pt)
                 node_add_texture_rect(card, content_cx - px_w(pt) * 0.5f, field_cy - px_h(pt) * 0.5f, px_w(pt), px_h(pt), *pt, rgba(palette::text_muted));
-        }
-        float row_w = static_cast<float>(n) * kPolkitDotSize;
-        float dot_x = dots_x0 + (dots_w - row_w) * 0.5f;
-        for (int i = 0; i < n; ++i) {
-            const TextFieldCharAnim *anim =
-                i < static_cast<int>(state.pw_anim.chars.size())
-                    ? &state.pw_anim.chars[static_cast<size_t>(i)]
-                    : nullptr;
-            float dsc = anim ? anim->scale : 1.0f;
-            float dsz = kPolkitDotSize * dsc;
-            float gx = dot_x + static_cast<float>(i) * kPolkitDotSize;
-            float gy = field_cy - dsz * 0.5f;
-            if (state.echo_glyph.id)
-                node_add_texture_rect(card, gx, gy, dsz, dsz, state.echo_glyph, rgba(palette::text));
-            else
-                node_add_rrect(card, gx, gy, dsz, dsz, dsz * 0.5f, 0.0f, rgba(palette::text), kNodeTransparent);
+        } else {
+            float row_w = static_cast<float>(n) * kPolkitDotSize;
+            float dot_x = dots_x0 + (dots_w - row_w) * 0.5f;
+            for (int i = 0; i < n; ++i) {
+                const TextFieldCharAnim *anim =
+                    i < static_cast<int>(state.pw_anim.chars.size())
+                        ? &state.pw_anim.chars[static_cast<size_t>(i)]
+                        : nullptr;
+                float dsc = anim ? anim->scale : 1.0f;
+                float dsz = kPolkitDotSize * dsc;
+                float gx = dot_x + static_cast<float>(i) * kPolkitDotSize;
+                float gy = field_cy - dsz * 0.5f;
+                if (state.echo_glyph.id)
+                    node_add_texture_rect(card, gx, gy, dsz, dsz, state.echo_glyph, rgba(palette::text));
+                else
+                    node_add_rrect(card, gx, gy, dsz, dsz, dsz * 0.5f, 0.0f, rgba(palette::text), kNodeTransparent);
+            }
         }
     } else {
         const char *placeholder = "Authenticating...";
@@ -246,12 +258,12 @@ void polkit_paint(PolkitState &state, WaylandState &app) {
     }
     y += kPolkitFieldHeight;
 
-    if (!supplementary.empty()) {
+    if (show_supplementary) {
         y += kPolkitSpacing;
         const Texture *sup_t =
             tc_text(state, supplementary, 11, false, scale, content_w_px);
         if (sup_t)
-            node_add_texture_rect(card, content_x, y, px_w(sup_t), px_h(sup_t), *sup_t, rgba(supplementary_is_error ? palette::critical : palette::text_muted));
+            node_add_texture_rect(card, content_x, y, px_w(sup_t), px_h(sup_t), *sup_t, rgba(palette::text_muted));
     }
 
     state.scene.draw(*state.renderer);

@@ -27,7 +27,7 @@
 
 namespace {
 
-constexpr auto kAgentObjectPath = "/org/kokusei/PolkitAuthenticationAgent";
+constexpr auto kAgentObjectPath = "/org/adastria_shell/PolkitAuthenticationAgent";
 
 template <typename F>
 void guard_polkit_callback(const char *name, F &&body) noexcept {
@@ -154,7 +154,7 @@ using CancelCallback = void (*)(void *, InternalAuthRequest *);
 
 } // namespace
 
-using KokuseiPolkitListener = struct _KokuseiPolkitListener {
+using AdastriaShellPolkitListener = struct _AdastriaShellPolkitListener {
     PolkitAgentListener parent_instance;
     void *owner = nullptr;
     InitiateCallback initiate = nullptr;
@@ -162,34 +162,34 @@ using KokuseiPolkitListener = struct _KokuseiPolkitListener {
     gpointer registration_handle = nullptr;
 };
 
-using KokuseiPolkitListenerClass = struct _KokuseiPolkitListenerClass {
+using AdastriaShellPolkitListenerClass = struct _AdastriaShellPolkitListenerClass {
     PolkitAgentListenerClass parent_class;
 };
 
-static void kokusei_polkit_listener_initiate_authentication(PolkitAgentListener *listener, const gchar *action_id, const gchar *message, const gchar *icon_name, PolkitDetails * /*details*/, const gchar *cookie, GList *identities, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data) noexcept;
-static gboolean kokusei_polkit_listener_initiate_authentication_finish(PolkitAgentListener *listener, GAsyncResult *result, GError **error);
-static void kokusei_polkit_request_cancelled(GCancellable *cancellable, gpointer user_data) noexcept;
+static void adastria_shell_polkit_listener_initiate_authentication(PolkitAgentListener *listener, const gchar *action_id, const gchar *message, const gchar *icon_name, PolkitDetails * /*details*/, const gchar *cookie, GList *identities, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data) noexcept;
+static gboolean adastria_shell_polkit_listener_initiate_authentication_finish(PolkitAgentListener *listener, GAsyncResult *result, GError **error);
+static void adastria_shell_polkit_request_cancelled(GCancellable *cancellable, gpointer user_data) noexcept;
 
-G_DEFINE_TYPE(KokuseiPolkitListener, kokusei_polkit_listener, POLKIT_AGENT_TYPE_LISTENER)
+G_DEFINE_TYPE(AdastriaShellPolkitListener, adastria_shell_polkit_listener, POLKIT_AGENT_TYPE_LISTENER)
 
-static void kokusei_polkit_listener_init(KokuseiPolkitListener *self) {
+static void adastria_shell_polkit_listener_init(AdastriaShellPolkitListener *self) {
     self->owner = nullptr;
     self->initiate = nullptr;
     self->cancel = nullptr;
     self->registration_handle = nullptr;
 }
 
-static void kokusei_polkit_listener_class_init(KokuseiPolkitListenerClass *klass) {
+static void adastria_shell_polkit_listener_class_init(AdastriaShellPolkitListenerClass *klass) {
     auto *listener_class = POLKIT_AGENT_LISTENER_CLASS(klass);
     listener_class->initiate_authentication =
-        kokusei_polkit_listener_initiate_authentication;
+        adastria_shell_polkit_listener_initiate_authentication;
     listener_class->initiate_authentication_finish =
-        kokusei_polkit_listener_initiate_authentication_finish;
+        adastria_shell_polkit_listener_initiate_authentication_finish;
 }
 
-static void kokusei_polkit_listener_initiate_authentication(PolkitAgentListener *listener, const gchar *action_id, const gchar *message, const gchar *icon_name, PolkitDetails * /*details*/, const gchar *cookie, GList *identities, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data) noexcept {
+static void adastria_shell_polkit_listener_initiate_authentication(PolkitAgentListener *listener, const gchar *action_id, const gchar *message, const gchar *icon_name, PolkitDetails * /*details*/, const gchar *cookie, GList *identities, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data) noexcept {
     guard_polkit_callback("initiate_authentication", [&]() {
-        auto *self = reinterpret_cast<KokuseiPolkitListener *>(listener);
+        auto *self = reinterpret_cast<AdastriaShellPolkitListener *>(listener);
         auto request = std::make_unique<InternalAuthRequest>();
         request->action_id = action_id != nullptr ? action_id : "";
         request->message = message != nullptr ? message : "";
@@ -214,7 +214,7 @@ static void kokusei_polkit_listener_initiate_authentication(PolkitAgentListener 
         }
 
         if (cancellable != nullptr)
-            request->cancel_handler_id = g_cancellable_connect(cancellable, G_CALLBACK(kokusei_polkit_request_cancelled), request.get(), nullptr);
+            request->cancel_handler_id = g_cancellable_connect(cancellable, G_CALLBACK(adastria_shell_polkit_request_cancelled), request.get(), nullptr);
 
         if (self->initiate == nullptr || self->owner == nullptr) {
             request->cancel("Polkit listener is not attached");
@@ -224,16 +224,16 @@ static void kokusei_polkit_listener_initiate_authentication(PolkitAgentListener 
     });
 }
 
-static gboolean kokusei_polkit_listener_initiate_authentication_finish(PolkitAgentListener * /*listener*/, GAsyncResult *result, GError **error) {
+static gboolean adastria_shell_polkit_listener_initiate_authentication_finish(PolkitAgentListener * /*listener*/, GAsyncResult *result, GError **error) {
     return g_task_propagate_boolean(G_TASK(result), error);
 }
 
-static void kokusei_polkit_request_cancelled(GCancellable * /*cancellable*/, gpointer user_data) noexcept {
+static void adastria_shell_polkit_request_cancelled(GCancellable * /*cancellable*/, gpointer user_data) noexcept {
     guard_polkit_callback("request_cancelled", [&]() {
         auto *request = static_cast<InternalAuthRequest *>(user_data);
         request->cancel_handler_id = 0;
         auto *source = G_IS_TASK(request->task) ? g_task_get_source_object(request->task) : nullptr;
-        auto *listener = source != nullptr ? reinterpret_cast<KokuseiPolkitListener *>(source) : nullptr;
+        auto *listener = source != nullptr ? reinterpret_cast<AdastriaShellPolkitListener *>(source) : nullptr;
         if (listener != nullptr && listener->cancel != nullptr && listener->owner != nullptr)
             listener->cancel(listener->owner, request);
     });
@@ -242,7 +242,7 @@ static void kokusei_polkit_request_cancelled(GCancellable * /*cancellable*/, gpo
 struct PolkitAgent::Impl {
     StateCallback state_callback;
     ReadyCallback ready_callback;
-    KokuseiPolkitListener *listener = nullptr;
+    AdastriaShellPolkitListener *listener = nullptr;
     PolkitAgentSession *session = nullptr;
     GMainContext *context = nullptr;
     GCancellable *register_cancellable = nullptr;
@@ -263,7 +263,7 @@ struct PolkitAgent::Impl {
     mutable int glib_poll_timeout_ms = -1;
 
     Impl() : context(g_main_context_default()) {
-        listener = static_cast<KokuseiPolkitListener *>(g_object_new(kokusei_polkit_listener_get_type(), nullptr));
+        listener = static_cast<AdastriaShellPolkitListener *>(g_object_new(adastria_shell_polkit_listener_get_type(), nullptr));
         listener->owner = this;
         listener->initiate = &Impl::initiate_bridge;
         listener->cancel = &Impl::cancel_bridge;

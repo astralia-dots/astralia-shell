@@ -19,9 +19,13 @@ struct TextFieldState {
     std::string preedit;
     bool cursor_idle_visible = true;
     Rect cursor_rect;
+    std::string error_message;
 };
 
-enum class TextFieldResult { None, Changed, Committed, Cancelled };
+enum class TextFieldResult { None,
+                             Changed,
+                             Committed,
+                             Cancelled };
 
 TextFieldResult text_field_handle_key(TextFieldState &field, const KeyEvent &event);
 

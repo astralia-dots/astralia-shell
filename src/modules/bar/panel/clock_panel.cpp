@@ -57,7 +57,7 @@ void draw_nav_button(Node *root, TextureCache &cache, int32_t scale, std::vector
 } // namespace
 
 bool clock_panel_create_surface(ClockPanelState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
-    return overlay_panel_create_surface(state.base, compositor, layer_shell, "kokusei-clock-panel", output);
+    return overlay_panel_create_surface(state.base, compositor, layer_shell, "adastria-shell-clock-panel", output);
 }
 
 bool clock_panel_init_egl(ClockPanelState &state, Renderer &renderer, EGLDisplay display, EGLConfig config, EGLContext context) {

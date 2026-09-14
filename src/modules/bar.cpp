@@ -328,7 +328,7 @@ bool BarPerMonitorModule::create_surface(WaylandState &app, MonitorOutput &mon, 
     mon.autohide.enabled = autohide_effective_enabled(app.cfg, mon.output.name);
     LayerSurfaceConfig bar_cfg{
         .layer = ZWLR_LAYER_SHELL_V1_LAYER_TOP,
-        .name_space = "kokusei",
+        .name_space = "adastria-shell",
         .anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT,
         .height = bar_detail::bar_current_height(mon),
         .margin_top = bar_detail::bar_autohide_geometry(mon.autohide.enabled, mon.autohide.collapsed, bar_detail::kBarHeight).margin_top,

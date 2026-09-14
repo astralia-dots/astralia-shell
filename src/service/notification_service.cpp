@@ -92,7 +92,7 @@ bool notification_service_init(NotificationService &service, const std::function
                         if (on_change)
                             on_change();
                     }), sdbus::registerMethod("GetCapabilities").implementedAs([]() -> std::vector<std::string> { return {"body"}; }), sdbus::registerMethod("GetServerInformation").implementedAs([]() -> std::tuple<std::string, std::string, std::string, std::string> {
-                            return {"kokusei", "kokusei", "0.1.0", "1.2"};
+                            return {"adastria-shell", "adastria-shell", "0.1.0", "1.2"};
                         }))
             .forInterface("org.freedesktop.Notifications");
 

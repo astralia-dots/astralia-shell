@@ -188,7 +188,7 @@ bool idle_overlay_init_egl(IdleOverlayState &state, Renderer &renderer, EGLDispl
     state.frame_clock.surface = state.surface;
     state.frame_clock.draw = [&state] { idle_overlay_paint(state); };
 
-    const char *logo_candidates[] = {KOKUSEI_IDLE_LOGO, "assets/stellar-restoration.svg"};
+    const char *logo_candidates[] = {ADASTRIA_SHELL_IDLE_LOGO, "assets/stellar-restoration.svg"};
     std::string logo_path = logo_candidates[1];
     for (const char *candidate : logo_candidates) {
         if (std::filesystem::exists(candidate)) {

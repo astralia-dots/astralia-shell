@@ -29,6 +29,7 @@ struct PolkitState {
     MarqueeTextState message_marquee;
 
     float card_scale = 0.0f;
+    bool last_auth_error = false;
     wl_output *bound_output = nullptr;
 };
 
