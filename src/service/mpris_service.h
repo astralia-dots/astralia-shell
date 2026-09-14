@@ -21,8 +21,7 @@ struct MprisPlayerCandidate {
     MprisPlaybackStatus status;
 };
 
-int mpris_detail_select_player(
-    const std::vector<MprisPlayerCandidate> &players);
+int mpris_detail_select_player(const std::vector<MprisPlayerCandidate> &players);
 
 struct MprisScan {
     uint64_t generation = 0;
@@ -30,8 +29,7 @@ struct MprisScan {
     std::vector<MprisPlayerCandidate> candidates;
 };
 
-bool mpris_detail_scan_collect(MprisScan &scan, const std::string &bus_name,
-                               MprisPlaybackStatus status);
+bool mpris_detail_scan_collect(MprisScan &scan, const std::string &bus_name, MprisPlaybackStatus status);
 
 struct MprisTrackInfo {
     std::string title;

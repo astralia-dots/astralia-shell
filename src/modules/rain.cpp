@@ -27,13 +27,11 @@ void rain_tick_active(RainState &state) {
 }
 
 bool rain_active_ready(const RainState &state) {
-    return state.mode == RainMode::Matrix ? state.matrix.ready()
-                                          : state.stiletto.ready();
+    return state.mode == RainMode::Matrix ? state.matrix.ready() : state.stiletto.ready();
 }
 
 const Texture &rain_active_texture(const RainState &state) {
-    return state.mode == RainMode::Matrix ? state.matrix.texture()
-                                          : state.stiletto.texture();
+    return state.mode == RainMode::Matrix ? state.matrix.texture() : state.stiletto.texture();
 }
 
 } // namespace
@@ -46,15 +44,11 @@ void rain_toggle(RainState &state, WaylandState &app) {
     bool opening = !state.base.open;
     if (opening) {
         if (state.base.egl_surface == EGL_NO_SURFACE) {
-            if (!toplevel_window_create_surface(
-                    state.base, app.compositor, app.wm_base, "Rain",
-                    "kokusei-rain", kRainDefaultWindowWidth,
-                    kRainDefaultWindowHeight))
+            if (!toplevel_window_create_surface(state.base, app.compositor, app.wm_base, "Rain", "kokusei-rain", kRainDefaultWindowWidth, kRainDefaultWindowHeight))
                 return;
             while (!state.base.configured)
                 wl_display_dispatch(app.display);
-            if (!toplevel_window_init_egl(state.base, app.egl_display,
-                                          app.egl_config, app.egl_context)) {
+            if (!toplevel_window_init_egl(state.base, app.egl_display, app.egl_config, app.egl_context)) {
                 toplevel_window_destroy_surface(state.base);
                 return;
             }
@@ -72,10 +66,7 @@ void rain_toggle(RainState &state, WaylandState &app) {
     }
 
     if (opening) {
-        state.base.animations.animate(
-            state.base.opacity, 1.0f, kOverlayFadeMs, Easing::EaseOutCubic,
-            [&state](float v) { state.base.opacity = v; }, {},
-            kOverlayFadeOwner);
+        state.base.animations.animate(state.base.opacity, 1.0f, kOverlayFadeMs, Easing::EaseOutCubic, [&state](float v) { state.base.opacity = v; }, {}, kOverlayFadeOwner);
         toplevel_window_request_frame(state.base);
     } else {
         state.base.animations.cancelForOwner(kOverlayFadeOwner);
@@ -85,8 +76,7 @@ void rain_toggle(RainState &state, WaylandState &app) {
     }
 }
 
-void rain_handle_key_event(RainState &state, WaylandState &app,
-                           const KeyEvent &event) {
+void rain_handle_key_event(RainState &state, WaylandState &app, const KeyEvent &event) {
     if (event.kind == KeyKind::Escape)
         rain_toggle(state, app);
 }
@@ -105,11 +95,9 @@ void rain_apply_params(RainState &state, const RainParams &params) {
     }
 }
 
-std::vector<IpcHandler> rain_ipc_handlers(RainState &rain,
-                                          WaylandState &state) {
+std::vector<IpcHandler> rain_ipc_handlers(RainState &rain, WaylandState &state) {
     return {
-        {"rain", [&rain, &state] { rain_toggle(rain, state); },
-         "toggle the rain overlay"},
+        {"rain", [&rain, &state] { rain_toggle(rain, state); }, "toggle the rain overlay"},
     };
 }
 
@@ -121,10 +109,8 @@ void rain_paint(RainState &state) {
 
     if (state.base.egl_surface == EGL_NO_SURFACE)
         return;
-    gl_make_current(state.base.egl_display, state.base.egl_surface,
-                    state.base.egl_context);
-    state.renderer->begin_frame(state.base.width, state.base.height,
-                                state.base.output_scale.scale);
+    gl_make_current(state.base.egl_display, state.base.egl_surface, state.base.egl_context);
+    state.renderer->begin_frame(state.base.width, state.base.height, state.base.output_scale.scale);
     glClearColor(0, 0, 0, 0);
     glClear(GL_COLOR_BUFFER_BIT);
 
@@ -133,11 +119,9 @@ void rain_paint(RainState &state) {
     float win_w = static_cast<float>(state.base.width);
     float win_h = static_cast<float>(state.base.height);
 
-    node_add_rect(&state.scene.root, 0.0f, 0.0f, win_w, win_h,
-                  rgba(palette::window_backdrop));
+    node_add_rect(&state.scene.root, 0.0f, 0.0f, win_w, win_h, rgba(palette::window_backdrop));
 
-    if (state.base.width != state.built_width ||
-        state.base.height != state.built_height) {
+    if (state.base.width != state.built_width || state.base.height != state.built_height) {
         rain_rebuild_active(state, state.base.width, state.base.height);
         state.built_width = state.base.width;
         state.built_height = state.base.height;

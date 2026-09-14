@@ -26,7 +26,4 @@ struct DockRowState {
 
 float dock_row_width(const std::vector<DockEntry> &entries);
 
-void draw_dock_row(Node *root, DockIconCache &icons, DockRowState &row,
-                   AnimationManager &animations, float x, float y_center,
-                   const std::vector<DockEntry> &entries,
-                   uint64_t anim_owner_base);
+void draw_dock_row(Node *root, DockIconCache &icons, DockRowState &row, AnimationManager &animations, float x, float y_center, const std::vector<DockEntry> &entries, uint64_t anim_owner_base);

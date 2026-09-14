@@ -23,6 +23,7 @@
 #include "service/network_service.h"
 #include "service/notification_service.h"
 #include "service/pipewire_service.h"
+#include "service/polkit_service.h"
 #include "service/telemetry_service.h"
 #include "service/text_input_service.h"
 #include "service/tray_service.h"
@@ -72,6 +73,7 @@ struct WaylandState {
     GpuTempState gpu_temp;
     SystemStatsState system_stats;
     MprisState mpris;
+    PolkitAgent polkit;
     int brightness_watch_fd = -1;
     int config_watch_fd = -1;
     bool config_own_write_pending = false;

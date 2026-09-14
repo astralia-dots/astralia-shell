@@ -19,9 +19,7 @@ std::string async_process_detail_resolve_path(const std::string &name);
 
 pid_t async_process_pid(const AsyncProcess &proc);
 
-pid_t async_process_start(AsyncProcess &proc,
-                          const std::vector<std::string> &argv,
-                          bool merge_stderr = false);
+pid_t async_process_start(AsyncProcess &proc, const std::vector<std::string> &argv, bool merge_stderr = false);
 
 bool async_process_poll(AsyncProcess &proc);
 

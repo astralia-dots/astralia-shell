@@ -2,8 +2,7 @@
 
 #include "render/panel_scroll.h"
 
-PanelScrollRegion panel_scroll_region(float panel_x, float panel_y,
-                                      float panel_w, float panel_h) noexcept {
+PanelScrollRegion panel_scroll_region(float panel_x, float panel_y, float panel_w, float panel_h) noexcept {
     float header_y = panel_y + kPanelPadding;
     float divider_y = header_y + kPanelHeaderHeight + kPanelHeaderDividerGap;
 
@@ -16,8 +15,7 @@ PanelScrollRegion panel_scroll_region(float panel_x, float panel_y,
     return region;
 }
 
-float panel_clamp_scroll(float scroll_offset, float dy, float content_height,
-                         float visible_height) noexcept {
+float panel_clamp_scroll(float scroll_offset, float dy, float content_height, float visible_height) noexcept {
     float max_scroll = std::max(0.0f, content_height - visible_height);
     return std::clamp(scroll_offset + dy, 0.0f, max_scroll);
 }

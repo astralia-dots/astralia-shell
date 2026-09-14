@@ -14,8 +14,7 @@ std::string make_search_url(const std::string &text, const std::string &base);
 
 std::string normalize_url(const std::string &text);
 
-std::string resolve_web_target(const std::string &text,
-                               const std::string &base);
+std::string resolve_web_target(const std::string &text, const std::string &base);
 
 bool launch_non_drun(LauncherMode mode, const std::string &query);
 

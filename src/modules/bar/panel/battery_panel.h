@@ -72,29 +72,18 @@ float panel_height(const std::vector<PanelRow> &rows);
 
 } // namespace battery_panel_detail
 
-bool battery_panel_create_surface(BatteryPanelState &state,
-                                  wl_compositor *compositor,
-                                  zwlr_layer_shell_v1 *layer_shell,
-                                  wl_output *output = nullptr);
+bool battery_panel_create_surface(BatteryPanelState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output = nullptr);
 
-bool battery_panel_init_egl(BatteryPanelState &state, Renderer &renderer,
-                            UpowerState &u, EGLDisplay display,
-                            EGLConfig config, EGLContext context);
+bool battery_panel_init_egl(BatteryPanelState &state, Renderer &renderer, UpowerState &u, EGLDisplay display, EGLConfig config, EGLContext context);
 
-void battery_panel_request_frame(BatteryPanelState &state, float pill_center_x,
-                                 float bar_height, float bar_top_margin);
+void battery_panel_request_frame(BatteryPanelState &state, float pill_center_x, float bar_height, float bar_top_margin);
 
-void battery_panel_toggle(BatteryPanelState &state,
-                          float pill_center_x = -1.0f);
+void battery_panel_toggle(BatteryPanelState &state, float pill_center_x = -1.0f);
 
-void battery_panel_handle_scroll(BatteryPanelState &state, const UpowerState &u,
-                                 double dy);
+void battery_panel_handle_scroll(BatteryPanelState &state, const UpowerState &u, double dy);
 
 void battery_panel_handle_click(BatteryPanelState &state, double px, double py);
 
-void battery_panel_handle_key_event(BatteryPanelState &state,
-                                    const KeyEvent &event);
+void battery_panel_handle_key_event(BatteryPanelState &state, const KeyEvent &event);
 
-void battery_panel_paint(BatteryPanelState &state, const UpowerState &u,
-                         float pill_center_x, float bar_height,
-                         float bar_top_margin);
+void battery_panel_paint(BatteryPanelState &state, const UpowerState &u, float pill_center_x, float bar_height, float bar_top_margin);

@@ -8,8 +8,7 @@
 #include <thread>
 #include <vector>
 
-using MediaDecodeFrameCallback = std::function<void(
-    unsigned char *rgba, int width, int height, int stride_px)>;
+using MediaDecodeFrameCallback = std::function<void(unsigned char *rgba, int width, int height, int stride_px)>;
 
 struct MediaDrmPlane {
     int fd = -1;
@@ -63,11 +62,7 @@ struct MediaDecodePlayback {
     }
 };
 
-MediaDecodePlayback
-media_decode_stream(const std::string &path, const std::string &filter_desc,
-                    int fps, bool supports_row_length,
-                    MediaDecodeFrameCallback on_frame,
-                    MediaDecodeDrmFrameCallback on_drm_frame = nullptr);
+MediaDecodePlayback media_decode_stream(const std::string &path, const std::string &filter_desc, int fps, bool supports_row_length, MediaDecodeFrameCallback on_frame, MediaDecodeDrmFrameCallback on_drm_frame = nullptr);
 
 void media_decode_stop(MediaDecodePlayback &playback);
 void media_decode_pause(MediaDecodePlayback &playback);
@@ -83,9 +78,7 @@ struct MediaFrame {
     std::vector<unsigned char> rgba;
 };
 
-std::vector<MediaFrame> media_decode_frames(const std::string &path,
-                                            const std::string &filter_desc,
-                                            int max_frames);
+std::vector<MediaFrame> media_decode_frames(const std::string &path, const std::string &filter_desc, int max_frames);
 
 constexpr int kAnimateMaxSeconds = 30;
 inline constexpr int kAnimateWallpaperFps = 15;
@@ -115,12 +108,9 @@ struct AnimateJob {
     }
 };
 
-void animate_job_start(AnimateJob &job, const std::string &source_path,
-                       const AnimateDecodeParams &params,
-                       std::function<void()> on_ready);
+void animate_job_start(AnimateJob &job, const std::string &source_path, const AnimateDecodeParams &params, std::function<void()> on_ready);
 
-unsigned char *animate_job_frame(const AnimateJob &job, int index,
-                                 int &out_width, int &out_height);
+unsigned char *animate_job_frame(const AnimateJob &job, int index, int &out_width, int &out_height);
 
 std::string animate_cache_home_dir();
 
@@ -137,6 +127,4 @@ AnimateSize animate_decode_size(int target_w, int target_h, int max_height);
 
 std::string animate_scale_filter(int w, int h, AnimateFit fit);
 
-unsigned char *animate_decode_scaled(const std::string &path, int target_w,
-                                     int target_h, int &out_width,
-                                     int &out_height);
+unsigned char *animate_decode_scaled(const std::string &path, int target_w, int target_h, int &out_width, int &out_height);

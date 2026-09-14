@@ -3,14 +3,10 @@
 #include "service/mpris_service.h"
 
 void test_mpris() {
-    assert(mpris_detail_parse_playback_status("Playing") ==
-           MprisPlaybackStatus::Playing);
-    assert(mpris_detail_parse_playback_status("Paused") ==
-           MprisPlaybackStatus::Paused);
-    assert(mpris_detail_parse_playback_status("Stopped") ==
-           MprisPlaybackStatus::Stopped);
-    assert(mpris_detail_parse_playback_status("") ==
-           MprisPlaybackStatus::Stopped);
+    assert(mpris_detail_parse_playback_status("Playing") == MprisPlaybackStatus::Playing);
+    assert(mpris_detail_parse_playback_status("Paused") == MprisPlaybackStatus::Paused);
+    assert(mpris_detail_parse_playback_status("Stopped") == MprisPlaybackStatus::Stopped);
+    assert(mpris_detail_parse_playback_status("") == MprisPlaybackStatus::Stopped);
 
     assert(mpris_detail_format_position(0) == "0:00");
     assert(mpris_detail_format_position(65 * 1000000LL) == "1:05");
@@ -38,17 +34,13 @@ void test_mpris() {
     MprisScan scan;
     scan.generation = 1;
     scan.expected = 3;
-    assert(!mpris_detail_scan_collect(scan, "org.mpris.MediaPlayer2.a",
-                                      MprisPlaybackStatus::Paused));
-    assert(!mpris_detail_scan_collect(scan, "org.mpris.MediaPlayer2.b",
-                                      MprisPlaybackStatus::Stopped));
-    assert(mpris_detail_scan_collect(scan, "org.mpris.MediaPlayer2.c",
-                                     MprisPlaybackStatus::Playing));
+    assert(!mpris_detail_scan_collect(scan, "org.mpris.MediaPlayer2.a", MprisPlaybackStatus::Paused));
+    assert(!mpris_detail_scan_collect(scan, "org.mpris.MediaPlayer2.b", MprisPlaybackStatus::Stopped));
+    assert(mpris_detail_scan_collect(scan, "org.mpris.MediaPlayer2.c", MprisPlaybackStatus::Playing));
     assert(scan.candidates.size() == 3);
     assert(mpris_detail_select_player(scan.candidates) == 2);
 
     MprisScan empty_scan;
     empty_scan.expected = 0;
-    assert(!mpris_detail_scan_collect(empty_scan, "org.mpris.MediaPlayer2.a",
-                                      MprisPlaybackStatus::Playing));
+    assert(!mpris_detail_scan_collect(empty_scan, "org.mpris.MediaPlayer2.a", MprisPlaybackStatus::Playing));
 }

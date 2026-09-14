@@ -21,9 +21,7 @@ float lock_center_scale(float output_h) {
     return s < 1.0f ? s : 1.0f;
 }
 
-void lock_columns(float card_w, float card_h, float center_w,
-                     LockRect &left, LockRect &center,
-                     LockRect &right) {
+void lock_columns(float card_w, float card_h, float center_w, LockRect &left, LockRect &center, LockRect &right) {
     float inner_x = kLockPanelGap;
     float inner_y = kLockPanelGap;
     float inner_h = card_h - 2.0f * kLockPanelGap;
@@ -40,17 +38,14 @@ float lock_side_card_height(float column_h) {
 }
 
 float lock_content_height(float clock_h, float date_h, float message_h) {
-    return clock_h + kLockGapClockDate + date_h + kLockGapDateAvatar +
-           kLockProfileSize + kLockGapAvatarInput + kLockInputHeight +
-           kLockGapInputMessage + message_h;
+    return clock_h + kLockGapClockDate + date_h + kLockGapDateAvatar + kLockProfileSize + kLockGapAvatarInput + kLockInputHeight + kLockGapInputMessage + message_h;
 }
 
 int lock_fetch_colour_count(float available_w, int max_count) {
     int n = 0;
     if (available_w >= kLockFetchColorBox)
         n = 1 +
-            static_cast<int>((available_w - kLockFetchColorBox) /
-                             (kLockFetchColorBox + kLockFetchColorGap));
+            static_cast<int>((available_w - kLockFetchColorBox) / (kLockFetchColorBox + kLockFetchColorGap));
     return std::clamp(n, 0, max_count);
 }
 
@@ -60,12 +55,10 @@ float lock_dot_row_width(int count) {
 
 float lock_dot_x(int index, int count, float field_width) {
     float row = lock_dot_row_width(count);
-    return (field_width - row) * 0.5f +
-           static_cast<float>(index) * kLockDotSize;
+    return (field_width - row) * 0.5f + static_cast<float>(index) * kLockDotSize;
 }
 
-void lock_panel_origin(float output_w, float output_h, float panel_w,
-                          float panel_h, float &out_x, float &out_y) {
+void lock_panel_origin(float output_w, float output_h, float panel_w, float panel_h, float &out_x, float &out_y) {
     out_x = (output_w - panel_w) * 0.5f;
     out_y = (output_h - panel_h) * 0.5f;
 }

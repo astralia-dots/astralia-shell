@@ -15,8 +15,7 @@ double hann(double t, double sz) {
 
 } // namespace
 
-void visualizer_fft(float *samples, int n_samples, float fft_scale,
-                   float fft_cutoff) {
+void visualizer_fft(float *samples, int n_samples, float fft_scale, float fft_cutoff) {
     float *data = samples;
     unsigned long nn = static_cast<unsigned long>(n_samples) / 2;
 
@@ -25,8 +24,7 @@ void visualizer_fft(float *samples, int n_samples, float fft_scale,
     float tempr, tempi;
 
     for (i = 0; i < static_cast<unsigned long>(n_samples); ++i)
-        data[i] *= static_cast<float>(
-            hann(static_cast<double>(i), static_cast<double>(n_samples - 1)));
+        data[i] *= static_cast<float>(hann(static_cast<double>(i), static_cast<double>(n_samples - 1)));
 
     n = nn << 1;
     j = 1;
@@ -76,10 +74,7 @@ void visualizer_fft(float *samples, int n_samples, float fft_scale,
 
         data[n] = std::sqrt(data[n] * data[n] + data[n + 1] * data[n + 1]);
         data[n] = std::log(data[n] + 1.0f) / 3.0f;
-        data[n] *= std::max((static_cast<float>(n) /
-                             static_cast<float>(n_samples) * fft_scale) +
-                                (1.0f - fft_cutoff),
-                            1.0f);
+        data[n] *= std::max((static_cast<float>(n) / static_cast<float>(n_samples) * fft_scale) + (1.0f - fft_cutoff), 1.0f);
 
         data[n + 1] = data[n];
     }

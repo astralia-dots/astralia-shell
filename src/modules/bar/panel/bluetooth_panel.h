@@ -70,38 +70,22 @@ float panel_height(const std::vector<PanelRow> &rows);
 
 } // namespace bluetooth_panel_detail
 
-bool bluetooth_panel_create_surface(BluetoothPanelState &state,
-                                    wl_compositor *compositor,
-                                    zwlr_layer_shell_v1 *layer_shell,
-                                    wl_output *output = nullptr);
+bool bluetooth_panel_create_surface(BluetoothPanelState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output = nullptr);
 
-bool bluetooth_panel_init_egl(BluetoothPanelState &state, Renderer &renderer,
-                              BluetoothState &bt, EGLDisplay display,
-                              EGLConfig config, EGLContext context);
+bool bluetooth_panel_init_egl(BluetoothPanelState &state, Renderer &renderer, BluetoothState &bt, EGLDisplay display, EGLConfig config, EGLContext context);
 
-void bluetooth_panel_request_frame(BluetoothPanelState &state,
-                                   float pill_center_x, float bar_height,
-                                   float bar_top_margin);
+void bluetooth_panel_request_frame(BluetoothPanelState &state, float pill_center_x, float bar_height, float bar_top_margin);
 
-void bluetooth_panel_toggle(BluetoothPanelState &state, BluetoothState &bt,
-                            float pill_center_x = -1.0f);
+void bluetooth_panel_toggle(BluetoothPanelState &state, BluetoothState &bt, float pill_center_x = -1.0f);
 
-void bluetooth_panel_handle_scroll(BluetoothPanelState &state,
-                                   BluetoothState &bt, double dy);
+void bluetooth_panel_handle_scroll(BluetoothPanelState &state, BluetoothState &bt, double dy);
 
-void bluetooth_panel_open_sub(BluetoothPanelState &state,
-                              const std::string &mode,
-                              const std::string &device_path);
+void bluetooth_panel_open_sub(BluetoothPanelState &state, const std::string &mode, const std::string &device_path);
 
 void bluetooth_panel_close_sub(BluetoothPanelState &state);
 
-void bluetooth_panel_handle_key_event(BluetoothPanelState &state,
-                                      BluetoothState &bt,
-                                      const KeyEvent &event);
+void bluetooth_panel_handle_key_event(BluetoothPanelState &state, BluetoothState &bt, const KeyEvent &event);
 
-void bluetooth_panel_handle_click(BluetoothPanelState &state,
-                                  BluetoothState &bt, double px, double py);
+void bluetooth_panel_handle_click(BluetoothPanelState &state, BluetoothState &bt, double px, double py);
 
-void bluetooth_panel_paint(BluetoothPanelState &state, BluetoothState &bt,
-                           float pill_center_x, float bar_height,
-                           float bar_top_margin);
+void bluetooth_panel_paint(BluetoothPanelState &state, BluetoothState &bt, float pill_center_x, float bar_height, float bar_top_margin);

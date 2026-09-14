@@ -26,8 +26,7 @@ std::string gl_load_shader(const char *rel) {
     return {};
 }
 
-GLuint gl_compile_program_files(const char *vs_rel, const char *fs_rel,
-                                const char *label) {
+GLuint gl_compile_program_files(const char *vs_rel, const char *fs_rel, const char *label) {
     std::string vs = gl_load_shader(vs_rel);
     std::string fs = gl_load_shader(fs_rel);
     if (vs.empty() || fs.empty())
@@ -35,8 +34,7 @@ GLuint gl_compile_program_files(const char *vs_rel, const char *fs_rel,
     return gl_compile_program(vs.c_str(), fs.c_str(), label);
 }
 
-GLuint gl_compile_program(const char *vs_src, const char *fs_src,
-                          const char *label) {
+GLuint gl_compile_program(const char *vs_src, const char *fs_src, const char *label) {
     auto compile = [label](GLenum type, const char *src) -> GLuint {
         GLuint shader = glCreateShader(type);
         glShaderSource(shader, 1, &src, nullptr);
@@ -84,8 +82,7 @@ void gl_check(const char *where) {
         klog("gl: %s -> 0x%04x", where ? where : "?", err);
 }
 
-bool gl_make_current(EGLDisplay display, EGLSurface surface,
-                     EGLContext context) {
+bool gl_make_current(EGLDisplay display, EGLSurface surface, EGLContext context) {
     if (!eglMakeCurrent(display, surface, surface, context)) {
         klog("gl: eglMakeCurrent failed, egl error 0x%04x", eglGetError());
         return false;

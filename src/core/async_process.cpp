@@ -21,8 +21,7 @@ std::string async_process_detail_resolve_path(const std::string &name) {
     while (start <= paths.size()) {
         size_t colon = paths.find(':', start);
         std::string dir =
-            paths.substr(start, colon == std::string::npos ? std::string::npos
-                                                           : colon - start);
+            paths.substr(start, colon == std::string::npos ? std::string::npos : colon - start);
         if (!dir.empty()) {
             std::string candidate = dir + "/" + name;
             if (access(candidate.c_str(), X_OK) == 0)
@@ -40,9 +39,7 @@ pid_t async_process_pid(const AsyncProcess &proc) {
     return proc.pid;
 }
 
-pid_t async_process_start(AsyncProcess &proc,
-                          const std::vector<std::string> &argv,
-                          bool merge_stderr) {
+pid_t async_process_start(AsyncProcess &proc, const std::vector<std::string> &argv, bool merge_stderr) {
     int pipefd[2];
     if (pipe(pipefd) < 0) {
         klog("async_process: pipe failed");
@@ -70,8 +67,7 @@ pid_t async_process_start(AsyncProcess &proc,
         posix_spawn(&pid, cargv[0], &actions, nullptr, cargv.data(), environ);
     posix_spawn_file_actions_destroy(&actions);
     if (spawn_rc != 0) {
-        klog("async_process: spawn '%s' failed: %s", cargv[0],
-             strerror(spawn_rc));
+        klog("async_process: spawn '%s' failed: %s", cargv[0], strerror(spawn_rc));
         close(pipefd[0]);
         close(pipefd[1]);
         return -1;
@@ -168,8 +164,7 @@ void spawn_detached(const std::string &shell_command) {
         pid_t grandchild = fork();
         if (grandchild == 0) {
             setsid();
-            const char *sh_argv[] = {"sh", "-c", shell_command.c_str(),
-                                     nullptr};
+            const char *sh_argv[] = {"sh", "-c", shell_command.c_str(), nullptr};
             execv("/bin/sh", const_cast<char *const *>(sh_argv));
             _exit(127);
         }

@@ -16,4 +16,8 @@ class Service {
     virtual std::vector<FnPollSource> poll_sources(WaylandState &) {
         return {};
     }
+
+    virtual std::vector<PollSource *> raw_poll_sources(WaylandState &) {
+        return {};
+    }
 };

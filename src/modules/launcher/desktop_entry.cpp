@@ -9,8 +9,7 @@
 
 namespace desktop_entry_detail {
 
-std::optional<DesktopEntry> parse_stream(std::istream &in,
-                                         const std::string &id) {
+std::optional<DesktopEntry> parse_stream(std::istream &in, const std::string &id) {
     DesktopEntry e;
     e.id = id;
     std::string line;
@@ -54,8 +53,7 @@ std::optional<DesktopEntry> parse_stream(std::istream &in,
 
 } // namespace desktop_entry_detail
 
-std::optional<DesktopEntry> parse_desktop_entry(const std::string &path,
-                                                const std::string &id) {
+std::optional<DesktopEntry> parse_desktop_entry(const std::string &path, const std::string &id) {
     std::ifstream f(path);
     if (!f)
         return std::nullopt;
@@ -99,8 +97,7 @@ std::vector<std::string> desktop_entry_search_dirs() {
 
     const char *home = getenv("HOME");
     if (home)
-        dirs.insert(dirs.begin(),
-                    std::string(home) + "/.local/share/applications");
+        dirs.insert(dirs.begin(), std::string(home) + "/.local/share/applications");
     return dirs;
 }
 

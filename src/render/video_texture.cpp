@@ -59,23 +59,17 @@ void video_texture_detect_caps(EGLDisplay display) {
     bool have_oes_image = gl_ext && std::strstr(gl_ext, "GL_OES_EGL_image");
     bool have_oes_external =
         gl_ext && std::strstr(gl_ext, "GL_OES_EGL_image_external");
-    if (!have_dma_buf || !have_image_base || !have_oes_image ||
-        !have_oes_external) {
+    if (!have_dma_buf || !have_image_base || !have_oes_image || !have_oes_external) {
         g_import_supported.store(false, std::memory_order_relaxed);
         return;
     }
-    g_eglCreateImageKHR = reinterpret_cast<PFNEGLCREATEIMAGEKHRPROC>(
-        eglGetProcAddress("eglCreateImageKHR"));
-    g_eglDestroyImageKHR = reinterpret_cast<PFNEGLDESTROYIMAGEKHRPROC>(
-        eglGetProcAddress("eglDestroyImageKHR"));
+    g_eglCreateImageKHR = reinterpret_cast<PFNEGLCREATEIMAGEKHRPROC>(eglGetProcAddress("eglCreateImageKHR"));
+    g_eglDestroyImageKHR = reinterpret_cast<PFNEGLDESTROYIMAGEKHRPROC>(eglGetProcAddress("eglDestroyImageKHR"));
     g_glEGLImageTargetTexture2DOES =
-        reinterpret_cast<PFNGLEGLIMAGETARGETTEXTURE2DOESPROC>(
-            eglGetProcAddress("glEGLImageTargetTexture2DOES"));
-    bool ok = g_eglCreateImageKHR && g_eglDestroyImageKHR &&
-              g_glEGLImageTargetTexture2DOES;
+        reinterpret_cast<PFNGLEGLIMAGETARGETTEXTURE2DOESPROC>(eglGetProcAddress("glEGLImageTargetTexture2DOES"));
+    bool ok = g_eglCreateImageKHR && g_eglDestroyImageKHR && g_glEGLImageTargetTexture2DOES;
     if (!ok)
-        klog("video_texture: dma-buf extensions advertised but proc "
-             "addresses missing, disabling zero-copy import");
+        klog("video_texture: dma-buf extensions advertised but proc " "addresses missing, disabling zero-copy import");
     g_import_supported.store(ok, std::memory_order_relaxed);
 }
 
@@ -83,8 +77,7 @@ bool video_texture_import_supported() {
     return g_import_supported.load(std::memory_order_relaxed);
 }
 
-bool video_texture_import(VideoTexture &tex, EGLDisplay display,
-                          const DrmFrameImport &frame) {
+bool video_texture_import(VideoTexture &tex, EGLDisplay display, const DrmFrameImport &frame) {
     if (!video_texture_import_supported() || frame.plane_count != 2)
         return false;
 
@@ -126,8 +119,7 @@ bool video_texture_import(VideoTexture &tex, EGLDisplay display,
     }
     attribs[n++] = EGL_NONE;
 
-    EGLImageKHR image = g_eglCreateImageKHR(
-        display, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT, nullptr, attribs);
+    EGLImageKHR image = g_eglCreateImageKHR(display, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT, nullptr, attribs);
     if (image == EGL_NO_IMAGE_KHR) {
         klog("video_texture: combined nv12 plane import failed");
         return false;
@@ -138,12 +130,9 @@ bool video_texture_import(VideoTexture &tex, EGLDisplay display,
     glBindTexture(GL_TEXTURE_EXTERNAL_OES, gl_tex);
     glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S,
-                    GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T,
-                    GL_CLAMP_TO_EDGE);
-    g_glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES,
-                                   static_cast<GLeglImageOES>(image));
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    g_glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, static_cast<GLeglImageOES>(image));
 
     tex.reset();
     tex.tex = gl_tex;

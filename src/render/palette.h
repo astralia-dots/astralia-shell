@@ -16,8 +16,7 @@ constexpr uint8_t digit(char c) {
 constexpr Color color(std::string_view hex) {
     size_t i = hex.front() == '#' ? 1 : 0;
     auto byte = [&](size_t at) {
-        return static_cast<float>(digit(hex[at]) * 16 + digit(hex[at + 1])) /
-               255.0f;
+        return static_cast<float>(digit(hex[at]) * 16 + digit(hex[at + 1])) / 255.0f;
     };
     float a = hex.size() - i > 6 ? byte(i + 6) : 1.0f;
     return {byte(i), byte(i + 2), byte(i + 4), a};

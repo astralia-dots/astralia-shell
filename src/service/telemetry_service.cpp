@@ -52,8 +52,7 @@ std::string find_cpu_hwmon_sensor() {
     std::error_code ec;
     if (!std::filesystem::exists("/sys/class/hwmon", ec))
         return {};
-    for (const auto &entry :
-         std::filesystem::directory_iterator("/sys/class/hwmon", ec)) {
+    for (const auto &entry : std::filesystem::directory_iterator("/sys/class/hwmon", ec)) {
         std::string name = read_trimmed(entry.path() / "name");
         if (cpu_temp_detail_is_cpu_hwmon_name(name))
             return entry.path() / "temp1_input";
@@ -66,13 +65,11 @@ std::vector<CpuCoreTemp> find_cpu_core_temp_sensors() {
     std::error_code ec;
     if (!std::filesystem::exists("/sys/class/hwmon", ec))
         return cores;
-    for (const auto &entry :
-         std::filesystem::directory_iterator("/sys/class/hwmon", ec)) {
+    for (const auto &entry : std::filesystem::directory_iterator("/sys/class/hwmon", ec)) {
         std::string name = read_trimmed(entry.path() / "name");
         if (!cpu_temp_detail_is_cpu_hwmon_name(name))
             continue;
-        for (const auto &sensor :
-             std::filesystem::directory_iterator(entry.path(), ec)) {
+        for (const auto &sensor : std::filesystem::directory_iterator(entry.path(), ec)) {
             const std::string filename = sensor.path().filename().string();
             if (!filename.starts_with("temp") || !filename.ends_with("_label"))
                 continue;
@@ -88,11 +85,7 @@ std::vector<CpuCoreTemp> find_cpu_core_temp_sensors() {
         }
         break;
     }
-    std::sort(cores.begin(), cores.end(),
-              [](const CpuCoreTemp &a, const CpuCoreTemp &b) {
-                  return cpu_temp_detail_core_label_index(a.label) <
-                         cpu_temp_detail_core_label_index(b.label);
-              });
+    std::sort(cores.begin(), cores.end(), [](const CpuCoreTemp &a, const CpuCoreTemp &b) { return cpu_temp_detail_core_label_index(a.label) < cpu_temp_detail_core_label_index(b.label); });
     return cores;
 }
 
@@ -100,8 +93,7 @@ std::string find_thermal_zone_sensor() {
     std::error_code ec;
     if (!std::filesystem::exists("/sys/class/thermal", ec))
         return {};
-    for (const auto &entry :
-         std::filesystem::directory_iterator("/sys/class/thermal", ec)) {
+    for (const auto &entry : std::filesystem::directory_iterator("/sys/class/thermal", ec)) {
         if (!entry.path().filename().string().starts_with("thermal_zone"))
             continue;
         std::string type = read_trimmed(entry.path() / "type");
@@ -135,9 +127,7 @@ void cpu_temp_poll(CpuTempState &state) {
     for (auto &core : state.cores) {
         std::ifstream cf(core.sensor_path);
         long core_millidegrees = 0;
-        core.celsius = (cf >> core_millidegrees)
-                           ? static_cast<float>(core_millidegrees) / 1000.0f
-                           : -1.0f;
+        core.celsius = (cf >> core_millidegrees) ? static_cast<float>(core_millidegrees) / 1000.0f : -1.0f;
     }
 }
 
@@ -149,14 +139,12 @@ bool gpu_temp_detail_is_gpu_hwmon_name(const std::string &name) {
     return name == "amdgpu" || name == "i915" || name == "xe";
 }
 
-std::optional<float>
-gpu_temp_detail_parse_nvidia_smi_output(const std::string &text) {
+std::optional<float> gpu_temp_detail_parse_nvidia_smi_output(const std::string &text) {
     std::istringstream ss(text);
     std::string first_line;
     if (!std::getline(ss, first_line))
         return std::nullopt;
-    while (!first_line.empty() &&
-           (first_line.back() == '\r' || first_line.back() == ' '))
+    while (!first_line.empty() && (first_line.back() == '\r' || first_line.back() == ' '))
         first_line.pop_back();
     if (first_line.empty())
         return std::nullopt;
@@ -173,8 +161,7 @@ std::string find_gpu_hwmon_sensor() {
     std::error_code ec;
     if (!std::filesystem::exists("/sys/class/hwmon", ec))
         return {};
-    for (const auto &entry :
-         std::filesystem::directory_iterator("/sys/class/hwmon", ec)) {
+    for (const auto &entry : std::filesystem::directory_iterator("/sys/class/hwmon", ec)) {
         std::string name = read_trimmed(entry.path() / "name");
         if (gpu_temp_detail_is_gpu_hwmon_name(name))
             return entry.path() / "temp1_input";
@@ -191,8 +178,7 @@ bool nvidia_smi_on_path() {
     while (start <= paths.size()) {
         size_t colon = paths.find(':', start);
         std::string dir =
-            paths.substr(start, colon == std::string::npos ? std::string::npos
-                                                           : colon - start);
+            paths.substr(start, colon == std::string::npos ? std::string::npos : colon - start);
         if (!dir.empty() && access((dir + "/nvidia-smi").c_str(), X_OK) == 0)
             return true;
         if (colon == std::string::npos)
@@ -247,21 +233,16 @@ void gpu_temp_poll(GpuTempState &state) {
             state.nvidia_smi_running = false;
             const std::string &out = state.nvidia_smi_proc.buffer;
             size_t comma = out.find(',');
-            auto temp_parsed = gpu_temp_detail_parse_nvidia_smi_output(
-                comma == std::string::npos ? out : out.substr(0, comma));
+            auto temp_parsed = gpu_temp_detail_parse_nvidia_smi_output(comma == std::string::npos ? out : out.substr(0, comma));
             state.celsius = temp_parsed.value_or(-1.0f);
             if (comma != std::string::npos) {
-                auto usage_parsed = gpu_temp_detail_parse_nvidia_smi_output(
-                    out.substr(comma + 1));
+                auto usage_parsed = gpu_temp_detail_parse_nvidia_smi_output(out.substr(comma + 1));
                 state.usage_percent = usage_parsed.value_or(-1.0f);
             }
         }
         return;
     }
-    async_process_start(state.nvidia_smi_proc,
-                        {"nvidia-smi",
-                         "--query-gpu=temperature.gpu,utilization.gpu",
-                         "--format=csv,noheader,nounits"});
+    async_process_start(state.nvidia_smi_proc, {"nvidia-smi", "--query-gpu=temperature.gpu,utilization.gpu", "--format=csv,noheader,nounits"});
     state.nvidia_smi_running = true;
 }
 
@@ -273,8 +254,7 @@ bool gpu_stats_available(const GpuTempState &state) {
     return state.celsius >= 0.0f && state.usage_percent >= 0.0f;
 }
 
-std::optional<CpuJiffies>
-system_stats_detail_parse_proc_stat(const std::string &text) {
+std::optional<CpuJiffies> system_stats_detail_parse_proc_stat(const std::string &text) {
     std::istringstream ss(text);
     std::string line;
     if (!std::getline(ss, line))
@@ -303,20 +283,17 @@ system_stats_detail_parse_proc_stat(const std::string &text) {
     return result;
 }
 
-float system_stats_detail_cpu_usage(const CpuJiffies &prev,
-                                    const CpuJiffies &cur) {
+float system_stats_detail_cpu_usage(const CpuJiffies &prev, const CpuJiffies &cur) {
     if (cur.total <= prev.total)
         return -1.0f;
     uint64_t total_delta = cur.total - prev.total;
     uint64_t idle_delta = cur.idle - prev.idle;
     if (idle_delta > total_delta)
         return -1.0f;
-    return static_cast<float>(total_delta - idle_delta) /
-           static_cast<float>(total_delta);
+    return static_cast<float>(total_delta - idle_delta) / static_cast<float>(total_delta);
 }
 
-std::optional<MemInfo>
-system_stats_detail_parse_proc_meminfo(const std::string &text) {
+std::optional<MemInfo> system_stats_detail_parse_proc_meminfo(const std::string &text) {
     std::istringstream ss(text);
     std::string line;
     MemInfo info;
@@ -342,12 +319,10 @@ system_stats_detail_parse_proc_meminfo(const std::string &text) {
 float system_stats_detail_mem_usage(const MemInfo &info) {
     if (info.total_kb == 0 || info.available_kb > info.total_kb)
         return -1.0f;
-    return static_cast<float>(info.total_kb - info.available_kb) /
-           static_cast<float>(info.total_kb);
+    return static_cast<float>(info.total_kb - info.available_kb) / static_cast<float>(info.total_kb);
 }
 
-std::optional<float>
-system_stats_detail_parse_cpu_freq_avg_mhz(const std::string &cpuinfo_text) {
+std::optional<float> system_stats_detail_parse_cpu_freq_avg_mhz(const std::string &cpuinfo_text) {
     std::istringstream ss(cpuinfo_text);
     std::string line;
     double sum = 0.0;
@@ -381,8 +356,7 @@ std::optional<DiskUsage> system_stats_detail_disk_usage(const char *path) {
     return DiskUsage{total - free, total};
 }
 
-std::optional<NetBytes>
-system_stats_detail_parse_proc_net_dev(const std::string &text) {
+std::optional<NetBytes> system_stats_detail_parse_proc_net_dev(const std::string &text) {
     std::istringstream ss(text);
     std::string line;
     std::getline(ss, line);
@@ -488,8 +462,7 @@ void system_stats_poll(SystemStatsState &state) {
             static_cast<float>(disk->used_bytes) / 1073741824.0f;
         state.disk_total_gb =
             static_cast<float>(disk->total_bytes) / 1073741824.0f;
-        state.disk_pct = static_cast<float>(disk->used_bytes) * 100.0f /
-                         static_cast<float>(disk->total_bytes);
+        state.disk_pct = static_cast<float>(disk->used_bytes) * 100.0f / static_cast<float>(disk->total_bytes);
     } else {
         state.disk_used_gb = -1.0f;
         state.disk_total_gb = -1.0f;
@@ -505,14 +478,10 @@ void system_stats_poll(SystemStatsState &state) {
                             .count();
             if (dt > 0.0) {
                 state.net_rx_bps =
-                    std::max<int64_t>(
-                        0, static_cast<int64_t>(net->rx_bytes -
-                                                state.prev_net.rx_bytes)) /
+                    std::max<int64_t>(0, static_cast<int64_t>(net->rx_bytes - state.prev_net.rx_bytes)) /
                     dt;
                 state.net_tx_bps =
-                    std::max<int64_t>(
-                        0, static_cast<int64_t>(net->tx_bytes -
-                                                state.prev_net.tx_bytes)) /
+                    std::max<int64_t>(0, static_cast<int64_t>(net->tx_bytes - state.prev_net.tx_bytes)) /
                     dt;
             }
         }

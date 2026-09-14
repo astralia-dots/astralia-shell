@@ -11,6 +11,4 @@ struct DockEntry {
     bool focused = false;
 };
 
-std::vector<DockEntry>
-dock_entries_for_monitor(const HyprlandState &hypr,
-                         const std::string &monitor_name);
+std::vector<DockEntry> dock_entries_for_monitor(const HyprlandState &hypr, const std::string &monitor_name);

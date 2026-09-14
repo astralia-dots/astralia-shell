@@ -47,7 +47,6 @@ void tray_activate(TrayState &state, const TrayItem &item, bool secondary);
 
 void tray_menu_request(TrayState &state, const TrayItem &item);
 
-void tray_menu_event_clicked(TrayState &state, const TrayItem &item,
-                             int32_t entry_id);
+void tray_menu_event_clicked(TrayState &state, const TrayItem &item, int32_t entry_id);
 
 std::string tray_item_icon_path(const TrayItem &item);

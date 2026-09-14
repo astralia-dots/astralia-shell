@@ -78,7 +78,6 @@ void rest_egl_current(WaylandState &app);
 void apply_config_update(WaylandState &app, Config new_cfg);
 void save_and_apply_config_update(WaylandState &app, Config new_cfg);
 MonitorOutput *active_target_monitor(WaylandState &app);
-void settings_retarget(WaylandState &app, SettingsState &settings,
-                     MonitorOutput &target);
+void settings_retarget(WaylandState &app, SettingsState &settings, MonitorOutput &target);
 
 } // namespace app_detail

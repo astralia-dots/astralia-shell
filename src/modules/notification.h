@@ -70,18 +70,13 @@ float notification_detail_texture_height(const Texture &tex);
 
 const Color &notification_detail_urgency_color(uint8_t urgency);
 
-bool notification_view_create_surface(NotificationView &view, wl_compositor *compositor,
-                                zwlr_layer_shell_v1 *layer_shell,
-                                wl_output *output = nullptr);
+bool notification_view_create_surface(NotificationView &view, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output = nullptr);
 
-bool notification_view_init_egl(NotificationView &view, NotificationRenderModel &service,
-                          Renderer &renderer, EGLDisplay display,
-                          EGLConfig config, EGLContext context);
+bool notification_view_init_egl(NotificationView &view, NotificationRenderModel &service, Renderer &renderer, EGLDisplay display, EGLConfig config, EGLContext context);
 
 void notification_view_request_frame(NotificationView &view);
 
-void notification_sync(NotificationRenderModel &service,
-                 const NotificationService &notifications);
+void notification_sync(NotificationRenderModel &service, const NotificationService &notifications);
 
 bool notification_view_handle_close_click(NotificationView &view, double x, double y);
 

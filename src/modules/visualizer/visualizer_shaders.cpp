@@ -17,19 +17,15 @@ std::string frag(const char *name) {
 } // namespace
 
 std::string sphere1_fs() {
-    return frag("sphere_head.glsl") + frag("lygia_pnoise.glsl") +
-           frag("common.glsl") + frag("defaults.glsl") +
-           frag("sphere1_main.glsl");
+    return frag("sphere_head.glsl") + frag("lygia_pnoise.glsl") + frag("common.glsl") + frag("defaults.glsl") + frag("sphere1_main.glsl");
 }
 
 std::string sphere2_fs() {
-    return frag("sphere_head.glsl") + frag("common.glsl") +
-           frag("defaults.glsl") + frag("sphere2_main.glsl");
+    return frag("sphere_head.glsl") + frag("common.glsl") + frag("defaults.glsl") + frag("sphere2_main.glsl");
 }
 
 std::string glow_fs() {
-    return frag("glow_head.glsl") + frag("common.glsl") +
-           frag("glow_main.glsl");
+    return frag("glow_head.glsl") + frag("common.glsl") + frag("glow_main.glsl");
 }
 
 } // namespace visualizer_shaders

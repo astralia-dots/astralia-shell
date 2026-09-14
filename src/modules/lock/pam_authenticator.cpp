@@ -31,14 +31,12 @@ char *dup_cstr(const char *s) {
     return out;
 }
 
-int conversation(int num_msg, const pam_message **msg, pam_response **resp,
-                 void *appdata) {
+int conversation(int num_msg, const pam_message **msg, pam_response **resp, void *appdata) {
     if (num_msg <= 0 || !msg || !resp || !appdata)
         return PAM_CONV_ERR;
 
     auto *data = static_cast<ConvData *>(appdata);
-    auto *replies = static_cast<pam_response *>(
-        std::calloc(static_cast<size_t>(num_msg), sizeof(pam_response)));
+    auto *replies = static_cast<pam_response *>(std::calloc(static_cast<size_t>(num_msg), sizeof(pam_response)));
     if (!replies)
         return PAM_BUF_ERR;
 
@@ -64,8 +62,7 @@ int conversation(int num_msg, const pam_message **msg, pam_response **resp,
 }
 
 bool pam_config_present() {
-    return KOKUSEI_PAM_DIR[0] != '\0' &&
-           ::access(KOKUSEI_PAM_DIR "/kokusei", R_OK) == 0;
+    return KOKUSEI_PAM_DIR[0] != '\0' &&::access(KOKUSEI_PAM_DIR "/kokusei", R_OK) == 0;
 }
 
 } // namespace
@@ -89,8 +86,7 @@ Result authenticate_current_user(std::string_view password) {
     pam_handle_t *pamh = nullptr;
     int rc;
     if (pam_config_present())
-        rc = pam_start_confdir("kokusei", user.c_str(), &conv, KOKUSEI_PAM_DIR,
-                               &pamh);
+        rc = pam_start_confdir("kokusei", user.c_str(), &conv, KOKUSEI_PAM_DIR, &pamh);
     else
         rc = pam_start("login", user.c_str(), &conv, &pamh);
 

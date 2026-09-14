@@ -70,22 +70,14 @@ bool idle_init(IdleState &state, wl_seat *seat);
 
 void idle_tick(IdleState &state, const std::string &focused_monitor);
 
-void idle_reset(IdleState &state,
-                 const std::vector<std::string> &monitor_names);
+void idle_reset(IdleState &state, const std::vector<std::string> &monitor_names);
 
-bool is_idle(const IdleState &state, const std::string &monitor,
-              uint32_t timeout_seconds);
+bool is_idle(const IdleState &state, const std::string &monitor, uint32_t timeout_seconds);
 
-bool idle_overlay_create_surface(IdleOverlayState &state,
-                                  wl_compositor *compositor,
-                                  zwlr_layer_shell_v1 *layer_shell,
-                                  wl_output *output);
+bool idle_overlay_create_surface(IdleOverlayState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output);
 
-bool idle_overlay_init_egl(IdleOverlayState &state, Renderer &renderer,
-                            EGLDisplay display, EGLConfig config,
-                            EGLContext context);
+bool idle_overlay_init_egl(IdleOverlayState &state, Renderer &renderer, EGLDisplay display, EGLConfig config, EGLContext context);
 
 void idle_overlay_request_frame(IdleOverlayState &state);
 
-void idle_overlay_set_active(IdleOverlayState &state, bool ambient_active,
-                              bool screensaver_active);
+void idle_overlay_set_active(IdleOverlayState &state, bool ambient_active, bool screensaver_active);

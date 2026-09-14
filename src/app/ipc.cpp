@@ -84,10 +84,7 @@ void handle_ipc_accept(int listen_fd, WaylandState &state) {
         klog("ipc: %s", cmd.c_str());
         std::vector<IpcHandler> handlers = ipc_handlers(state);
         if (cmd == "--help" || cmd == "help") {
-            std::sort(handlers.begin(), handlers.end(),
-                      [](const IpcHandler &a, const IpcHandler &b) {
-                          return std::strcmp(a.verb, b.verb) < 0;
-                      });
+            std::sort(handlers.begin(), handlers.end(), [](const IpcHandler &a, const IpcHandler &b) { return std::strcmp(a.verb, b.verb) < 0; });
             size_t width = 0;
             for (const IpcHandler &h : handlers)
                 width = std::max(width, std::strlen(h.verb));
@@ -143,8 +140,7 @@ int run_ipc_client(int argc, char **argv) {
     strncpy(addr.sun_path, path.c_str(), sizeof(addr.sun_path) - 1);
 
     if (connect(fd, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) < 0) {
-        fprintf(stderr, "kokusei: no running instance (%s: %s)\n", path.c_str(),
-                strerror(errno));
+        fprintf(stderr, "kokusei: no running instance (%s: %s)\n", path.c_str(), strerror(errno));
         close(fd);
         return 1;
     }

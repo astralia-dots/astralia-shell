@@ -16,8 +16,7 @@ constexpr const char *kMenuIface = "com.canonical.dbusmenu";
 constexpr const char *kPropsIface = "org.freedesktop.DBus.Properties";
 
 using DBusMenuLayout =
-    sdbus::Struct<int32_t, std::map<std::string, sdbus::Variant>,
-                  std::vector<sdbus::Variant>>;
+    sdbus::Struct<int32_t, std::map<std::string, sdbus::Variant>, std::vector<sdbus::Variant>>;
 
 template <typename T> std::optional<T> variant_get(const sdbus::Variant &v) {
     try {
@@ -34,8 +33,7 @@ TrayItem *find_item(TrayState &state, const std::string &key) {
     return nullptr;
 }
 
-void apply_item_props(TrayItem &item,
-                      const std::map<std::string, sdbus::Variant> &props) {
+void apply_item_props(TrayItem &item, const std::map<std::string, sdbus::Variant> &props) {
     if (auto it = props.find("IconName"); it != props.end())
         if (auto v = variant_get<std::string>(it->second))
             item.icon_name = *v;
@@ -52,14 +50,10 @@ void apply_item_props(TrayItem &item,
         }
 }
 
-void watch_item_properties(TrayState &state, const std::string &key,
-                           sdbus::IProxy &proxy) {
+void watch_item_properties(TrayState &state, const std::string &key, sdbus::IProxy &proxy) {
     proxy.uponSignal("PropertiesChanged")
         .onInterface(kPropsIface)
-        .call(
-            [&state, key](const std::string &,
-                          const std::map<std::string, sdbus::Variant> &changed,
-                          const std::vector<std::string> &) {
+        .call([&state, key](const std::string &, const std::map<std::string, sdbus::Variant> &changed, const std::vector<std::string> &) {
                 TrayItem *item = find_item(state, key);
                 if (!item)
                     return;
@@ -68,8 +62,7 @@ void watch_item_properties(TrayState &state, const std::string &key,
             });
 }
 
-void register_item(TrayState &state, const std::string &bus_name,
-                   const std::string &object_path) {
+void register_item(TrayState &state, const std::string &bus_name, const std::string &object_path) {
     std::string key = bus_name + "|" + object_path;
     if (find_item(state, key))
         return;
@@ -80,8 +73,7 @@ void register_item(TrayState &state, const std::string &bus_name,
     state.items.push_back(item);
     state.dirty = true;
 
-    auto proxy = sdbus::createProxy(*state.bus, sdbus::ServiceName{bus_name},
-                                    sdbus::ObjectPath{object_path});
+    auto proxy = sdbus::createProxy(*state.bus, sdbus::ServiceName{bus_name}, sdbus::ObjectPath{object_path});
     sdbus::IProxy *proxy_ptr = proxy.get();
     state.item_proxies[key] = std::move(proxy);
     watch_item_properties(state, key, *proxy_ptr);
@@ -89,12 +81,9 @@ void register_item(TrayState &state, const std::string &bus_name,
     proxy_ptr->callMethodAsync("GetAll")
         .onInterface(kPropsIface)
         .withArguments(std::string(kItemIface))
-        .uponReplyInvoke(
-            [&state, key](std::optional<sdbus::Error> err,
-                          std::map<std::string, sdbus::Variant> props) {
+        .uponReplyInvoke([&state, key](std::optional<sdbus::Error> err, std::map<std::string, sdbus::Variant> props) {
                 if (err) {
-                    klog("tray: GetAll failed for %s: %s", key.c_str(),
-                         err->getMessage().c_str());
+                    klog("tray: GetAll failed for %s: %s", key.c_str(), err->getMessage().c_str());
                     return;
                 }
                 TrayItem *item = find_item(state, key);
@@ -128,8 +117,7 @@ MenuEntry parse_menu_node(const DBusMenuLayout &node) {
 
     for (const sdbus::Variant &child : std::get<2>(node)) {
         try {
-            entry.children.push_back(
-                parse_menu_node(child.get<DBusMenuLayout>()));
+            entry.children.push_back(parse_menu_node(child.get<DBusMenuLayout>()));
         } catch (const sdbus::Error &) {
         }
     }
@@ -145,39 +133,26 @@ bool tray_init(TrayState &state) {
             sdbus::createObject(*state.bus, sdbus::ObjectPath{kWatcherPath});
 
         state.watcher_object
-            ->addVTable(
-                sdbus::registerMethod("RegisterStatusNotifierItem")
-                    .implementedAs([&state](const std::string &service) {
+            ->addVTable(sdbus::registerMethod("RegisterStatusNotifierItem").implementedAs([&state](const std::string &service) {
                         std::string sender =
                             state.watcher_object->getCurrentlyProcessedMessage()
                                 .getSender();
-                        std::string object_path = service.starts_with('/')
-                                                      ? service
-                                                      : "/StatusNotifierItem";
+                        std::string object_path = service.starts_with('/') ? service : "/StatusNotifierItem";
                         register_item(state, sender, object_path);
-                    }),
-                sdbus::registerMethod("RegisterStatusNotifierHost")
-                    .implementedAs([](const std::string &) {}),
-                sdbus::registerProperty("RegisteredStatusNotifierItems")
-                    .withGetter([&state]() -> std::vector<std::string> {
+                    }), sdbus::registerMethod("RegisterStatusNotifierHost").implementedAs([](const std::string &) {}), sdbus::registerProperty("RegisteredStatusNotifierItems").withGetter([&state]() -> std::vector<std::string> {
                         std::vector<std::string> out;
                         for (const TrayItem &item : state.items)
                             out.push_back(item.bus_name + item.object_path);
                         return out;
-                    }),
-                sdbus::registerProperty("IsStatusNotifierHostRegistered")
-                    .withGetter([]() -> bool { return true; }))
+                    }), sdbus::registerProperty("IsStatusNotifierHostRegistered").withGetter([]() -> bool { return true; }))
             .forInterface(kWatcherIface);
 
         state.bus->requestName(sdbus::ServiceName{kWatcherIface});
 
-        state.dbus_proxy = sdbus::createProxy(
-            *state.bus, sdbus::ServiceName{"org.freedesktop.DBus"},
-            sdbus::ObjectPath{"/org/freedesktop/DBus"});
+        state.dbus_proxy = sdbus::createProxy(*state.bus, sdbus::ServiceName{"org.freedesktop.DBus"}, sdbus::ObjectPath{"/org/freedesktop/DBus"});
         state.dbus_proxy->uponSignal("NameOwnerChanged")
             .onInterface("org.freedesktop.DBus")
-            .call([&state](const std::string &name, const std::string &,
-                           const std::string &new_owner) {
+            .call([&state](const std::string &name, const std::string &, const std::string &new_owner) {
                 if (!new_owner.empty())
                     return;
                 std::erase_if(state.items, [&](const TrayItem &item) {
@@ -195,9 +170,7 @@ bool tray_init(TrayState &state) {
         klog("tray: registered %s", kWatcherIface);
         return true;
     } catch (const sdbus::Error &e) {
-        klog("tray: D-Bus registration failed (%s): %s - is another tray "
-             "already running?",
-             e.getName().c_str(), e.getMessage().c_str());
+        klog("tray: D-Bus registration failed (%s): %s - is another tray " "already running?", e.getName().c_str(), e.getMessage().c_str());
         state.bus.reset();
         return false;
     }
@@ -221,8 +194,7 @@ void tray_menu_request(TrayState &state, const TrayItem &item) {
         return;
     try {
         auto menu_proxy =
-            sdbus::createProxy(*state.bus, sdbus::ServiceName{item.bus_name},
-                               sdbus::ObjectPath{item.menu_object_path});
+            sdbus::createProxy(*state.bus, sdbus::ServiceName{item.bus_name}, sdbus::ObjectPath{item.menu_object_path});
         sdbus::IProxy *proxy_ptr = menu_proxy.get();
 
         proxy_ptr->callMethodAsync("AboutToShow")
@@ -236,12 +208,9 @@ void tray_menu_request(TrayState &state, const TrayItem &item) {
         proxy_ptr->callMethodAsync("GetLayout")
             .onInterface(kMenuIface)
             .withArguments(int32_t{0}, int32_t{-1}, std::vector<std::string>{})
-            .uponReplyInvoke(
-                [&state, key, owned_proxy](std::optional<sdbus::Error> err,
-                                           uint32_t, DBusMenuLayout layout) {
+            .uponReplyInvoke([&state, key, owned_proxy](std::optional<sdbus::Error> err, uint32_t, DBusMenuLayout layout) {
                     if (err) {
-                        klog("tray: GetLayout failed for %s: %s", key.c_str(),
-                             err->getMessage().c_str());
+                        klog("tray: GetLayout failed for %s: %s", key.c_str(), err->getMessage().c_str());
                         return;
                     }
                     MenuEntry root = parse_menu_node(layout);
@@ -253,22 +222,18 @@ void tray_menu_request(TrayState &state, const TrayItem &item) {
     }
 }
 
-void tray_menu_event_clicked(TrayState &state, const TrayItem &item,
-                             int32_t entry_id) {
+void tray_menu_event_clicked(TrayState &state, const TrayItem &item, int32_t entry_id) {
     try {
         auto proxy =
-            sdbus::createProxy(*state.bus, sdbus::ServiceName{item.bus_name},
-                               sdbus::ObjectPath{item.menu_object_path});
+            sdbus::createProxy(*state.bus, sdbus::ServiceName{item.bus_name}, sdbus::ObjectPath{item.menu_object_path});
         sdbus::IProxy *proxy_ptr = proxy.get();
         auto owned_proxy = std::shared_ptr<sdbus::IProxy>(std::move(proxy));
         proxy_ptr->callMethodAsync("Event")
             .onInterface(kMenuIface)
-            .withArguments(entry_id, std::string("clicked"),
-                           sdbus::Variant(std::string()), uint32_t{0})
+            .withArguments(entry_id, std::string("clicked"), sdbus::Variant(std::string()), uint32_t{0})
             .uponReplyInvoke([owned_proxy](std::optional<sdbus::Error> err) {
                 if (err)
-                    klog("tray: menu Event failed: %s",
-                         err->getMessage().c_str());
+                    klog("tray: menu Event failed: %s", err->getMessage().c_str());
             });
     } catch (const sdbus::Error &e) {
         klog("tray: menu Event dispatch failed: %s", e.getMessage().c_str());

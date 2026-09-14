@@ -23,13 +23,10 @@
 
 #include FT_FREETYPE_H
 
-void thunder_burst_draw(ThunderBurst &tb, Renderer &renderer,
-                        const ThunderParams &p) {
+void thunder_burst_draw(ThunderBurst &tb, Renderer &renderer, const ThunderParams &p) {
     if (!tb.bolt_tried) {
         tb.bolt_tried = true;
-        tb.bolt_program = gl_compile_program_files(
-            "renderer/quad.vert", "logout/thunder_burst.frag",
-            "thunder_bolt");
+        tb.bolt_program = gl_compile_program_files("renderer/quad.vert", "logout/thunder_burst.frag", "thunder_bolt");
         klog("logout: thunder bolt_program=%u", tb.bolt_program);
     }
     if (!tb.bolt_program || !p.core || !p.glow)
@@ -48,24 +45,14 @@ void thunder_burst_draw(ThunderBurst &tb, Renderer &renderer,
 
     if (!tb.bolt_logged) {
         tb.bolt_logged = true;
-        klog("logout: bolt thick=%.3f amp=%.2f intensity=%.3f progress=%.3f "
-             "seed=%.2f quad=%.0fx%.0f a=(%.0f,%.0f) b=(%.0f,%.0f) time=%.2f",
-             p.thick, p.amp, p.intensity, p.progress, p.seed, w, h, ax, ay, bx,
-             by, p.time_s);
+        klog("logout: bolt thick=%.3f amp=%.2f intensity=%.3f progress=%.3f " "seed=%.2f quad=%.0fx%.0f a=(%.0f,%.0f) b=(%.0f,%.0f) time=%.2f", p.thick, p.amp, p.intensity, p.progress, p.seed, w, h, ax, ay, bx, by, p.time_s);
     }
 
     renderer.draw_custom(tb.bolt_program, min_x, min_y, w, h, [&](GLuint prog) {
         static bool loc_logged = false;
         if (!loc_logged) {
             loc_logged = true;
-            klog("logout: bolt loc a_pos=%d size=%d a=%d b=%d seed=%d "
-                 "time=%d",
-                 glGetAttribLocation(prog, "a_pos"),
-                 glGetUniformLocation(prog, "u_size"),
-                 glGetUniformLocation(prog, "u_a"),
-                 glGetUniformLocation(prog, "u_b"),
-                 glGetUniformLocation(prog, "u_seed"),
-                 glGetUniformLocation(prog, "u_time"));
+            klog("logout: bolt loc a_pos=%d size=%d a=%d b=%d seed=%d " "time=%d", glGetAttribLocation(prog, "a_pos"), glGetUniformLocation(prog, "u_size"), glGetUniformLocation(prog, "u_a"), glGetUniformLocation(prog, "u_b"), glGetUniformLocation(prog, "u_seed"), glGetUniformLocation(prog, "u_time"));
         }
         glUniform2f(glGetUniformLocation(prog, "u_size"), w, h);
         glUniform2f(glGetUniformLocation(prog, "u_a"), ax, ay);
@@ -81,13 +68,10 @@ void thunder_burst_draw(ThunderBurst &tb, Renderer &renderer,
     });
 }
 
-void thunder_shock_draw(ThunderBurst &tb, Renderer &renderer,
-                        const ThunderShockParams &p) {
+void thunder_shock_draw(ThunderBurst &tb, Renderer &renderer, const ThunderShockParams &p) {
     if (!tb.shock_tried) {
         tb.shock_tried = true;
-        tb.shock_program = gl_compile_program_files(
-            "renderer/quad.vert", "logout/thunder_shock.frag",
-            "thunder_shock");
+        tb.shock_program = gl_compile_program_files("renderer/quad.vert", "logout/thunder_shock.frag", "thunder_shock");
         klog("logout: thunder shock_program=%u", tb.shock_program);
     }
     if (!tb.shock_program || !p.core || !p.glow || p.radius <= 0.0f)
@@ -95,9 +79,7 @@ void thunder_shock_draw(ThunderBurst &tb, Renderer &renderer,
 
     if (!tb.shock_logged) {
         tb.shock_logged = true;
-        klog("logout: thunder shock draw radius=%.2f intensity=%.3f "
-             "progress=%.3f",
-             p.radius, p.intensity, p.progress);
+        klog("logout: thunder shock draw radius=%.2f intensity=%.3f " "progress=%.3f", p.radius, p.intensity, p.progress);
     }
 
     float min_x = p.cx - p.radius;
@@ -107,8 +89,7 @@ void thunder_shock_draw(ThunderBurst &tb, Renderer &renderer,
     float lcx = p.cx - min_x;
     float lcy = p.cy - min_y;
 
-    renderer.draw_custom(
-        tb.shock_program, min_x, min_y, side, side, [&](GLuint prog) {
+    renderer.draw_custom(tb.shock_program, min_x, min_y, side, side, [&](GLuint prog) {
             glUniform2f(glGetUniformLocation(prog, "u_size"), side, side);
             glUniform2f(glGetUniformLocation(prog, "u_center"), lcx, lcy);
             glUniform1f(glGetUniformLocation(prog, "u_time"), p.time_s);
@@ -121,8 +102,7 @@ void thunder_shock_draw(ThunderBurst &tb, Renderer &renderer,
 }
 
 Rect logout_detail_button_rect(int index, float center_x, float center_y) {
-    float angle =
-        kLogoutStartAngle + kLogoutStepAngle * static_cast<float>(index);
+    float angle = kLogoutStartAngle + kLogoutStepAngle * static_cast<float>(index);
     float radius = kLogoutButtonsRadius;
     float x = center_x + radius * std::cos(angle) - kLogoutButtonSize / 2.0f;
     float y = center_y + radius * std::sin(angle) - kLogoutButtonSize / 2.0f;
@@ -161,10 +141,7 @@ YujiMaiFont &yujimai_font() {
             return f;
         }
         f.cairo_face = cairo_ft_font_face_create_for_ft_face(f.face, 0);
-        klog("logout: YujiMai init %.0fms",
-             std::chrono::duration<float, std::milli>(
-                 std::chrono::steady_clock::now() - t0)
-                 .count());
+        klog("logout: YujiMai init %.0fms", std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - t0).count());
         return f;
     }();
     return font;
@@ -180,13 +157,10 @@ uint32_t decode_utf8_codepoint(const std::string &s) {
         return static_cast<uint32_t>((c0 & 0x1F) << 6) | (s[1] & 0x3F);
     }
     if ((c0 & 0xF0) == 0xE0 && s.size() >= 3) {
-        return (static_cast<uint32_t>(c0 & 0x0F) << 12) |
-               (static_cast<uint32_t>(s[1] & 0x3F) << 6) | (s[2] & 0x3F);
+        return (static_cast<uint32_t>(c0 & 0x0F) << 12) | (static_cast<uint32_t>(s[1] & 0x3F) << 6) | (s[2] & 0x3F);
     }
     if ((c0 & 0xF8) == 0xF0 && s.size() >= 4) {
-        return (static_cast<uint32_t>(c0 & 0x07) << 18) |
-               (static_cast<uint32_t>(s[1] & 0x3F) << 12) |
-               (static_cast<uint32_t>(s[2] & 0x3F) << 6) | (s[3] & 0x3F);
+        return (static_cast<uint32_t>(c0 & 0x07) << 18) | (static_cast<uint32_t>(s[1] & 0x3F) << 12) | (static_cast<uint32_t>(s[2] & 0x3F) << 6) | (s[3] & 0x3F);
     }
     return 0;
 }
@@ -201,11 +175,8 @@ int star_vertex(int step_index) {
     return step_index * kLogoutStarStep % kLogoutButtonCount;
 }
 
-void schedule_after(AnimationManager &anim, float delay_ms, uint64_t owner,
-                    std::function<void()> fn) {
-    anim.animate(
-        0.0f, 1.0f, delay_ms, Easing::Linear, [](float) {}, std::move(fn),
-        owner);
+void schedule_after(AnimationManager &anim, float delay_ms, uint64_t owner, std::function<void()> fn) {
+    anim.animate(0.0f, 1.0f, delay_ms, Easing::Linear, [](float) {}, std::move(fn), owner);
 }
 
 void cancel_open_close_tweens(LogoutState &state) {
@@ -228,16 +199,8 @@ void set_button_highlight(LogoutState &state, int i, bool on) {
         return;
     size_t idx = static_cast<size_t>(i);
     float target = on ? 1.0f : 0.0f;
-    state.base.animations.animate(
-        state.button_highlight_scale[idx], target, kLogoutButtonScaleMs,
-        Easing::EaseOutCubic,
-        [&state, idx](float v) { state.button_highlight_scale[idx] = v; }, {},
-        button_scale_owner(i));
-    state.base.animations.animate(
-        state.button_highlight_border[idx], target, kLogoutButtonBorderMs,
-        Easing::EaseOutCubic,
-        [&state, idx](float v) { state.button_highlight_border[idx] = v; }, {},
-        button_border_owner(i));
+    state.base.animations.animate(state.button_highlight_scale[idx], target, kLogoutButtonScaleMs, Easing::EaseOutCubic, [&state, idx](float v) { state.button_highlight_scale[idx] = v; }, {}, button_scale_owner(i));
+    state.base.animations.animate(state.button_highlight_border[idx], target, kLogoutButtonBorderMs, Easing::EaseOutCubic, [&state, idx](float v) { state.button_highlight_border[idx] = v; }, {}, button_border_owner(i));
 }
 
 bool is_highlighted(const LogoutState &state, int i) {
@@ -251,52 +214,34 @@ void update_highlight(LogoutState &state, int i) {
 void finish_close(LogoutState &state) {
     animated_image_hide(state.logo);
     state.base.open = false;
-    zwlr_layer_surface_v1_set_keyboard_interactivity(
-        state.base.layer_surface,
-        ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
+    zwlr_layer_surface_v1_set_keyboard_interactivity(state.base.layer_surface, ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
     overlay_panel_update_input_region(state.base);
     wl_surface_commit(state.base.surface);
 }
 
 void start_burst(LogoutState &state) {
     state.burst = 0.0f;
-    state.base.animations.animate(
-        0.0f, 1.0f, kLogoutBurstMs, Easing::EaseOutCubic,
-        [&state](float v) { state.burst = v; },
-        [&state] {
+    state.base.animations.animate(0.0f, 1.0f, kLogoutBurstMs, Easing::EaseOutCubic, [&state](float v) { state.burst = v; }, [&state] {
             state.input_ready = true;
             update_highlight(state, state.selected_index);
-        },
-        kLogoutBurstOwner);
+        }, kLogoutBurstOwner);
 
     for (int i = 0; i < kLogoutButtonCount; ++i) {
         size_t idx = static_cast<size_t>(i);
-        state.base.animations.animate(
-            0.0f, 1.0f, kLogoutPushMs, Easing::EaseOutBack,
-            [&state, idx](float v) { state.button_travel[idx] = v; }, {},
-            button_push_owner(i));
+        state.base.animations.animate(0.0f, 1.0f, kLogoutPushMs, Easing::EaseOutBack, [&state, idx](float v) { state.button_travel[idx] = v; }, {}, button_push_owner(i));
     }
 }
 
 void start_exit_burst(LogoutState &state) {
     state.burst = 0.0f;
     state.exit_fade = 1.0f;
-    state.base.animations.animate(
-        0.0f, 1.0f, kLogoutBurstMs, Easing::EaseOutCubic,
-        [&state](float v) { state.burst = v; },
-        [&state] { finish_close(state); }, kLogoutBurstOwner);
+    state.base.animations.animate(0.0f, 1.0f, kLogoutBurstMs, Easing::EaseOutCubic, [&state](float v) { state.burst = v; }, [&state] { finish_close(state); }, kLogoutBurstOwner);
 
-    state.base.animations.animate(
-        1.0f, 0.0f, kLogoutExitFadeMs, Easing::EaseOutCubic,
-        [&state](float v) { state.exit_fade = v; }, {}, kLogoutExitOwner);
+    state.base.animations.animate(1.0f, 0.0f, kLogoutExitFadeMs, Easing::EaseOutCubic, [&state](float v) { state.exit_fade = v; }, {}, kLogoutExitOwner);
 
     for (int i = 0; i < kLogoutButtonCount; ++i) {
         size_t idx = static_cast<size_t>(i);
-        state.base.animations.animate(
-            state.button_travel[idx], 1.0f + kLogoutExitSpread,
-            kLogoutExitFadeMs, Easing::EaseOutCubic,
-            [&state, idx](float v) { state.button_travel[idx] = v; }, {},
-            button_push_owner(i));
+        state.base.animations.animate(state.button_travel[idx], 1.0f + kLogoutExitSpread, kLogoutExitFadeMs, Easing::EaseOutCubic, [&state, idx](float v) { state.button_travel[idx] = v; }, {}, button_push_owner(i));
     }
 }
 
@@ -305,12 +250,8 @@ void start_slashes(LogoutState &state) {
     for (int e = 0; e < kLogoutButtonCount; ++e) {
         size_t idx = static_cast<size_t>(e);
         float delay = static_cast<float>(e) * step;
-        schedule_after(
-            state.base.animations, delay, button_gate_owner(e), [&state, idx] {
-                state.base.animations.animate(
-                    0.0f, 1.0f, kLogoutSlashMs, Easing::EaseOutCubic,
-                    [&state, idx](float v) { state.slash[idx] = v; }, {},
-                    edge_slash_owner(static_cast<int>(idx)));
+        schedule_after(state.base.animations, delay, button_gate_owner(e), [&state, idx] {
+                state.base.animations.animate(0.0f, 1.0f, kLogoutSlashMs, Easing::EaseOutCubic, [&state, idx](float v) { state.slash[idx] = v; }, {}, edge_slash_owner(static_cast<int>(idx)));
             });
     }
 
@@ -327,8 +268,7 @@ void start_slashes(LogoutState &state) {
 
 void start_open_sequence(LogoutState &state) {
     cancel_open_close_tweens(state);
-    animated_image_show(state.logo,
-                        [&state] { logout_request_frame(state); });
+    animated_image_show(state.logo, [&state] { logout_request_frame(state); });
     state.exiting = false;
     state.input_ready = false;
     state.logo_scale = 0.0f;
@@ -340,15 +280,9 @@ void start_open_sequence(LogoutState &state) {
         state.button_travel[static_cast<size_t>(i)] = 0.0f;
     }
 
-    state.base.animations.animate(
-        0.0f, 1.0f, kLogoutLogoAnimMs, Easing::EaseOutBack,
-        [&state](float v) { state.logo_scale = v; },
-        [&state] {
-            schedule_after(state.base.animations, kLogoutHoldMs,
-                           kLogoutHoldOwner,
-                           [&state] { start_slashes(state); });
-        },
-        kLogoutLogoOwner);
+    state.base.animations.animate(0.0f, 1.0f, kLogoutLogoAnimMs, Easing::EaseOutBack, [&state](float v) { state.logo_scale = v; }, [&state] {
+            schedule_after(state.base.animations, kLogoutHoldMs, kLogoutHoldOwner, [&state] { start_slashes(state); });
+        }, kLogoutLogoOwner);
 }
 
 void start_close_sequence(LogoutState &state) {
@@ -407,8 +341,7 @@ RasterizedText rasterize_yujimai_glyph(const std::string &codepoint_utf8) {
     cairo_matrix_init_scale(&font_matrix, kLogoutGlyphPx, kLogoutGlyphPx);
     cairo_matrix_t ctm;
     cairo_matrix_init_identity(&ctm);
-    cairo_scaled_font_t *scaled_font = cairo_scaled_font_create(
-        font.cairo_face, &font_matrix, &ctm, kokusei_font_options());
+    cairo_scaled_font_t *scaled_font = cairo_scaled_font_create(font.cairo_face, &font_matrix, &ctm, kokusei_font_options());
 
     cairo_glyph_t measure_glyph = {glyph_index, 0, 0};
     cairo_text_extents_t extents;
@@ -439,16 +372,11 @@ RasterizedText rasterize_yujimai_glyph(const std::string &codepoint_utf8) {
     return result;
 }
 
-bool logout_create_surface(LogoutState &state, wl_compositor *compositor,
-                             zwlr_layer_shell_v1 *layer_shell,
-                             wl_output *output) {
-    return overlay_panel_create_surface(state.base, compositor, layer_shell,
-                                        "kokusei-logout", output);
+bool logout_create_surface(LogoutState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
+    return overlay_panel_create_surface(state.base, compositor, layer_shell, "kokusei-logout", output);
 }
 
-bool logout_init_egl(LogoutState &state, Renderer &renderer,
-                       EGLDisplay display, EGLConfig config,
-                       EGLContext context) {
+bool logout_init_egl(LogoutState &state, Renderer &renderer, EGLDisplay display, EGLConfig config, EGLContext context) {
     state.renderer = &renderer;
     if (!overlay_panel_init_egl(state.base, display, config, context))
         return false;
@@ -456,19 +384,11 @@ bool logout_init_egl(LogoutState &state, Renderer &renderer,
     return true;
 }
 
-void logout_retarget(LogoutState &state, wl_compositor *compositor,
-                       zwlr_layer_shell_v1 *layer_shell, wl_display *display,
-                       Renderer &renderer, EGLDisplay egl_display,
-                       EGLConfig egl_config, EGLContext egl_context,
-                       wl_output *target_output, const char *target_name) {
-    wl_output *bound = overlay_panel_retarget(
-        state.base, display, state.bound_output, target_output, target_name,
-        [&](wl_output *out) {
+void logout_retarget(LogoutState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_display *display, Renderer &renderer, EGLDisplay egl_display, EGLConfig egl_config, EGLContext egl_context, wl_output *target_output, const char *target_name) {
+    wl_output *bound = overlay_panel_retarget(state.base, display, state.bound_output, target_output, target_name, [&](wl_output *out) {
             return logout_create_surface(state, compositor, layer_shell, out);
-        },
-        [&] {
-            return logout_init_egl(state, renderer, egl_display, egl_config,
-                                     egl_context);
+        }, [&] {
+            return logout_init_egl(state, renderer, egl_display, egl_config, egl_context);
         });
     if (bound)
         state.bound_output = bound;
@@ -521,9 +441,7 @@ void logout_toggle(LogoutState &state, bool by_widget) {
         state.selected_index = 0;
         state.base.open = true;
         state.base.opacity = 1.0f;
-        zwlr_layer_surface_v1_set_keyboard_interactivity(
-            state.base.layer_surface,
-            ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE);
+        zwlr_layer_surface_v1_set_keyboard_interactivity(state.base.layer_surface, ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE);
         overlay_panel_update_input_region(state.base);
         wl_surface_commit(state.base.surface);
         state.opened_by_widget = by_widget;
@@ -534,24 +452,16 @@ void logout_toggle(LogoutState &state, bool by_widget) {
     overlay_panel_request_frame(state.base);
 }
 
-std::vector<IpcHandler> logout_ipc_handlers(LogoutState &logout,
-                                              WaylandState &state) {
+std::vector<IpcHandler> logout_ipc_handlers(LogoutState &logout, WaylandState &state) {
     return {
         {"logout",
          [&logout, &state] {
              if (!logout.base.open) {
-                 MonitorOutput *target =
-                     app_detail::active_target_monitor(state);
-                 if (target && (target->output.wl != logout.bound_output ||
-                                !logout.base.layer_surface))
-                     logout_retarget(
-                         logout, state.compositor, state.layer_shell,
-                         state.display, state.renderer, state.egl_display,
-                         state.egl_config, state.egl_context, target->output.wl,
-                         target->output.name.c_str());
+                 MonitorOutput *target = app_detail::active_target_monitor(state);
+                 if (target && (target->output.wl != logout.bound_output || !logout.base.layer_surface))
+                     logout_retarget(logout, state.compositor, state.layer_shell, state.display, state.renderer, state.egl_display, state.egl_config, state.egl_context, target->output.wl, target->output.name.c_str());
              }
-             logout_apply_logo_config(logout,
-                                        state.cfg.logout_animated_logo);
+             logout_apply_logo_config(logout, state.cfg.logout_animated_logo);
              logout_toggle(logout);
          },
          "toggle the logout overlay"},
@@ -591,8 +501,7 @@ void logout_handle_key_event(LogoutState &state, const KeyEvent &event) {
         break;
     }
     case KeyKind::Text:
-        if (event.text.size() == 1 && event.text[0] >= '1' &&
-            event.text[0] <= '8') {
+        if (event.text.size() == 1 && event.text[0] >= '1' && event.text[0] <= '8') {
             int old = state.selected_index;
             state.selected_index = event.text[0] - '1';
             if (old != state.selected_index) {
@@ -661,11 +570,9 @@ void logout_paint(LogoutState &state) {
     auto now = std::chrono::steady_clock::now();
     state.base.animations.tick(now);
     animated_image_tick(state.logo, now);
-    if (!gl_make_current(state.base.egl_display, state.base.egl_surface,
-                         state.base.egl_context))
+    if (!gl_make_current(state.base.egl_display, state.base.egl_surface, state.base.egl_context))
         return;
-    state.renderer->begin_frame(state.base.width, state.base.height,
-                                state.base.output_scale.scale);
+    state.renderer->begin_frame(state.base.width, state.base.height, state.base.output_scale.scale);
     glClearColor(0, 0, 0, 0);
     glClear(GL_COLOR_BUFFER_BIT);
 
@@ -692,8 +599,7 @@ void logout_paint(LogoutState &state) {
             float by = cy + (fcy - cy) * t;
 
             float highlight_scale =
-                1.0f + (kLogoutHighlightScale - 1.0f) *
-                           state.button_highlight_scale[idx];
+                1.0f + (kLogoutHighlightScale - 1.0f) * state.button_highlight_scale[idx];
             float scale = (state.exiting ? 1.0f : t) * highlight_scale;
             float w = fin.w * scale;
             float h = fin.h * scale;
@@ -702,10 +608,7 @@ void logout_paint(LogoutState &state) {
 
             blend.push_back(with_alpha(palette::field_bg, visible));
             const Color &fill = blend.back();
-            blend.push_back(
-                with_alpha(lerp_color(palette::accent, palette::accent_alt,
-                                      state.button_highlight_border[idx]),
-                           visible));
+            blend.push_back(with_alpha(lerp_color(palette::accent, palette::accent_alt, state.button_highlight_border[idx]), visible));
             const Color &border = blend.back();
 
             Node *btn = state.scene.root.claim_child();
@@ -742,11 +645,9 @@ void logout_paint(LogoutState &state) {
         }
 
         float ls = kLogoutLogoSize;
-        Node *logo_group = node_add_group(&state.scene.root, cx - ls / 2.0f,
-                                          cy - ls / 2.0f, ls, ls);
+        Node *logo_group = node_add_group(&state.scene.root, cx - ls / 2.0f, cy - ls / 2.0f, ls, ls);
         logo_group->scale = state.logo_scale;
-        animated_image_draw(state.logo, logo_group, 0.0f, 0.0f, ls, ls,
-                            state.exiting ? state.exit_fade : 1.0f);
+        animated_image_draw(state.logo, logo_group, 0.0f, 0.0f, ls, ls, state.exiting ? state.exit_fade : 1.0f);
     }
 
     state.renderer->set_opacity(state.base.opacity);
@@ -836,11 +737,8 @@ void logout_paint(LogoutState &state) {
     gl_check("logout_paint");
     auto sw0 = std::chrono::steady_clock::now();
     if (!eglSwapBuffers(state.base.egl_display, state.base.egl_surface))
-        klog("logout: eglSwapBuffers failed, egl error 0x%04x",
-             eglGetError());
-    float sw = std::chrono::duration<float, std::milli>(
-                   std::chrono::steady_clock::now() - sw0)
-                   .count();
+        klog("logout: eglSwapBuffers failed, egl error 0x%04x", eglGetError());
+    float sw = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - sw0).count();
     if (sw > 5.0f)
         klog("logout: eglSwapBuffers %.1fms", sw);
 
@@ -851,13 +749,10 @@ void logout_paint(LogoutState &state) {
         for (int i = 0; i < kLogoutButtonCount; ++i)
             if (state.slash[static_cast<size_t>(i)] > 0.002f)
                 ++slashes;
-        klog("logout: paint #%d open=%d slashes=%d burst=%.2f dt=%.1fms",
-             frame, state.base.open, slashes, state.burst,
-             std::chrono::duration<float, std::milli>(now - prev).count());
+        klog("logout: paint #%d open=%d slashes=%d burst=%.2f dt=%.1fms", frame, state.base.open, slashes, state.burst, std::chrono::duration<float, std::milli>(now - prev).count());
     }
     prev = now;
 
-    if (state.base.animations.hasActive() ||
-        animated_image_animating(state.logo))
+    if (state.base.animations.hasActive() || animated_image_animating(state.logo))
         overlay_panel_request_frame(state.base);
 }

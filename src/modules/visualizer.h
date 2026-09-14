@@ -40,13 +40,10 @@ struct VisualizerState {
 
 void visualizer_shutdown(VisualizerState &state);
 
-void visualizer_apply_params(VisualizerState &state,
-                            const VisualizerParams &params);
+void visualizer_apply_params(VisualizerState &state, const VisualizerParams &params);
 
 void visualizer_toggle(VisualizerState &state, WaylandState &app);
 
-void visualizer_handle_key_event(VisualizerState &state, WaylandState &app,
-                                const KeyEvent &event);
+void visualizer_handle_key_event(VisualizerState &state, WaylandState &app, const KeyEvent &event);
 
-std::vector<IpcHandler> visualizer_ipc_handlers(VisualizerState &visualizer,
-                                               WaylandState &state);
+std::vector<IpcHandler> visualizer_ipc_handlers(VisualizerState &visualizer, WaylandState &state);

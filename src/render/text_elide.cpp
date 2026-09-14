@@ -23,6 +23,5 @@ std::string elide_middle(const std::string &s, size_t max_chars) {
     size_t keep = max_chars - 1;
     size_t head = (keep + 1) / 2;
     size_t tail = keep - head;
-    return s.substr(0, starts[head]) + "…" +
-           s.substr(starts[starts.size() - tail]);
+    return s.substr(0, starts[head]) + "…" + s.substr(starts[starts.size() - tail]);
 }

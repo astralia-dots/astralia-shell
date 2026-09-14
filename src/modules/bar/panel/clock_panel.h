@@ -39,8 +39,7 @@ std::array<CalendarDay, 42> clock_panel_cells(int year, int month);
 
 CalendarMonth clock_panel_month_shifted(int year, int month, int delta);
 
-bool clock_panel_same_day(const CalendarDay &cell, int year, int month,
-                          int day);
+bool clock_panel_same_day(const CalendarDay &cell, int year, int month, int day);
 
 struct ClockPanelState {
     OverlayPanelBase base;
@@ -59,24 +58,16 @@ struct ClockPanelState {
     float pending_bar_top_margin = 0.0f;
 };
 
-bool clock_panel_create_surface(ClockPanelState &state,
-                                wl_compositor *compositor,
-                                zwlr_layer_shell_v1 *layer_shell,
-                                wl_output *output = nullptr);
+bool clock_panel_create_surface(ClockPanelState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output = nullptr);
 
-bool clock_panel_init_egl(ClockPanelState &state, Renderer &renderer,
-                          EGLDisplay display, EGLConfig config,
-                          EGLContext context);
+bool clock_panel_init_egl(ClockPanelState &state, Renderer &renderer, EGLDisplay display, EGLConfig config, EGLContext context);
 
-void clock_panel_request_frame(ClockPanelState &state, float pill_center_x,
-                               float bar_height, float bar_top_margin);
+void clock_panel_request_frame(ClockPanelState &state, float pill_center_x, float bar_height, float bar_top_margin);
 
 void clock_panel_toggle(ClockPanelState &state, float pill_center_x = -1.0f);
 
 void clock_panel_handle_click(ClockPanelState &state, double px, double py);
 
-void clock_panel_handle_key_event(ClockPanelState &state,
-                                  const KeyEvent &event);
+void clock_panel_handle_key_event(ClockPanelState &state, const KeyEvent &event);
 
-void clock_panel_paint(ClockPanelState &state, float pill_center_x,
-                       float bar_height, float bar_top_margin);
+void clock_panel_paint(ClockPanelState &state, float pill_center_x, float bar_height, float bar_top_margin);

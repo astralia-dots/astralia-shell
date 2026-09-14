@@ -66,57 +66,36 @@ struct SettingsState {
     std::string idle_selected_monitor;
 };
 
-std::string settings_detail_format_field(const Config &cfg, SettingsFieldId id,
-                                       const std::string &monitor = "");
+std::string settings_detail_format_field(const Config &cfg, SettingsFieldId id, const std::string &monitor = "");
 
-bool settings_create_surface(SettingsState &state, wl_compositor *compositor,
-                           zwlr_layer_shell_v1 *layer_shell,
-                           wl_output *output = nullptr);
+bool settings_create_surface(SettingsState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output = nullptr);
 
-bool settings_init_egl(SettingsState &state, const Config &cfg, Renderer &renderer,
-                     EGLDisplay display, EGLConfig config, EGLContext context,
-                     std::function<std::vector<std::string>()> monitor_names_fn,
-                     std::function<std::string()> focused_monitor_fn,
-                     std::function<MediaDecodeStatus(const std::string &, int)>
-                         wallpaper_decode_status_fn);
+bool settings_init_egl(SettingsState &state, const Config &cfg, Renderer &renderer, EGLDisplay display, EGLConfig config, EGLContext context, std::function<std::vector<std::string>()> monitor_names_fn, std::function<std::string()> focused_monitor_fn, std::function<MediaDecodeStatus(const std::string &, int)> wallpaper_decode_status_fn);
 
 void settings_request_frame(SettingsState &state);
 
-void settings_commit_focused_field(SettingsState &state, const Config &cfg,
-                                 const SettingsCommitFn &on_commit);
+void settings_commit_focused_field(SettingsState &state, const Config &cfg, const SettingsCommitFn &on_commit);
 
-void settings_toggle(SettingsState &state, const Config &cfg,
-                   const SettingsCommitFn &on_commit);
+void settings_toggle(SettingsState &state, const Config &cfg, const SettingsCommitFn &on_commit);
 
-std::vector<IpcHandler> settings_ipc_handlers(SettingsState &settings,
-                                            WaylandState &state);
+std::vector<IpcHandler> settings_ipc_handlers(SettingsState &settings, WaylandState &state);
 
-void settings_focus_field(SettingsState &state, const Config &cfg,
-                        const SettingsCommitFn &on_commit, SettingsFieldId id);
+void settings_focus_field(SettingsState &state, const Config &cfg, const SettingsCommitFn &on_commit, SettingsFieldId id);
 
-void settings_handle_click(SettingsState &state, const Config &cfg,
-                         const SettingsCommitFn &on_commit, double px, double py);
+void settings_handle_click(SettingsState &state, const Config &cfg, const SettingsCommitFn &on_commit, double px, double py);
 
 bool settings_point_is_clickable(const SettingsState &state, double px, double py);
 
-void settings_handle_key_event(SettingsState &state, const Config &cfg,
-                             const SettingsCommitFn &on_commit,
-                             const KeyEvent &event);
+void settings_handle_key_event(SettingsState &state, const Config &cfg, const SettingsCommitFn &on_commit, const KeyEvent &event);
 
-void settings_paint(SettingsState &state, const Config &cfg,
-                  const std::vector<std::string> &monitor_names,
-                  const std::string &focused_monitor);
+void settings_paint(SettingsState &state, const Config &cfg, const std::vector<std::string> &monitor_names, const std::string &focused_monitor);
 
 void settings_handle_scroll(SettingsState &state, double dy);
 
 TextInputState settings_text_input_state(const SettingsState &state);
 
-void settings_text_input_apply_edit(SettingsState &state,
-                                  const TextInputEdit &edit);
+void settings_text_input_apply_edit(SettingsState &state, const TextInputEdit &edit);
 
-void draw_toggle_switch(SettingsState &state, Node *parent, float x, float y,
-                        bool active, const char *tag);
+void draw_toggle_switch(SettingsState &state, Node *parent, float x, float y, bool active, const char *tag);
 
-void draw_toggle_row(SettingsState &state, Node *parent, int32_t scale, float x,
-                     float y, float w, const std::string &label, bool value,
-                     const char *tag, bool tiled);
+void draw_toggle_row(SettingsState &state, Node *parent, int32_t scale, float x, float y, float w, const std::string &label, bool value, const char *tag, bool tiled);

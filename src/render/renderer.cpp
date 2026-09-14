@@ -26,8 +26,7 @@ bool Renderer::init() {
     rrect_program_ = build("renderer/rrect.frag", "rrect");
     rounded_tex_program_ = build("renderer/rounded_tex.frag", "rounded_tex");
     video_program_ = build("renderer/video.frag", "video");
-    if (!rect_program_ || !tex_program_ || !rrect_program_ ||
-        !rounded_tex_program_ || !video_program_)
+    if (!rect_program_ || !tex_program_ || !rrect_program_ || !rounded_tex_program_ || !video_program_)
         return false;
 
     static const float quad[] = {0, 0, 1, 0, 0, 1, 1, 1};
@@ -55,15 +54,13 @@ void Renderer::destroy() {
     *this = Renderer{};
 }
 
-void Renderer::begin_frame(int logical_width, int logical_height,
-                           int32_t scale) {
+void Renderer::begin_frame(int logical_width, int logical_height, int32_t scale) {
     viewport_[0] = static_cast<float>(logical_width);
     viewport_[1] = static_cast<float>(logical_height);
     scale_ = scale > 0 ? scale : 1;
     glViewport(0, 0, logical_width * scale_, logical_height * scale_);
     glEnable(GL_BLEND);
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE,
-                        GL_ONE_MINUS_SRC_ALPHA);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     opacity_ = 1.0f;
     model_stack_.assign(1, Affine2D{});
     gl_check("begin_frame");
@@ -105,8 +102,7 @@ void Renderer::clear_clip() {
         apply_clip(clip_stack_.back());
 }
 
-void Renderer::draw_rect(float x, float y, float w, float h,
-                         const float color[4]) {
+void Renderer::draw_rect(float x, float y, float w, float h, const float color[4]) {
     glUseProgram(rect_program_);
     set_common_uniforms(rect_program_, x, y, w, h);
     float c[4] = {color[0], color[1], color[2], color[3] * opacity_};
@@ -114,16 +110,13 @@ void Renderer::draw_rect(float x, float y, float w, float h,
     draw_quad(rect_program_);
 }
 
-void Renderer::draw_rounded_rect(float x, float y, float w, float h,
-                                 float radius, float border_width,
-                                 const float fill[4], const float border[4]) {
+void Renderer::draw_rounded_rect(float x, float y, float w, float h, float radius, float border_width, const float fill[4], const float border[4]) {
     glUseProgram(rrect_program_);
     set_common_uniforms(rrect_program_, x, y, w, h);
     float size[2] = {w, h};
     glUniform2fv(glGetUniformLocation(rrect_program_, "u_size"), 1, size);
     glUniform1f(glGetUniformLocation(rrect_program_, "u_radius"), radius);
-    glUniform1f(glGetUniformLocation(rrect_program_, "u_border_width"),
-                border_width);
+    glUniform1f(glGetUniformLocation(rrect_program_, "u_border_width"), border_width);
     float fc[4] = {fill[0], fill[1], fill[2], fill[3] * opacity_};
     float bc[4] = {border[0], border[1], border[2], border[3] * opacity_};
     glUniform4fv(glGetUniformLocation(rrect_program_, "u_fill_color"), 1, fc);
@@ -131,15 +124,12 @@ void Renderer::draw_rounded_rect(float x, float y, float w, float h,
     draw_quad(rrect_program_);
 }
 
-void Renderer::draw_texture(float x, float y, const Texture &tex,
-                            const float tint[4]) {
+void Renderer::draw_texture(float x, float y, const Texture &tex, const float tint[4]) {
     float inv_scale = 1.0f / static_cast<float>(tex.scale > 0 ? tex.scale : 1);
-    draw_texture_rect(x, y, static_cast<float>(tex.width) * inv_scale,
-                      static_cast<float>(tex.height) * inv_scale, tex, tint);
+    draw_texture_rect(x, y, static_cast<float>(tex.width) * inv_scale, static_cast<float>(tex.height) * inv_scale, tex, tint);
 }
 
-void Renderer::draw_texture_rect(float x, float y, float w, float h,
-                                 const Texture &tex, const float tint[4]) {
+void Renderer::draw_texture_rect(float x, float y, float w, float h, const Texture &tex, const float tint[4]) {
     x = std::round(x);
     y = std::round(y);
     glUseProgram(tex_program_);
@@ -152,9 +142,7 @@ void Renderer::draw_texture_rect(float x, float y, float w, float h,
     draw_quad(tex_program_);
 }
 
-void Renderer::draw_texture_rect_rounded(float x, float y, float w, float h,
-                                         float radius, const Texture &tex,
-                                         const float tint[4]) {
+void Renderer::draw_texture_rect_rounded(float x, float y, float w, float h, float radius, const Texture &tex, const float tint[4]) {
     x = std::round(x);
     y = std::round(y);
     glUseProgram(rounded_tex_program_);
@@ -170,8 +158,7 @@ void Renderer::draw_texture_rect_rounded(float x, float y, float w, float h,
     draw_quad(rounded_tex_program_);
 }
 
-void Renderer::draw_video_texture_rect(float x, float y, float w, float h,
-                                       const VideoTexture &tex) {
+void Renderer::draw_video_texture_rect(float x, float y, float w, float h, const VideoTexture &tex) {
     x = std::round(x);
     y = std::round(y);
     glUseProgram(video_program_);
@@ -184,8 +171,7 @@ void Renderer::draw_video_texture_rect(float x, float y, float w, float h,
     gl_check("draw_video");
 }
 
-void Renderer::draw_custom(GLuint program, float x, float y, float w, float h,
-                           const std::function<void(GLuint)> &set_uniforms) {
+void Renderer::draw_custom(GLuint program, float x, float y, float w, float h, const std::function<void(GLuint)> &set_uniforms) {
     if (!program)
         return;
     glUseProgram(program);
@@ -198,14 +184,10 @@ void Renderer::draw_custom(GLuint program, float x, float y, float w, float h,
 
 void Renderer::apply_clip(const ClipRect &r) {
     glEnable(GL_SCISSOR_TEST);
-    glScissor(static_cast<GLint>(r.x0 * scale_),
-              static_cast<GLint>((viewport_[1] - r.y1) * scale_),
-              static_cast<GLsizei>(std::max(0.0f, r.x1 - r.x0) * scale_),
-              static_cast<GLsizei>(std::max(0.0f, r.y1 - r.y0) * scale_));
+    glScissor(static_cast<GLint>(r.x0 * scale_), static_cast<GLint>((viewport_[1] - r.y1) * scale_), static_cast<GLsizei>(std::max(0.0f, r.x1 - r.x0) * scale_), static_cast<GLsizei>(std::max(0.0f, r.y1 - r.y0) * scale_));
 }
 
-void Renderer::set_common_uniforms(GLuint program, float x, float y, float w,
-                                   float h) {
+void Renderer::set_common_uniforms(GLuint program, float x, float y, float w, float h) {
     glUniform2fv(glGetUniformLocation(program, "u_viewport"), 1, viewport_);
     float rect[4] = {x, y, w, h};
     glUniform4fv(glGetUniformLocation(program, "u_rect"), 1, rect);

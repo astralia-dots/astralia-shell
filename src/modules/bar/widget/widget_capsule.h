@@ -56,33 +56,21 @@ struct WidgetCapsuleState {
 
 namespace bar_detail {
 
-float draw_static_pill_row(Node *root, float x, float height,
-                           const std::vector<const Texture *> &textures,
-                           const float tint[4], const float pill_bg[4]);
+float draw_static_pill_row(Node *root, float x, float height, const std::vector<const Texture *> &textures, const float tint[4], const float pill_bg[4]);
 
 size_t pill_idx(PillId id);
 
 float pill_center_x(const WidgetCapsuleState &capsule, PillId id);
 
-PillId hit_test_pills(const WidgetCapsuleState &capsule,
-                      const PointerState &pointer, wl_surface *own_surface);
+PillId hit_test_pills(const WidgetCapsuleState &capsule, const PointerState &pointer, wl_surface *own_surface);
 
-void update_pill_expand(WidgetCapsuleState &capsule,
-                        AnimationManager &animations, PillId id,
-                        bool hovered_now, bool instant = false);
+void update_pill_expand(WidgetCapsuleState &capsule, AnimationManager &animations, PillId id, bool hovered_now, bool instant = false);
 
-float pills_row_width(WidgetCapsuleState &capsule, AnimationManager &animations,
-                      const std::vector<Pill> &pills, PillId hovered,
-                      float height, PillId instant_pill = PillId::None);
+float pills_row_width(WidgetCapsuleState &capsule, AnimationManager &animations, const std::vector<Pill> &pills, PillId hovered, float height, PillId instant_pill = PillId::None);
 
-float draw_pills(Node *root, WidgetCapsuleState &capsule,
-                 AnimationManager &animations, float x, float height,
-                 const std::vector<Pill> &pills, const float tint[4],
-                 const float pill_bg[4], PillId hovered,
-                 PillId instant_pill = PillId::None);
+float draw_pills(Node *root, WidgetCapsuleState &capsule, AnimationManager &animations, float x, float height, const std::vector<Pill> &pills, const float tint[4], const float pill_bg[4], PillId hovered, PillId instant_pill = PillId::None);
 
-void dispatch_pill_click(WidgetCapsuleState &capsule,
-                         const PointerState &pointer, wl_surface *own_surface);
+void dispatch_pill_click(WidgetCapsuleState &capsule, const PointerState &pointer, wl_surface *own_surface);
 
 } // namespace bar_detail
 
@@ -95,12 +83,6 @@ struct SystemMonitorPanelState;
 
 namespace bar_detail {
 
-PillId panel_pill(const NetworkPanelState &network_panel,
-                  const BluetoothPanelState &bluetooth_panel,
-                  const VolumePanelState &volume_panel,
-                  const TrayPanelState &tray_panel,
-                  const BatteryPanelState &battery_panel,
-                  const SystemMonitorPanelState &system_monitor_panel,
-                  bool logout_open, bool dashboard_open);
+PillId panel_pill(const NetworkPanelState &network_panel, const BluetoothPanelState &bluetooth_panel, const VolumePanelState &volume_panel, const TrayPanelState &tray_panel, const BatteryPanelState &battery_panel, const SystemMonitorPanelState &system_monitor_panel, bool logout_open, bool dashboard_open);
 
 }

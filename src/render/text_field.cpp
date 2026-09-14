@@ -22,28 +22,20 @@ uint64_t type_anim_owner(uint64_t base, size_t index, uint64_t prop) {
     return base + (index % kTextFieldTypeAnimMax) * 2 + prop;
 }
 
-void type_anim_push(TextFieldTypeAnim &anim, AnimationManager &am,
-                    uint64_t owner_base) {
+void type_anim_push(TextFieldTypeAnim &anim, AnimationManager &am, uint64_t owner_base) {
     size_t idx = anim.chars.size();
     anim.chars.push_back({0.0f, kTextFieldPopSlideOffsetPx});
-    am.animate(
-        0.0f, 1.0f, kTextFieldPopScaleMs, Easing::EaseOutBack,
-        [&anim, idx](float v) {
+    am.animate(0.0f, 1.0f, kTextFieldPopScaleMs, Easing::EaseOutBack, [&anim, idx](float v) {
             if (idx < anim.chars.size())
                 anim.chars[idx].scale = v;
-        },
-        {}, type_anim_owner(owner_base, idx, 0));
-    am.animate(
-        kTextFieldPopSlideOffsetPx, 0.0f, kTextFieldPopSlideMs, Easing::Linear,
-        [&anim, idx](float v) {
+        }, {}, type_anim_owner(owner_base, idx, 0));
+    am.animate(kTextFieldPopSlideOffsetPx, 0.0f, kTextFieldPopSlideMs, Easing::Linear, [&anim, idx](float v) {
             if (idx < anim.chars.size())
                 anim.chars[idx].slide_x = v;
-        },
-        {}, type_anim_owner(owner_base, idx, 1));
+        }, {}, type_anim_owner(owner_base, idx, 1));
 }
 
-void type_anim_pop(TextFieldTypeAnim &anim, AnimationManager &am,
-                   uint64_t owner_base) {
+void type_anim_pop(TextFieldTypeAnim &anim, AnimationManager &am, uint64_t owner_base) {
     if (anim.chars.empty())
         return;
     size_t idx = anim.chars.size() - 1;
@@ -55,15 +47,13 @@ void type_anim_pop(TextFieldTypeAnim &anim, AnimationManager &am,
 } // namespace
 
 void text_field_backspace(std::string &text) {
-    while (!text.empty() &&
-           (static_cast<unsigned char>(text.back()) & 0xC0) == 0x80)
+    while (!text.empty() && (static_cast<unsigned char>(text.back()) & 0xC0) == 0x80)
         text.pop_back();
     if (!text.empty())
         text.pop_back();
 }
 
-TextFieldResult text_field_handle_key(TextFieldState &field,
-                                      const KeyEvent &event) {
+TextFieldResult text_field_handle_key(TextFieldState &field, const KeyEvent &event) {
     switch (event.kind) {
     case KeyKind::Text:
         field.text += event.text;
@@ -103,15 +93,12 @@ bool text_field_idle_toggle(TextFieldState &field) {
     return true;
 }
 
-void draw_text_field_caret(Node *parent, const TextFieldState &field,
-                           Rect caret, const float *color, bool active) {
+void draw_text_field_caret(Node *parent, const TextFieldState &field, Rect caret, const float *color, bool active) {
     if (active && field.cursor_idle_visible)
         node_add_rect(parent, caret.x, caret.y, caret.w, caret.h, color);
 }
 
-void draw_text_field_preedit(Node *parent, TextureCache &tcache, int32_t scale,
-                             const std::string &preedit, float x,
-                             float center_y, const float *color) {
+void draw_text_field_preedit(Node *parent, TextureCache &tcache, int32_t scale, const std::string &preedit, float x, float center_y, const float *color) {
     if (preedit.empty())
         return;
     const Texture *tex =
@@ -120,12 +107,10 @@ void draw_text_field_preedit(Node *parent, TextureCache &tcache, int32_t scale,
         return;
     float y = center_y - static_cast<float>(tex->height) / 2.0f;
     node_add_texture(parent, x, y, *tex, color);
-    node_add_rect(parent, x, y + static_cast<float>(tex->height),
-                  static_cast<float>(tex->width), 1.0f, color);
+    node_add_rect(parent, x, y + static_cast<float>(tex->height), static_cast<float>(tex->width), 1.0f, color);
 }
 
-void text_field_type_anim_sync(TextFieldTypeAnim &anim, AnimationManager &am,
-                               uint64_t owner_base, const std::string &text) {
+void text_field_type_anim_sync(TextFieldTypeAnim &anim, AnimationManager &am, uint64_t owner_base, const std::string &text) {
     size_t target = text_field_utf8_len(text);
     while (anim.chars.size() > target)
         type_anim_pop(anim, am, owner_base);
@@ -133,22 +118,19 @@ void text_field_type_anim_sync(TextFieldTypeAnim &anim, AnimationManager &am,
         type_anim_push(anim, am, owner_base);
 }
 
-void text_field_type_anim_settle(TextFieldTypeAnim &anim, AnimationManager &am,
-                                 uint64_t owner_base, const std::string &text) {
+void text_field_type_anim_settle(TextFieldTypeAnim &anim, AnimationManager &am, uint64_t owner_base, const std::string &text) {
     text_field_type_anim_clear(anim, am, owner_base);
     size_t n = text_field_utf8_len(text);
     for (size_t i = 0; i < n; ++i)
         anim.chars.push_back({1.0f, 0.0f});
 }
 
-void text_field_type_anim_clear(TextFieldTypeAnim &anim, AnimationManager &am,
-                                uint64_t owner_base) {
+void text_field_type_anim_clear(TextFieldTypeAnim &anim, AnimationManager &am, uint64_t owner_base) {
     while (!anim.chars.empty())
         type_anim_pop(anim, am, owner_base);
 }
 
-float text_field_row_slide(TextFieldRowSlide &slide, AnimationManager &am,
-                           uint64_t owner, float anchor_x) {
+float text_field_row_slide(TextFieldRowSlide &slide, AnimationManager &am, uint64_t owner, float anchor_x) {
     if (!slide.primed) {
         slide.primed = true;
         slide.target = anchor_x;
@@ -158,51 +140,41 @@ float text_field_row_slide(TextFieldRowSlide &slide, AnimationManager &am,
     if (anchor_x != slide.target) {
         slide.target = anchor_x;
         am.cancelForOwner(owner);
-        am.animate(
-            slide.x, anchor_x, kTextFieldRowSlideMs, Easing::EaseOutCubic,
-            [&slide](float v) { slide.x = v; }, {}, owner);
+        am.animate(slide.x, anchor_x, kTextFieldRowSlideMs, Easing::EaseOutCubic, [&slide](float v) { slide.x = v; }, {}, owner);
     }
     return slide.x;
 }
 
-void text_field_row_slide_reset(TextFieldRowSlide &slide, AnimationManager &am,
-                                uint64_t owner) {
+void text_field_row_slide_reset(TextFieldRowSlide &slide, AnimationManager &am, uint64_t owner) {
     am.cancelForOwner(owner);
     slide.primed = false;
     slide.x = 0.0f;
     slide.target = 0.0f;
 }
 
-float draw_text_field_value(Node *parent, TextureCache &tcache, int32_t scale,
-                            const std::string &text, float x, float center_y,
-                            const float *color, const TextFieldTypeAnim *anim) {
+float draw_text_field_value(Node *parent, TextureCache &tcache, int32_t scale, const std::string &text, float x, float center_y, const float *color, const TextFieldTypeAnim *anim) {
     float cell_w = kokusei_text_advance();
 
     float cx = x;
     size_t char_index = 0;
     for (size_t i = 0; i < text.size();) {
         size_t len =
-            std::min(utf8_char_len(static_cast<unsigned char>(text[i])),
-                     text.size() - i);
+            std::min(utf8_char_len(static_cast<unsigned char>(text[i])), text.size() - i);
         std::string ch = text.substr(i, len);
         i += len;
 
-        const TextFieldCharAnim *ca = anim && char_index < anim->chars.size()
-                                          ? &anim->chars[char_index]
-                                          : nullptr;
+        const TextFieldCharAnim *ca = anim && char_index < anim->chars.size() ? &anim->chars[char_index] : nullptr;
         float glyph_scale = ca ? ca->scale : 1.0f;
         float slide = ca ? ca->slide_x : 0.0f;
 
         const Texture *ch_tex =
             panel_chrome_detail::cached_text(tcache, ch, scale);
         if (ch_tex && glyph_scale > 0.0f) {
-            float inv = 1.0f / static_cast<float>(
-                                   ch_tex->scale > 0 ? ch_tex->scale : 1);
+            float inv = 1.0f / static_cast<float>(ch_tex->scale > 0 ? ch_tex->scale : 1);
             float w = static_cast<float>(ch_tex->width) * inv * glyph_scale;
             float h = static_cast<float>(ch_tex->height) * inv * glyph_scale;
             float cell_center_x = cx + cell_w / 2.0f + slide;
-            node_add_texture_rect(parent, cell_center_x - w / 2.0f,
-                                  center_y - h / 2.0f, w, h, *ch_tex, color);
+            node_add_texture_rect(parent, cell_center_x - w / 2.0f, center_y - h / 2.0f, w, h, *ch_tex, color);
         }
         cx += cell_w;
         ++char_index;

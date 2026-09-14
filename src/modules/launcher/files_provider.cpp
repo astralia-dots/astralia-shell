@@ -122,17 +122,11 @@ std::string run_command(const std::vector<std::string> &argv) {
 
 } // namespace
 
-std::vector<std::string> fd_search_argv(const std::string &pattern,
-                                        const std::string &search_root,
-                                        bool is_dir, int max_results, int depth,
-                                        bool full_path) {
+std::vector<std::string> fd_search_argv(const std::string &pattern, const std::string &search_root, bool is_dir, int max_results, int depth, bool full_path) {
     std::vector<std::string> argv = {"fd", "--glob", "--ignore-case"};
     if (full_path)
         argv.push_back("--full-path");
-    argv.insert(argv.end(),
-                {"--type", is_dir ? "d" : "f", "--hidden", "--no-ignore",
-                 "--absolute-path", "--color", "never", "--max-results",
-                 std::to_string(max_results)});
+    argv.insert(argv.end(), {"--type", is_dir ? "d" : "f", "--hidden", "--no-ignore", "--absolute-path", "--color", "never", "--max-results", std::to_string(max_results)});
     if (depth > 0) {
         argv.push_back("--max-depth");
         argv.push_back(std::to_string(depth));
@@ -143,8 +137,7 @@ std::vector<std::string> fd_search_argv(const std::string &pattern,
     return argv;
 }
 
-std::vector<FileEntry> fd_search_parse_output(const std::string &raw,
-                                              bool is_dir) {
+std::vector<FileEntry> fd_search_parse_output(const std::string &raw, bool is_dir) {
     std::vector<FileEntry> results;
     for (const std::string &path : parse_lines(raw)) {
         FileEntry fe;
@@ -156,11 +149,7 @@ std::vector<FileEntry> fd_search_parse_output(const std::string &raw,
     return results;
 }
 
-std::vector<FileEntry> run_fd_search(const std::string &pattern,
-                                     const std::string &search_root,
-                                     bool is_dir, int max_results, int depth,
-                                     bool full_path) {
-    std::string raw = run_command(fd_search_argv(
-        pattern, search_root, is_dir, max_results, depth, full_path));
+std::vector<FileEntry> run_fd_search(const std::string &pattern, const std::string &search_root, bool is_dir, int max_results, int depth, bool full_path) {
+    std::string raw = run_command(fd_search_argv(pattern, search_root, is_dir, max_results, depth, full_path));
     return fd_search_parse_output(raw, is_dir);
 }

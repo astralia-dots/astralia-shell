@@ -66,13 +66,11 @@ struct BarPerMonitorState {
     bool volume_peek_last_muted = false;
 };
 
-class BarPerMonitorModule final : public PerMonitorModule,
-                                     public TextInputClient {
+class BarPerMonitorModule final : public PerMonitorModule, public TextInputClient {
   public:
     BarPerMonitorState state;
 
-    bool create_surface(WaylandState &app, MonitorOutput &mon,
-                        wl_output *output) override;
+    bool create_surface(WaylandState &app, MonitorOutput &mon, wl_output *output) override;
     bool configured() const override;
     bool init_egl(WaylandState &app, MonitorOutput &mon) override;
 
@@ -87,15 +85,10 @@ class BarPerMonitorModule final : public PerMonitorModule,
     void tick(WaylandState &app, MonitorOutput &mon) override;
     void timer_tick(WaylandState &app, MonitorOutput &mon) override;
     bool is_open() const override;
-    void handle_click(WaylandState &app, MonitorOutput &mon,
-                      wl_surface *surface, int button, double x, double y,
-                      uint32_t serial) override;
-    void handle_scroll(WaylandState &app, MonitorOutput &mon,
-                       wl_surface *surface, double dy) override;
-    void handle_key_event(WaylandState &app, MonitorOutput &mon,
-                          const KeyEvent &event) override;
-    void handle_pointer_move(WaylandState &app, MonitorOutput &mon, double x,
-                             double y) override;
+    void handle_click(WaylandState &app, MonitorOutput &mon, wl_surface *surface, int button, double x, double y, uint32_t serial) override;
+    void handle_scroll(WaylandState &app, MonitorOutput &mon, wl_surface *surface, double dy) override;
+    void handle_key_event(WaylandState &app, MonitorOutput &mon, const KeyEvent &event) override;
+    void handle_pointer_move(WaylandState &app, MonitorOutput &mon, double x, double y) override;
     void handle_pointer_release() override;
     bool wants_pointing_hand_cursor() const override;
 
@@ -109,11 +102,7 @@ BarPerMonitorState &bar_state(MonitorOutput &mon);
 
 namespace bar_detail {
 
-void bar_autohide_set_surface_geometry(
-    zwlr_layer_surface_v1 *layer_surface, wl_surface *surface,
-    wl_egl_window *egl_window, int32_t width, int32_t height_px,
-    int32_t margin_top, int32_t margin_right, int32_t margin_left,
-    int32_t exclusive_zone, int32_t output_scale);
+void bar_autohide_set_surface_geometry(zwlr_layer_surface_v1 *layer_surface, wl_surface *surface, wl_egl_window *egl_window, int32_t width, int32_t height_px, int32_t margin_top, int32_t margin_right, int32_t margin_left, int32_t exclusive_zone, int32_t output_scale);
 
 void close_other_overlays(MonitorOutput &mon, PillId keep);
 
@@ -123,13 +112,11 @@ struct BarGeometry {
     int32_t exclusive_zone;
 };
 
-BarGeometry bar_autohide_geometry(bool autohide, bool collapsed,
-                                        int32_t cfg_height);
+BarGeometry bar_autohide_geometry(bool autohide, bool collapsed, int32_t cfg_height);
 
 int32_t bar_current_height(const MonitorOutput &mon);
 
-void bar_autohide_apply_geometry(MonitorOutput &mon, bool autohide,
-                                    bool collapsed);
+void bar_autohide_apply_geometry(MonitorOutput &mon, bool autohide, bool collapsed);
 
 void monitor_autohide_apply(MonitorOutput &mon, bool enabled);
 
@@ -141,8 +128,7 @@ void volume_pill_handle_wheel(MonitorOutput &mon, double dy);
 
 void bar_paint(MonitorOutput &mon);
 void bar_request_frame(MonitorOutput &mon);
-bool bar_init_egl(MonitorOutput &mon, Renderer &renderer, EGLDisplay display,
-                     EGLConfig config, EGLContext context);
+bool bar_init_egl(MonitorOutput &mon, Renderer &renderer, EGLDisplay display, EGLConfig config, EGLContext context);
 void dispatch_pill_click(MonitorOutput &mon, double click_x, double click_y);
 void update_clock(MonitorOutput &mon);
 void init_stub_widgets(MonitorOutput &mon);

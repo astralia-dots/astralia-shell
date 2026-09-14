@@ -27,9 +27,7 @@ static void test_decode_svg() {
         std::filesystem::temp_directory_path() / "kokusei-test-icon.svg";
     std::FILE *f = std::fopen(path.c_str(), "w");
     assert(f);
-    std::fputs("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'>"
-               "<rect width='24' height='24' fill='red'/></svg>",
-               f);
+    std::fputs("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'>" "<rect width='24' height='24' fill='red'/></svg>", f);
     std::fclose(f);
 
     int width = 0, height = 0;

@@ -54,12 +54,7 @@ void test_desktop_entry() {
     assert(strip_exec_field_codes("cmd %i %c %k end") == "cmd   end");
 
     {
-        std::istringstream in("[Desktop Entry]\n"
-                              "Type=Application\n"
-                              "Name=Firefox\n"
-                              "Exec=firefox %u\n"
-                              "Icon=firefox\n"
-                              "Terminal=false\n");
+        std::istringstream in("[Desktop Entry]\n" "Type=Application\n" "Name=Firefox\n" "Exec=firefox %u\n" "Icon=firefox\n" "Terminal=false\n");
         auto e = desktop_entry_detail::parse_stream(in, "firefox.desktop");
         assert(e.has_value());
         assert(e->name == "Firefox");
@@ -68,20 +63,13 @@ void test_desktop_entry() {
         assert(e->no_display == false);
     }
     {
-        std::istringstream in("[Desktop Entry]\n"
-                              "Type=Application\n"
-                              "Name=Hidden Thing\n"
-                              "Exec=thing\n"
-                              "NoDisplay=true\n");
+        std::istringstream in("[Desktop Entry]\n" "Type=Application\n" "Name=Hidden Thing\n" "Exec=thing\n" "NoDisplay=true\n");
         auto e = desktop_entry_detail::parse_stream(in, "thing.desktop");
         assert(e.has_value());
         assert(e->no_display == true);
     }
     {
-        std::istringstream in("[Desktop Entry]\n"
-                              "Type=Link\n"
-                              "Name=Some Link\n"
-                              "Exec=nothing\n");
+        std::istringstream in("[Desktop Entry]\n" "Type=Link\n" "Name=Some Link\n" "Exec=nothing\n");
         auto e = desktop_entry_detail::parse_stream(in, "link.desktop");
         assert(!e.has_value());
     }
@@ -98,16 +86,12 @@ void test_visit_store() {
     visit_store_record(vs, visit_store_file_key("/home/user/notes.txt"));
 
     assert(visit_store_get(vs, visit_store_app_key("firefox.desktop")) == 2);
-    assert(visit_store_get(vs, visit_store_file_key("/home/user/notes.txt")) ==
-           1);
+    assert(visit_store_get(vs, visit_store_file_key("/home/user/notes.txt")) == 1);
 
     VisitStore reloaded = visit_store_load(path);
-    assert(visit_store_get(reloaded, visit_store_app_key("firefox.desktop")) ==
-           2);
-    assert(visit_store_get(reloaded,
-                           visit_store_file_key("/home/user/notes.txt")) == 1);
-    assert(visit_store_get(reloaded,
-                           visit_store_app_key("never-visited.desktop")) == 0);
+    assert(visit_store_get(reloaded, visit_store_app_key("firefox.desktop")) == 2);
+    assert(visit_store_get(reloaded, visit_store_file_key("/home/user/notes.txt")) == 1);
+    assert(visit_store_get(reloaded, visit_store_app_key("never-visited.desktop")) == 0);
 
     unlink(path.c_str());
 }
@@ -137,8 +121,7 @@ void test_apps_provider() {
     auto results = search_apps(entries, "fire");
     assert(results.size() == 2);
 
-    assert(results[0].entry->name == "Firefox" ||
-           results[1].entry->name == "Firefox");
+    assert(results[0].entry->name == "Firefox" || results[1].entry->name == "Firefox");
     for (const auto &r : results)
         assert(r.entry->name != "Calculator");
 }
@@ -160,23 +143,19 @@ void test_files_provider() {
     }
     assert(split_query_parts("").empty());
 
-    assert(score_path("notes.txt", "notes") >
-           score_path("my-notes.txt", "notes"));
+    assert(score_path("notes.txt", "notes") > score_path("my-notes.txt", "notes"));
     assert(score_path("readme.md", "xyz") < 0.0f);
     assert(score_path("foobar.txt", "foo*bar") > 0.0f);
     assert(score_path("barfoo.txt", "foo*bar") < 0.0f);
 
-    assert(score_path("foobarxxxxxxxxxxxxxxxxxxxx", "foo*bar") <
-           score_path("fooxxxxxxxxxxxxxxxxxxxxbar", "foo*bar"));
+    assert(score_path("foobarxxxxxxxxxxxxxxxxxxxx", "foo*bar") < score_path("fooxxxxxxxxxxxxxxxxxxxxbar", "foo*bar"));
 
     assert(basename_of("/home/user/file.txt") == "file.txt");
     assert(basename_of("/home/user/") == "user");
     assert(basename_of("/") == "/");
 
     std::string tmp_dir = "/tmp/kokusei_test_fd_" + std::to_string(getpid());
-    system(
-        ("mkdir -p " + tmp_dir + "/subdir && touch " + tmp_dir + "/hello.txt")
-            .c_str());
+    system(("mkdir -p " + tmp_dir + "/subdir && touch " + tmp_dir + "/hello.txt").c_str());
 
     auto files = run_fd_search("**/*hello*", tmp_dir, false, 10);
     assert(!files.empty());
@@ -349,31 +328,26 @@ void test_launch_action() {
     assert(launch_action_detail::shell_quote("it's") == "'it'\\''s'");
     assert(launch_action_detail::shell_quote("a'b'c") == "'a'\\''b'\\''c'");
     assert(launch_action_detail::shell_quote("") == "''");
-    assert(launch_action_detail::shell_quote("Bob's Files") ==
-           "'Bob'\\''s Files'");
+    assert(launch_action_detail::shell_quote("Bob's Files") == "'Bob'\\''s Files'");
 
     assert(normalize_url("https://example.com") == "https://example.com");
     assert(normalize_url("//example.com") == "https://example.com");
     assert(normalize_url("localhost") == "http://localhost");
     assert(normalize_url("localhost:8080") == "http://localhost:8080");
     assert(normalize_url("192.168.1.1") == "http://192.168.1.1");
-    assert(normalize_url("192.168.1.1:9000/path") ==
-           "http://192.168.1.1:9000/path");
+    assert(normalize_url("192.168.1.1:9000/path") == "http://192.168.1.1:9000/path");
     assert(normalize_url("example.com") == "http://example.com");
     assert(normalize_url("host:1234") == "http://host:1234");
     assert(normalize_url("not a url") == "");
     assert(normalize_url("just text") == "");
     assert(normalize_url("") == "");
 
-    assert(make_search_url("hello world", "https://x/?q=") ==
-           "https://x/?q=hello%20world");
+    assert(make_search_url("hello world", "https://x/?q=") == "https://x/?q=hello%20world");
     assert(make_search_url("a b", "https://x/?q=") == "https://x/?q=a%20b");
     assert(make_search_url("", "https://x/?q=") == "");
 
-    assert(resolve_web_target("example.com", "https://x/?q=") ==
-           "http://example.com");
-    assert(resolve_web_target("just a query", "https://x/?q=") ==
-           "https://x/?q=just%20a%20query");
+    assert(resolve_web_target("example.com", "https://x/?q=") == "http://example.com");
+    assert(resolve_web_target("just a query", "https://x/?q=") == "https://x/?q=just%20a%20query");
 
     assert(launch_non_drun(LauncherMode::Run, "") == false);
     assert(launch_non_drun(LauncherMode::Google, "") == false);

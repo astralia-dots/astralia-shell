@@ -57,11 +57,9 @@ struct ThunderShockParams {
     const float *glow = nullptr;
 };
 
-void thunder_burst_draw(ThunderBurst &tb, Renderer &renderer,
-                        const ThunderParams &p);
+void thunder_burst_draw(ThunderBurst &tb, Renderer &renderer, const ThunderParams &p);
 
-void thunder_shock_draw(ThunderBurst &tb, Renderer &renderer,
-                        const ThunderShockParams &p);
+void thunder_shock_draw(ThunderBurst &tb, Renderer &renderer, const ThunderShockParams &p);
 
 struct LogoutState {
     OverlayPanelBase base;
@@ -98,19 +96,11 @@ RasterizedText rasterize_yujimai_glyph(const std::string &codepoint_utf8);
 
 Rect logout_detail_button_rect(int index, float center_x, float center_y);
 
-bool logout_create_surface(LogoutState &state, wl_compositor *compositor,
-                             zwlr_layer_shell_v1 *layer_shell,
-                             wl_output *output = nullptr);
+bool logout_create_surface(LogoutState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output = nullptr);
 
-bool logout_init_egl(LogoutState &state, Renderer &renderer,
-                       EGLDisplay display, EGLConfig config,
-                       EGLContext context);
+bool logout_init_egl(LogoutState &state, Renderer &renderer, EGLDisplay display, EGLConfig config, EGLContext context);
 
-void logout_retarget(LogoutState &state, wl_compositor *compositor,
-                       zwlr_layer_shell_v1 *layer_shell, wl_display *display,
-                       Renderer &renderer, EGLDisplay egl_display,
-                       EGLConfig egl_config, EGLContext egl_context,
-                       wl_output *target_output, const char *target_name);
+void logout_retarget(LogoutState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_display *display, Renderer &renderer, EGLDisplay egl_display, EGLConfig egl_config, EGLContext egl_context, wl_output *target_output, const char *target_name);
 
 void logout_request_frame(LogoutState &state);
 
@@ -118,8 +108,7 @@ void logout_apply_logo_config(LogoutState &state, bool animated);
 
 void logout_toggle(LogoutState &state, bool by_widget = false);
 
-std::vector<IpcHandler> logout_ipc_handlers(LogoutState &logout,
-                                              WaylandState &state);
+std::vector<IpcHandler> logout_ipc_handlers(LogoutState &logout, WaylandState &state);
 
 void logout_execute(LogoutState &state, int index);
 

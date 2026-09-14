@@ -35,8 +35,7 @@ void rain_request_frame(RainState &state);
 
 void rain_toggle(RainState &state, WaylandState &app);
 
-void rain_handle_key_event(RainState &state, WaylandState &app,
-                           const KeyEvent &event);
+void rain_handle_key_event(RainState &state, WaylandState &app, const KeyEvent &event);
 
 void rain_apply_params(RainState &state, const RainParams &params);
 

@@ -15,9 +15,6 @@ struct DockWidgetState {
 
 namespace bar_detail {
 
-float draw_dock_capsule(Node *root, DockWidgetState &st,
-                        AnimationManager &animations, float x, float height,
-                        const std::vector<DockEntry> &entries,
-                        const float pill_bg[4]);
+float draw_dock_capsule(Node *root, DockWidgetState &st, AnimationManager &animations, float x, float height, const std::vector<DockEntry> &entries, const float pill_bg[4]);
 
 } // namespace bar_detail

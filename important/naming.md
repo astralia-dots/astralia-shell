@@ -22,6 +22,7 @@ Description column is the verb's help text as printed by `kokusei help`.
 | `dock` | — | — | no IPC verb (per-monitor module) |
 | `wallpaper` | `expanse` | — | no IPC verb (per-monitor module) |
 | `notification` | `herald` | — | no IPC verb (per-monitor module) |
+| `polkit` | — | — | no IPC verb (reactive overlay, driven by polkit requests) |
 
 Non-module verb: `kill` — gracefully quit kokusei.
 

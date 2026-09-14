@@ -18,7 +18,6 @@ void test_path_home() {
     assert(path_expand_home("~foo") == "~foo");
     assert(path_expand_home("") == "");
 
-    assert(path_expand_home(path_collapse_home("/home/tester/a/b")) ==
-           "/home/tester/a/b");
+    assert(path_expand_home(path_collapse_home("/home/tester/a/b")) == "/home/tester/a/b");
     assert(path_collapse_home(path_expand_home("~/a/b")) == "~/a/b");
 }

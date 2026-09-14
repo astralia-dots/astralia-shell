@@ -26,15 +26,9 @@ struct NotificationService {
     std::vector<NotificationRecord> records;
 };
 
-bool notification_service_init(NotificationService &service,
-                               const std::function<void()> &on_change);
+bool notification_service_init(NotificationService &service, const std::function<void()> &on_change);
 
-uint32_t notification_service_push(NotificationService &service,
-                                   const std::string &app_name,
-                                   const std::string &summary,
-                                   const std::string &body,
-                                   int32_t expire_timeout_ms = -1,
-                                   uint32_t id = 0, uint8_t urgency = 1);
+uint32_t notification_service_push(NotificationService &service, const std::string &app_name, const std::string &summary, const std::string &body, int32_t expire_timeout_ms = -1, uint32_t id = 0, uint8_t urgency = 1);
 
 bool notification_service_close(NotificationService &service, uint32_t id);
 

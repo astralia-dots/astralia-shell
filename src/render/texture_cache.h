@@ -10,8 +10,7 @@
 
 class TextureCache {
   public:
-    const Texture *get(const std::string &key,
-                       const std::function<RasterizedText()> &rasterize);
+    const Texture *get(const std::string &key, const std::function<RasterizedText()> &rasterize);
 
     void clear() {
         index_.clear();

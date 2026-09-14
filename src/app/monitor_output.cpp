@@ -26,8 +26,7 @@ MonitorOutput *find_monitor_by_name_wl(WaylandState &app, wl_output *wl) {
     return nullptr;
 }
 
-MonitorOutput *find_monitor_for_surface(WaylandState &app,
-                                        wl_surface *surface) {
+MonitorOutput *find_monitor_for_surface(WaylandState &app, wl_surface *surface) {
     if (!surface)
         return nullptr;
     for (auto &mon : app.outputs)
@@ -79,22 +78,19 @@ namespace app_detail {
 
 void rest_egl_current(WaylandState &app) {
     if (!app.outputs.empty())
-        eglMakeCurrent(app.egl_display, app.outputs.front()->egl_surface,
-                       app.outputs.front()->egl_surface, app.egl_context);
+        eglMakeCurrent(app.egl_display, app.outputs.front()->egl_surface, app.outputs.front()->egl_surface, app.egl_context);
 }
 
 const std::vector<Workspace> &monitor_workspaces(const MonitorOutput &mon) {
     static const std::vector<Workspace> empty;
-    if (mon.app->compositor_backend !=
-        WaylandState::CompositorBackend::Hyprland)
+    if (mon.app->compositor_backend != WaylandState::CompositorBackend::Hyprland)
         return empty;
     auto it = mon.app->hypr.by_monitor.find(mon.output.name);
     return it != mon.app->hypr.by_monitor.end() ? it->second.workspaces : empty;
 }
 
 int monitor_active_workspace_id(const MonitorOutput &mon) {
-    if (mon.app->compositor_backend !=
-        WaylandState::CompositorBackend::Hyprland)
+    if (mon.app->compositor_backend != WaylandState::CompositorBackend::Hyprland)
         return -1;
     auto it = mon.app->hypr.by_monitor.find(mon.output.name);
     return it != mon.app->hypr.by_monitor.end() ? it->second.active_id : -1;
@@ -102,13 +98,7 @@ int monitor_active_workspace_id(const MonitorOutput &mon) {
 
 void apply_config_update(WaylandState &app, Config new_cfg) {
     bool idle_changed =
-        app.cfg.idle_management_enabled != new_cfg.idle_management_enabled ||
-        app.cfg.ambient_enabled != new_cfg.ambient_enabled ||
-        app.cfg.ambient_timeout_seconds != new_cfg.ambient_timeout_seconds ||
-        app.cfg.screensaver_enabled != new_cfg.screensaver_enabled ||
-        app.cfg.screensaver_timeout_seconds !=
-            new_cfg.screensaver_timeout_seconds ||
-        app.cfg.monitor_overrides != new_cfg.monitor_overrides;
+        app.cfg.idle_management_enabled != new_cfg.idle_management_enabled || app.cfg.ambient_enabled != new_cfg.ambient_enabled || app.cfg.ambient_timeout_seconds != new_cfg.ambient_timeout_seconds || app.cfg.screensaver_enabled != new_cfg.screensaver_enabled || app.cfg.screensaver_timeout_seconds != new_cfg.screensaver_timeout_seconds || app.cfg.monitor_overrides != new_cfg.monitor_overrides;
     if (idle_changed) {
         std::vector<std::string> names;
         for (auto &mon : app.outputs)
@@ -158,30 +148,19 @@ MonitorOutput *active_target_monitor(WaylandState &app) {
         app.compositor_backend == WaylandState::CompositorBackend::Hyprland
             ? app.hypr.focused_monitor
             : std::string();
-    wl_output *pointer_hint = app.last_pointer_monitor
-                                  ? app.last_pointer_monitor->output.wl
-                                  : nullptr;
+    wl_output *pointer_hint = app.last_pointer_monitor ? app.last_pointer_monitor->output.wl : nullptr;
     wl_output *target =
         active_output_select(outputs, focused_name, pointer_hint);
     return target ? find_monitor_by_name_wl(app, target) : nullptr;
 }
 
-void settings_retarget(WaylandState &app, SettingsState &settings,
-                       MonitorOutput &target) {
+void settings_retarget(WaylandState &app, SettingsState &settings, MonitorOutput &target) {
     SettingsState &s = settings;
     SettingsEnv env = settings_env(app);
-    wl_output *bound = overlay_panel_retarget(
-        s.base, app.display, app.settings_bound_output, target.output.wl,
-        target.output.name.c_str(),
-        [&](wl_output *out) {
-            return settings_create_surface(s, app.compositor, app.layer_shell,
-                                           out);
-        },
-        [&] {
-            return settings_init_egl(
-                s, app.cfg, app.renderer, app.egl_display, app.egl_config,
-                app.egl_context, env.monitor_names_fn, env.focused_monitor_fn,
-                env.decode_status_fn);
+    wl_output *bound = overlay_panel_retarget(s.base, app.display, app.settings_bound_output, target.output.wl, target.output.name.c_str(), [&](wl_output *out) {
+            return settings_create_surface(s, app.compositor, app.layer_shell, out);
+        }, [&] {
+            return settings_init_egl(s, app.cfg, app.renderer, app.egl_display, app.egl_config, app.egl_context, env.monitor_names_fn, env.focused_monitor_fn, env.decode_status_fn);
         });
     if (bound)
         app.settings_bound_output = bound;
@@ -189,8 +168,7 @@ void settings_retarget(WaylandState &app, SettingsState &settings,
         app.settings_enabled = false;
 
     if (!app.outputs.empty())
-        eglMakeCurrent(app.egl_display, app.outputs.front()->egl_surface,
-                       app.outputs.front()->egl_surface, app.egl_context);
+        eglMakeCurrent(app.egl_display, app.outputs.front()->egl_surface, app.outputs.front()->egl_surface, app.egl_context);
 }
 
 } // namespace app_detail

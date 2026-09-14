@@ -43,13 +43,10 @@ ModeQuery detect_mode_and_query(const std::string &raw) {
 
     for (const auto &p : kPrefixes) {
         std::string prefix = p.prefix;
-        if (trimmed.size() < prefix.size() ||
-            trimmed.compare(0, prefix.size(), prefix) != 0)
+        if (trimmed.size() < prefix.size() || trimmed.compare(0, prefix.size(), prefix) != 0)
             continue;
         if (is_alnum_prefix(prefix)) {
-            if (trimmed.size() > prefix.size() &&
-                !std::isspace(
-                    static_cast<unsigned char>(trimmed[prefix.size()])))
+            if (trimmed.size() > prefix.size() && !std::isspace(static_cast<unsigned char>(trimmed[prefix.size()])))
                 continue;
         }
         std::string rest = trim_left(trimmed.substr(prefix.size()));
@@ -58,10 +55,7 @@ ModeQuery detect_mode_and_query(const std::string &raw) {
     return {LauncherMode::Drun, trimmed};
 }
 
-std::vector<DrunResult>
-combined_drun_results(const std::vector<ScoredApp> &apps,
-                      const std::vector<FileEntry> &files,
-                      const VisitStore &visits, int max_results) {
+std::vector<DrunResult> combined_drun_results(const std::vector<ScoredApp> &apps, const std::vector<FileEntry> &files, const VisitStore &visits, int max_results) {
     struct Decorated {
         DrunResult result;
         int tier;
@@ -95,20 +89,18 @@ combined_drun_results(const std::vector<ScoredApp> &apps,
         decorated.push_back(std::move(d));
     }
 
-    std::stable_sort(decorated.begin(), decorated.end(),
-                     [](const Decorated &a, const Decorated &b) {
-                         if (a.tier != b.tier)
-                             return a.tier < b.tier;
-                         if (a.visits != b.visits)
-                             return a.visits > b.visits;
-                         if (a.score != b.score)
-                             return a.score > b.score;
-                         return a.name_lower < b.name_lower;
-                     });
+    std::stable_sort(decorated.begin(), decorated.end(), [](const Decorated &a, const Decorated &b) {
+        if (a.tier != b.tier)
+            return a.tier < b.tier;
+        if (a.visits != b.visits)
+            return a.visits > b.visits;
+        if (a.score != b.score)
+            return a.score > b.score;
+        return a.name_lower < b.name_lower;
+    });
 
     std::vector<DrunResult> out;
-    for (size_t i = 0;
-         i < decorated.size() && static_cast<int>(i) < max_results; ++i)
+    for (size_t i = 0; i < decorated.size() && static_cast<int>(i) < max_results; ++i)
         out.push_back(decorated[i].result);
     return out;
 }

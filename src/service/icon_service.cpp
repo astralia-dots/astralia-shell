@@ -36,8 +36,7 @@ std::string active_gtk_icon_theme() {
     while (std::getline(f, line)) {
         if (line.starts_with(kKey)) {
             std::string value = line.substr(kKey.size());
-            while (!value.empty() &&
-                   (value.back() == '\r' || value.back() == ' '))
+            while (!value.empty() && (value.back() == '\r' || value.back() == ' '))
                 value.pop_back();
             return value;
         }
@@ -51,8 +50,7 @@ const std::vector<std::string> &theme_search_order() {
         std::string active = active_gtk_icon_theme();
         if (!active.empty() && active != "hicolor")
             themes.push_back(active);
-        for (const char *theme :
-             {"Adwaita", "AdwaitaLegacy", "breeze", "breeze-dark"}) {
+        for (const char *theme : {"Adwaita", "AdwaitaLegacy", "breeze", "breeze-dark"}) {
             if (std::find(themes.begin(), themes.end(), theme) == themes.end())
                 themes.push_back(theme);
         }
@@ -71,8 +69,7 @@ void index_theme_root(const std::string &root, ThemeIndex &out) {
     std::error_code ec;
     if (!fs::is_directory(root, ec))
         return;
-    for (const auto &entry : fs::recursive_directory_iterator(
-             root, fs::directory_options::skip_permission_denied, ec)) {
+    for (const auto &entry : fs::recursive_directory_iterator(root, fs::directory_options::skip_permission_denied, ec)) {
         if (ec || !entry.is_regular_file(ec))
             continue;
         const fs::path &p = entry.path();
@@ -148,8 +145,7 @@ std::vector<std::string> desktop_app_dirs() {
     while (start <= list.size()) {
         size_t colon = list.find(':', start);
         std::string dir =
-            list.substr(start, colon == std::string::npos ? std::string::npos
-                                                          : colon - start);
+            list.substr(start, colon == std::string::npos ? std::string::npos : colon - start);
         if (!dir.empty())
             dirs.push_back(dir + "/applications");
         if (colon == std::string::npos)
@@ -166,10 +162,8 @@ const IconIndex &window_class_icon_index() {
         for (const std::string &dir : desktop_app_dirs()) {
             if (!fs::is_directory(dir, ec))
                 continue;
-            for (const auto &entry : fs::recursive_directory_iterator(
-                     dir, fs::directory_options::skip_permission_denied, ec)) {
-                if (ec || !entry.is_regular_file(ec) ||
-                    entry.path().extension() != ".desktop")
+            for (const auto &entry : fs::recursive_directory_iterator(dir, fs::directory_options::skip_permission_denied, ec)) {
+                if (ec || !entry.is_regular_file(ec) || entry.path().extension() != ".desktop")
                     continue;
                 std::ifstream f(entry.path());
                 std::string line;

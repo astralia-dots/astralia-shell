@@ -83,8 +83,7 @@ struct SeatCapabilityState {
     PointerState *pointer = nullptr;
 };
 
-std::optional<KeyEvent> translate_key(xkb_state *state, uint32_t keycode,
-                                      xkb_compose_state *compose = nullptr);
+std::optional<KeyEvent> translate_key(xkb_state *state, uint32_t keycode, xkb_compose_state *compose = nullptr);
 
 void keyboard_attach_seat(SeatCapabilityState &seat_state, wl_seat *seat);
 
@@ -100,5 +99,4 @@ std::vector<PointerClick> pointer_drain_clicks(PointerState &state);
 
 std::vector<PointerScroll> pointer_drain_scrolls(PointerState &state);
 
-void pointer_set_cursor_shape(PointerState &state,
-                              wp_cursor_shape_device_v1_shape shape);
+void pointer_set_cursor_shape(PointerState &state, wp_cursor_shape_device_v1_shape shape);

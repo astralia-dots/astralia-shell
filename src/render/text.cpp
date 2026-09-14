@@ -2,8 +2,7 @@
 
 #include "render/text.h"
 
-RasterizedText surface_to_rgba(cairo_surface_t *surface, int width,
-                               int height) {
+RasterizedText surface_to_rgba(cairo_surface_t *surface, int width, int height) {
     RasterizedText result;
     const uint8_t *src = cairo_image_surface_get_data(surface);
     int stride = cairo_image_surface_get_stride(surface);
@@ -34,8 +33,7 @@ RasterizedText surface_to_rgba(cairo_surface_t *surface, int width,
 Texture make_texture_from_raster(const RasterizedText &raster, bool mipmapped) {
     if (raster.width <= 0 || raster.height <= 0)
         return Texture{};
-    Texture tex = make_texture_rgba(raster.width, raster.height,
-                                    raster.rgba.data(), mipmapped);
+    Texture tex = make_texture_rgba(raster.width, raster.height, raster.rgba.data(), mipmapped);
     tex.scale = raster.scale;
     return tex;
 }
@@ -84,8 +82,7 @@ cairo_font_options_t *kokusei_icon_font_options() {
     return options;
 }
 
-void font_ascent_descent(PangoFontDescription *desc, int &ascent,
-                         int &descent) {
+void font_ascent_descent(PangoFontDescription *desc, int &ascent, int &descent) {
     PangoFontMap *font_map = pango_cairo_font_map_get_default();
     PangoContext *context = pango_font_map_create_context(font_map);
     PangoFontMetrics *metrics =
@@ -118,9 +115,7 @@ float kokusei_text_advance() {
     return advance;
 }
 
-RasterizedText rasterize_text_with(const std::string &text,
-                                   PangoFontDescription *desc, int32_t scale,
-                                   int max_width_px) {
+RasterizedText rasterize_text_with(const std::string &text, PangoFontDescription *desc, int32_t scale, int max_width_px) {
     cairo_surface_t *measure_surface =
         cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1, 1);
     cairo_t *measure_cr = cairo_create(measure_surface);
@@ -150,8 +145,7 @@ RasterizedText rasterize_text_with(const std::string &text,
     scale = scale > 0 ? scale : 1;
     int pixel_width = width * scale, pixel_height = height * scale;
 
-    cairo_surface_t *surface = cairo_image_surface_create(
-        CAIRO_FORMAT_ARGB32, pixel_width, pixel_height);
+    cairo_surface_t *surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, pixel_width, pixel_height);
     cairo_t *cr = cairo_create(surface);
     cairo_scale(cr, scale, scale);
     cairo_set_font_options(cr, kokusei_font_options());
@@ -177,33 +171,24 @@ RasterizedText rasterize_text_with(const std::string &text,
     return result;
 }
 
-RasterizedText rasterize_text(const std::string &text, int32_t scale,
-                              int max_width_px) {
-    return rasterize_text_with(text, kokusei_font_description(), scale,
-                               max_width_px);
+RasterizedText rasterize_text(const std::string &text, int32_t scale, int max_width_px) {
+    return rasterize_text_with(text, kokusei_font_description(), scale, max_width_px);
 }
 
-RasterizedText rasterize_text_small(const std::string &text, int32_t scale,
-                                    int max_width_px) {
-    return rasterize_text_with(text, kokusei_font_description_small(), scale,
-                               max_width_px);
+RasterizedText rasterize_text_small(const std::string &text, int32_t scale, int max_width_px) {
+    return rasterize_text_with(text, kokusei_font_description_small(), scale, max_width_px);
 }
 
-RasterizedText rasterize_text_large(const std::string &text, int32_t scale,
-                                    int max_width_px) {
-    return rasterize_text_with(text, kokusei_font_description_large(), scale,
-                               max_width_px);
+RasterizedText rasterize_text_large(const std::string &text, int32_t scale, int max_width_px) {
+    return rasterize_text_with(text, kokusei_font_description_large(), scale, max_width_px);
 }
 
-RasterizedText rasterize_text_px(const std::string &text, int px, bool bold,
-                                 int32_t scale) {
+RasterizedText rasterize_text_px(const std::string &text, int px, bool bold, int32_t scale, int max_width_px) {
     PangoFontDescription *desc =
         pango_font_description_from_string("ComicShannsMono Nerd Font");
-    pango_font_description_set_weight(desc, bold ? PANGO_WEIGHT_BOLD
-                                                 : PANGO_WEIGHT_NORMAL);
-    pango_font_description_set_absolute_size(desc, static_cast<double>(px) *
-                                                       PANGO_SCALE);
-    RasterizedText out = rasterize_text_with(text, desc, scale, 0);
+    pango_font_description_set_weight(desc, bold ? PANGO_WEIGHT_BOLD : PANGO_WEIGHT_NORMAL);
+    pango_font_description_set_absolute_size(desc, static_cast<double>(px) * PANGO_SCALE);
+    RasterizedText out = rasterize_text_with(text, desc, scale, max_width_px);
     pango_font_description_free(desc);
     return out;
 }

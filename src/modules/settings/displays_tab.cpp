@@ -12,9 +12,7 @@ std::string displays_monitor_from_tag(const std::string &tag) {
 
 } // namespace
 
-void settings_draw_monitor_row(SettingsState &state, Node *parent,
-                               int32_t scale, float x, float y, float row_w,
-                               const std::string &selected_monitor) {
+void settings_draw_monitor_row(SettingsState &state, Node *parent, int32_t scale, float x, float y, float row_w, const std::string &selected_monitor) {
     std::vector<std::string> sorted_names = state.monitor_names;
     std::sort(sorted_names.begin(), sorted_names.end());
 
@@ -22,22 +20,12 @@ void settings_draw_monitor_row(SettingsState &state, Node *parent,
     float tile_w = (row_w - n * kSettingsScreenSelectorSpacing) / (n + 1);
 
     float cx = x;
-    auto draw_tile = [&](const std::string &label, const std::string &tag,
-                         bool active) {
-        node_add_rrect(parent, cx, y, tile_w, kSettingsScreenSelectorHeight,
-                       kSettingsTileRadius, kSettingsSelectorBorderWidth,
-                       rgba(palette::lavender_alpha20),
-                       active ? rgba(palette::accent_alt) : kPanelNoBorder);
+    auto draw_tile = [&](const std::string &label, const std::string &tag, bool active) {
+        node_add_rrect(parent, cx, y, tile_w, kSettingsScreenSelectorHeight, kSettingsTileRadius, kSettingsSelectorBorderWidth, rgba(palette::lavender_alpha20), active ? rgba(palette::accent_alt) : kPanelNoBorder);
         const Texture *tex = cached_text(state.tcache, label, scale);
         if (tex)
-            node_add_texture(parent, cx + (tile_w - tex->width) / 2.0f,
-                             y + (kSettingsScreenSelectorHeight - tex->height) /
-                                     2.0f,
-                             *tex, rgba(palette::text));
-        state.click_regions.push_back(
-            {PanelClickKind::MonitorSelect,
-             {cx, y, tile_w, kSettingsScreenSelectorHeight},
-             tag});
+            node_add_texture(parent, cx + (tile_w - tex->width) / 2.0f, y + (kSettingsScreenSelectorHeight - tex->height) / 2.0f, *tex, rgba(palette::text));
+        state.click_regions.push_back({PanelClickKind::MonitorSelect, {cx, y, tile_w, kSettingsScreenSelectorHeight}, tag});
         cx += tile_w + kSettingsScreenSelectorSpacing;
     };
 
@@ -46,10 +34,8 @@ void settings_draw_monitor_row(SettingsState &state, Node *parent,
         draw_tile(name, name, name == selected_monitor);
 }
 
-void displays_tab_paint(SettingsState &state, Node *root, int32_t scale,
-                        float x, float y, float w, const Config &cfg) {
-    settings_draw_monitor_row(state, root, scale, x, y, w,
-                              state.displays_selected_monitor);
+void displays_tab_paint(SettingsState &state, Node *root, int32_t scale, float x, float y, float w, const Config &cfg) {
+    settings_draw_monitor_row(state, root, scale, x, y, w, state.displays_selected_monitor);
     y += kSettingsScreenSelectorHeight + kPanelRowGap;
 
     bool is_default = state.displays_selected_monitor.empty();
@@ -62,9 +48,7 @@ void displays_tab_paint(SettingsState &state, Node *root, int32_t scale,
     bool override_enabled = ov && ov->enabled;
 
     if (!is_default) {
-        draw_toggle_row(state, root, scale, x, y, w,
-                        "Override default settings", override_enabled,
-                        "displaysoverride", false);
+        draw_toggle_row(state, root, scale, x, y, w, "Override default settings", override_enabled, "displaysoverride", false);
         y += kSettingsToggleTrackHeight + kPanelRowGap;
     }
 
@@ -76,24 +60,18 @@ void displays_tab_paint(SettingsState &state, Node *root, int32_t scale,
         bool dock_autohide_val =
             is_default ? cfg.dock_autohide : ov->dock_autohide;
 
-        draw_toggle_row(state, root, scale, x, y, w, "OSD", osd_val,
-                        "osdenabled", true);
+        draw_toggle_row(state, root, scale, x, y, w, "OSD", osd_val, "osdenabled", true);
         y += kSettingsToggleTileHeight + kSettingsGroupSpacingSm;
-        draw_toggle_row(state, root, scale, x, y, w, "Notifications", notif_val,
-                        "notificationsenabled", true);
+        draw_toggle_row(state, root, scale, x, y, w, "Notifications", notif_val, "notificationsenabled", true);
         y += kSettingsToggleTileHeight + kSettingsGroupSpacingSm;
-        draw_toggle_row(state, root, scale, x, y, w, "Bar Autohide",
-                        autohide_val, "autohideenabled", true);
+        draw_toggle_row(state, root, scale, x, y, w, "Bar Autohide", autohide_val, "autohideenabled", true);
         y += kSettingsToggleTileHeight + kSettingsGroupSpacingSm;
-        draw_toggle_row(state, root, scale, x, y, w, "Dock Autohide",
-                        dock_autohide_val, "dockautohideenabled", true);
+        draw_toggle_row(state, root, scale, x, y, w, "Dock Autohide", dock_autohide_val, "dockautohideenabled", true);
         y += kSettingsToggleTileHeight;
     }
 }
 
-bool displays_tab_handle_click(SettingsState &state, const Config &cfg,
-                               const SettingsCommitFn &on_commit,
-                               const PanelClickRegion &region) {
+bool displays_tab_handle_click(SettingsState &state, const Config &cfg, const SettingsCommitFn &on_commit, const PanelClickRegion &region) {
     if (region.kind == PanelClickKind::MonitorSelect) {
         state.displays_selected_monitor = displays_monitor_from_tag(region.tag);
         settings_request_frame(state);
@@ -115,10 +93,7 @@ bool displays_tab_handle_click(SettingsState &state, const Config &cfg,
         }
         ov.enabled = !ov.enabled;
         on_commit(updated);
-    } else if (region.tag == "osdenabled" ||
-               region.tag == "notificationsenabled" ||
-               region.tag == "autohideenabled" ||
-               region.tag == "dockautohideenabled") {
+    } else if (region.tag == "osdenabled" || region.tag == "notificationsenabled" || region.tag == "autohideenabled" || region.tag == "dockautohideenabled") {
         Config updated = cfg;
         bool is_default = state.displays_selected_monitor.empty();
         if (is_default) {

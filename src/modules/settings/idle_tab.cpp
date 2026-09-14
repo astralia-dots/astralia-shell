@@ -12,22 +12,14 @@ std::string idle_monitor_from_tag(const std::string &tag) {
     return tag == kSettingsDisplaysDefaultTag ? "" : tag;
 }
 
-void draw_idle_tier_tile(SettingsState &state, Node *parent, int32_t scale,
-                         float x, float y, float w, const std::string &label,
-                         SettingsFieldId field_id, uint32_t value,
-                         uint32_t default_value, bool enabled_value,
-                         bool show_reset, const char *reset_tag,
-                         const char *toggle_tag) {
+void draw_idle_tier_tile(SettingsState &state, Node *parent, int32_t scale, float x, float y, float w, const std::string &label, SettingsFieldId field_id, uint32_t value, uint32_t default_value, bool enabled_value, bool show_reset, const char *reset_tag, const char *toggle_tag) {
     float h = kSettingsToggleTileHeight;
-    node_add_rrect(parent, x, y, w, h, kSettingsTileRadius,
-                   kSettingsToggleTileBorderWidth, rgba(palette::text_alpha04),
-                   rgba(palette::text_alpha07));
+    node_add_rrect(parent, x, y, w, h, kSettingsTileRadius, kSettingsToggleTileBorderWidth, rgba(palette::text_alpha04), rgba(palette::text_alpha07));
     float inset = kSettingsToggleTileContentMargin;
 
     const Texture *label_tex = cached_text(state.tcache, label, scale);
     if (label_tex)
-        node_add_texture(parent, x + inset, y + (h - label_tex->height) / 2.0f,
-                         *label_tex, rgba(palette::text_alpha85));
+        node_add_texture(parent, x + inset, y + (h - label_tex->height) / 2.0f, *label_tex, rgba(palette::text_alpha85));
 
     float switch_x = x + w - inset - kSettingsToggleTrackWidth;
     float divider_x = switch_x - kSettingsToggleTileContentSpacing;
@@ -38,77 +30,48 @@ void draw_idle_tier_tile(SettingsState &state, Node *parent, int32_t scale,
     float field_y = y + (h - kSettingsFieldHeight) / 2.0f;
 
     bool focused = state.focused_field == field_id;
-    node_add_rrect(parent, field_x, field_y, field_w, kSettingsFieldHeight,
-                   metrics::radius_sm, metrics::border_thin,
-                   rgba(palette::field_bg),
-                   focused ? rgba(palette::accent) : kPanelNoBorder);
+    node_add_rrect(parent, field_x, field_y, field_w, kSettingsFieldHeight, metrics::radius_sm, metrics::border_thin, rgba(palette::field_bg), focused ? rgba(palette::accent) : kPanelNoBorder);
     float field_center_y = field_y + kSettingsFieldHeight / 2.0f;
     if (focused) {
-        float advance = draw_text_field_value(
-            parent, state.tcache, scale, state.field_buffer.text, field_x + 8,
-            field_center_y, rgba(palette::text), &state.field_anim);
+        float advance = draw_text_field_value(parent, state.tcache, scale, state.field_buffer.text, field_x + 8, field_center_y, rgba(palette::text), &state.field_anim);
         float cursor_x = field_x + 8 + advance + 2;
-        draw_text_field_preedit(parent, state.tcache, scale,
-                                state.field_buffer.preedit, cursor_x,
-                                field_center_y, rgba(palette::text));
+        draw_text_field_preedit(parent, state.tcache, scale, state.field_buffer.preedit, cursor_x, field_center_y, rgba(palette::text));
         Rect caret = {cursor_x, field_y + 5, 1.5f, kSettingsFieldHeight - 10};
         state.field_buffer.cursor_rect = caret;
-        draw_text_field_caret(parent, state.field_buffer, caret,
-                              rgba(palette::text), true);
+        draw_text_field_caret(parent, state.field_buffer, caret, rgba(palette::text), true);
     } else {
         const Texture *value_tex =
             cached_text(state.tcache, std::to_string(value), scale);
         if (value_tex)
-            node_add_texture(
-                parent, field_x + 8,
-                field_y + (kSettingsFieldHeight - value_tex->height) / 2.0f,
-                *value_tex, rgba(palette::text));
+            node_add_texture(parent, field_x + 8, field_y + (kSettingsFieldHeight - value_tex->height) / 2.0f, *value_tex, rgba(palette::text));
     }
-    state.click_regions.push_back(
-        {PanelClickKind::FieldFocus,
-         {field_x, field_y, field_w, kSettingsFieldHeight},
-         std::to_string(static_cast<int>(field_id))});
+    state.click_regions.push_back({PanelClickKind::FieldFocus, {field_x, field_y, field_w, kSettingsFieldHeight}, std::to_string(static_cast<int>(field_id))});
 
     if (show_reset && value != default_value) {
         float reset_y = y + (h - kSettingsIdleResetIconSize) / 2.0f;
         const Texture *reset_icon =
             cached_icon(state.tcache, icon::refresh, scale);
         if (reset_icon)
-            node_add_texture(
-                parent,
-                reset_x +
-                    (kSettingsIdleResetIconSize - reset_icon->width) / 2.0f,
-                reset_y +
-                    (kSettingsIdleResetIconSize - reset_icon->height) / 2.0f,
-                *reset_icon, rgba(palette::text_dim));
-        state.click_regions.push_back(
-            {PanelClickKind::ToggleFlip,
-             {reset_x, reset_y, kSettingsIdleResetIconSize,
-              kSettingsIdleResetIconSize},
-             reset_tag});
+            node_add_texture(parent, reset_x + (kSettingsIdleResetIconSize - reset_icon->width) / 2.0f, reset_y + (kSettingsIdleResetIconSize - reset_icon->height) / 2.0f, *reset_icon, rgba(palette::text_dim));
+        state.click_regions.push_back({PanelClickKind::ToggleFlip, {reset_x, reset_y, kSettingsIdleResetIconSize, kSettingsIdleResetIconSize}, reset_tag});
     }
 
-    node_add_rect(parent, divider_x, y + 10.0f, 1.0f, h - 20.0f,
-                  rgba(palette::text_alpha11));
+    node_add_rect(parent, divider_x, y + 10.0f, 1.0f, h - 20.0f, rgba(palette::text_alpha11));
 
     float switch_y = y + (h - kSettingsToggleTrackHeight) / 2.0f;
-    draw_toggle_switch(state, parent, switch_x, switch_y, enabled_value,
-                       toggle_tag);
+    draw_toggle_switch(state, parent, switch_x, switch_y, enabled_value, toggle_tag);
 }
 
 } // namespace
 
-void idle_tab_paint(SettingsState &state, Node *root, int32_t scale, float x,
-                    float y, float w, const Config &cfg) {
-    draw_toggle_row(state, root, scale, x, y, w, "Enable Idle Management",
-                    cfg.idle_management_enabled, "idlemanagementenabled", true);
+void idle_tab_paint(SettingsState &state, Node *root, int32_t scale, float x, float y, float w, const Config &cfg) {
+    draw_toggle_row(state, root, scale, x, y, w, "Enable Idle Management", cfg.idle_management_enabled, "idlemanagementenabled", true);
     y += kSettingsToggleTileHeight + kPanelRowGap;
 
     if (!cfg.idle_management_enabled)
         return;
 
-    settings_draw_monitor_row(state, root, scale, x, y, w,
-                              state.idle_selected_monitor);
+    settings_draw_monitor_row(state, root, scale, x, y, w, state.idle_selected_monitor);
     y += kSettingsScreenSelectorHeight + kPanelRowGap;
 
     bool is_default = state.idle_selected_monitor.empty();
@@ -121,42 +84,28 @@ void idle_tab_paint(SettingsState &state, Node *root, int32_t scale, float x,
     bool override_enabled = ov && ov->enabled;
 
     if (!is_default) {
-        draw_toggle_row(state, root, scale, x, y, w,
-                        "Override default settings", override_enabled,
-                        "idleoverride", false);
+        draw_toggle_row(state, root, scale, x, y, w, "Override default settings", override_enabled, "idleoverride", false);
         y += kSettingsToggleTrackHeight + kPanelRowGap;
     }
 
     if (is_default || override_enabled) {
         bool ambient_enabled_val =
             is_default ? cfg.ambient_enabled : ov->ambient_enabled;
-        uint32_t ambient_timeout_val = is_default ? cfg.ambient_timeout_seconds
-                                                  : ov->ambient_timeout_seconds;
+        uint32_t ambient_timeout_val = is_default ? cfg.ambient_timeout_seconds : ov->ambient_timeout_seconds;
         bool screensaver_enabled_val =
             is_default ? cfg.screensaver_enabled : ov->screensaver_enabled;
         uint32_t screensaver_timeout_val =
-            is_default ? cfg.screensaver_timeout_seconds
-                       : ov->screensaver_timeout_seconds;
+            is_default ? cfg.screensaver_timeout_seconds : ov->screensaver_timeout_seconds;
 
-        draw_idle_tier_tile(state, root, scale, x, y, w, "Ambient Mode",
-                            SettingsFieldId::AmbientTimeout,
-                            ambient_timeout_val, cfg.ambient_timeout_seconds,
-                            ambient_enabled_val, !is_default,
-                            "idleambientreset", "idleambientenabled");
+        draw_idle_tier_tile(state, root, scale, x, y, w, "Ambient Mode", SettingsFieldId::AmbientTimeout, ambient_timeout_val, cfg.ambient_timeout_seconds, ambient_enabled_val, !is_default, "idleambientreset", "idleambientenabled");
         y += kSettingsToggleTileHeight + kSettingsGroupSpacingSm;
 
-        draw_idle_tier_tile(
-            state, root, scale, x, y, w, "Screensaver",
-            SettingsFieldId::ScreensaverTimeout, screensaver_timeout_val,
-            cfg.screensaver_timeout_seconds, screensaver_enabled_val,
-            !is_default, "idlescreensaverreset", "idlescreensaverenabled");
+        draw_idle_tier_tile(state, root, scale, x, y, w, "Screensaver", SettingsFieldId::ScreensaverTimeout, screensaver_timeout_val, cfg.screensaver_timeout_seconds, screensaver_enabled_val, !is_default, "idlescreensaverreset", "idlescreensaverenabled");
         y += kSettingsToggleTileHeight + kPanelRowGap;
     }
 }
 
-bool idle_tab_handle_click(SettingsState &state, const Config &cfg,
-                           const SettingsCommitFn &on_commit,
-                           const PanelClickRegion &region) {
+bool idle_tab_handle_click(SettingsState &state, const Config &cfg, const SettingsCommitFn &on_commit, const PanelClickRegion &region) {
     if (region.kind == PanelClickKind::MonitorSelect) {
         state.idle_selected_monitor = idle_monitor_from_tag(region.tag);
         settings_request_frame(state);
@@ -188,8 +137,7 @@ bool idle_tab_handle_click(SettingsState &state, const Config &cfg,
         }
         ov.enabled = !ov.enabled;
         on_commit(updated);
-    } else if (region.tag == "idleambientenabled" ||
-               region.tag == "idlescreensaverenabled") {
+    } else if (region.tag == "idleambientenabled" || region.tag == "idlescreensaverenabled") {
         Config updated = cfg;
         if (is_default) {
             if (region.tag == "idleambientenabled")

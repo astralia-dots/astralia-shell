@@ -109,15 +109,11 @@ std::vector<HyprClient> parse_clients(const std::string &reply) {
     return clients;
 }
 
-bool client_order_differs(const std::vector<HyprClient> &a,
-                          const std::vector<HyprClient> &b) {
+bool client_order_differs(const std::vector<HyprClient> &a, const std::vector<HyprClient> &b) {
     if (a.size() != b.size())
         return true;
     for (size_t i = 0; i < a.size(); ++i) {
-        if (a[i].address != b[i].address ||
-            a[i].workspace_id != b[i].workspace_id ||
-            a[i].at[0] != b[i].at[0] ||
-            a[i].focus_history_id != b[i].focus_history_id)
+        if (a[i].address != b[i].address || a[i].workspace_id != b[i].workspace_id || a[i].at[0] != b[i].at[0] || a[i].focus_history_id != b[i].focus_history_id)
             return true;
     }
     return false;
@@ -162,11 +158,7 @@ void hypr_refresh(HyprlandState &state) {
             state.by_monitor[monitor].workspaces.push_back(std::move(ws));
         }
         for (auto &entry : state.by_monitor) {
-            std::sort(entry.second.workspaces.begin(),
-                      entry.second.workspaces.end(),
-                      [](const Workspace &a, const Workspace &b) {
-                          return a.id < b.id;
-                      });
+            std::sort(entry.second.workspaces.begin(), entry.second.workspaces.end(), [](const Workspace &a, const Workspace &b) { return a.id < b.id; });
         }
     } catch (const json::exception &e) {
         klog("hyprland: failed to parse j/workspaces: %s", e.what());
@@ -194,8 +186,7 @@ void hypr_refresh(HyprlandState &state) {
             hm.scale = m.value("scale", 1.0);
             hm.transform = m.value("transform", 0);
             json reserved = m.value("reserved", json::array());
-            for (size_t i = 0; i < hm.reserved.size() && i < reserved.size();
-                 ++i)
+            for (size_t i = 0; i < hm.reserved.size() && i < reserved.size(); ++i)
                 hm.reserved[i] = reserved[i].get<double>();
             state.monitors.push_back(std::move(hm));
         }
@@ -230,8 +221,7 @@ bool hypr_connect_events(HyprlandState &state) {
 
     sockaddr_un addr{};
     addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, state.event_socket_path.c_str(),
-            sizeof(addr.sun_path) - 1);
+    strncpy(addr.sun_path, state.event_socket_path.c_str(), sizeof(addr.sun_path) - 1);
     if (connect(fd, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) < 0) {
         close(fd);
         return false;
@@ -253,8 +243,7 @@ void hypr_dispatch(HyprlandState &state, const std::string &command) {
 
 bool hypr_init(HyprlandState &state) {
     if (!resolve_socket_paths(state)) {
-        klog("hyprland: HYPRLAND_INSTANCE_SIGNATURE not set, skipping "
-             "compositor integration");
+        klog("hyprland: HYPRLAND_INSTANCE_SIGNATURE not set, skipping " "compositor integration");
         return false;
     }
     hypr_refresh(state);
@@ -311,15 +300,7 @@ HyprEventResult hypr_poll_events(HyprlandState &state) {
                 if (result == HyprEventResult::None)
                     result = HyprEventResult::ActiveChanged;
             }
-        } else if (event == "createworkspacev2" ||
-                   event == "destroyworkspacev2" ||
-                   event == "renameworkspace" || event == "moveworkspacev2" ||
-                   event == "openwindow" || event == "closewindow" ||
-                   event == "movewindow" || event == "movewindowv2" ||
-                   event == "pin" || event == "fullscreen" ||
-                   event == "changefloatingmode" || event == "activewindowv2" ||
-                   event == "moveintogroup" || event == "moveoutofgroup" ||
-                   event == "togglegroup" || event == "changegroupactivev2") {
+        } else if (event == "createworkspacev2" || event == "destroyworkspacev2" || event == "renameworkspace" || event == "moveworkspacev2" || event == "openwindow" || event == "closewindow" || event == "movewindow" || event == "movewindowv2" || event == "pin" || event == "fullscreen" || event == "changefloatingmode" || event == "activewindowv2" || event == "moveintogroup" || event == "moveoutofgroup" || event == "togglegroup" || event == "changegroupactivev2") {
             result = HyprEventResult::StructuralChanged;
         }
     }
@@ -350,8 +331,7 @@ std::string window_target(const std::string &address) {
     return address.empty() ? "activewindow" : ("address:" + address);
 }
 
-std::vector<const HyprClient *> clients_in_workspace(const HyprlandState &state,
-                                                     int workspace_id) {
+std::vector<const HyprClient *> clients_in_workspace(const HyprlandState &state, int workspace_id) {
     std::vector<const HyprClient *> out;
     for (const HyprClient &c : state.clients)
         if (c.workspace_id == workspace_id)
@@ -359,46 +339,33 @@ std::vector<const HyprClient *> clients_in_workspace(const HyprlandState &state,
     return out;
 }
 
-void move_all(HyprlandState &state,
-              const std::vector<const HyprClient *> &windows,
-              const std::string &workspace_lua) {
+void move_all(HyprlandState &state, const std::vector<const HyprClient *> &windows, const std::string &workspace_lua) {
     for (const HyprClient *w : windows)
-        dispatch_lua(state,
-                     "hl.dsp.window.move({window='address:" + w->address +
-                         "', workspace=" + workspace_lua + ", follow=false})");
+        dispatch_lua(state, "hl.dsp.window.move({window='address:" + w->address + "', workspace=" + workspace_lua + ", follow=false})");
 }
 
 } // namespace
 
 void hypr_tile_focus_workspace(HyprlandState &state, int id, bool global) {
     int resolved = resolve_workspace(state, id, global);
-    dispatch_lua(state,
-                 "hl.dsp.focus({workspace=" + std::to_string(resolved) + "})");
+    dispatch_lua(state, "hl.dsp.focus({workspace=" + std::to_string(resolved) + "})");
 }
 
-void hypr_tile_move_window(HyprlandState &state, int id, bool follow,
-                           const std::string &address, bool global) {
+void hypr_tile_move_window(HyprlandState &state, int id, bool follow, const std::string &address, bool global) {
     int resolved = resolve_workspace(state, id, global);
-    dispatch_lua(state, "hl.dsp.window.move({window='" +
-                            window_target(address) +
-                            "', workspace=" + std::to_string(resolved) +
-                            ", follow=" + (follow ? "true" : "false") + "})");
+    dispatch_lua(state, "hl.dsp.window.move({window='" + window_target(address) + "', workspace=" + std::to_string(resolved) + ", follow=" + (follow ? "true" : "false") + "})");
 }
 
-void hypr_tile_close_workspace(HyprlandState &state, HyprCloseScope scope,
-                               int id) {
+void hypr_tile_close_workspace(HyprlandState &state, HyprCloseScope scope, int id) {
     std::vector<const HyprClient *> targets;
     for (const HyprClient &c : state.clients) {
         bool match =
-            scope == HyprCloseScope::All ||
-            (scope == HyprCloseScope::Workspace && c.workspace_id == id) ||
-            (scope == HyprCloseScope::Monitor && c.monitor_id == id);
+            scope == HyprCloseScope::All || (scope == HyprCloseScope::Workspace && c.workspace_id == id) || (scope == HyprCloseScope::Monitor && c.monitor_id == id);
         if (match)
             targets.push_back(&c);
     }
     for (const HyprClient *c : targets)
-        dispatch_lua(state, "hl.dsp.window.close({window='address:" +
-                                c->address + "'})");
+        dispatch_lua(state, "hl.dsp.window.close({window='address:" + c->address + "'})");
     if (scope == HyprCloseScope::All)
         hypr_tile_focus_workspace(state, 1);
 }

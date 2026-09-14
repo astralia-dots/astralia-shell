@@ -100,13 +100,10 @@ void bluetooth_stop_discovery(BluetoothState &state);
 
 void bluetooth_connect(BluetoothState &state, const std::string &device_path);
 
-void bluetooth_disconnect(BluetoothState &state,
-                          const std::string &device_path);
+void bluetooth_disconnect(BluetoothState &state, const std::string &device_path);
 
 void bluetooth_pair(BluetoothState &state, const std::string &device_path);
 
 void bluetooth_forget(BluetoothState &state, const std::string &device_path);
 
-void bluetooth_tick(BluetoothState &state, const BluetoothNotifyFn &notify,
-                    std::chrono::steady_clock::time_point now,
-                    std::function<void()> on_changed);
+void bluetooth_tick(BluetoothState &state, const BluetoothNotifyFn &notify, std::chrono::steady_clock::time_point now, std::function<void()> on_changed);

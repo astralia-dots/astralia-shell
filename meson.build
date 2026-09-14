@@ -29,6 +29,11 @@ libavutil_dep      = dependency('libavutil')
 # Only for DRM_FORMAT_* fourcc constants used in the zero-copy VAAPI dma-buf
 # import; the VAAPI calls stay inside FFmpeg's own hwcontext_vaapi.
 libdrm_dep         = dependency('libdrm')
+glib_dep           = dependency('glib-2.0')
+gio_dep            = dependency('gio-2.0')
+gobject_dep        = dependency('gobject-2.0')
+polkit_gobject_dep = dependency('polkit-gobject-1')
+polkit_agent_dep   = dependency('polkit-agent-1')
 
 kokusei_inc = include_directories('src')
 
@@ -169,6 +174,7 @@ kokusei_service_main_only_sources = [
   'src/service/capture_service.cpp',
   'src/service/text_input_service.cpp',
   'src/service/notification_service.cpp',
+  'src/service/polkit_service.cpp',
 ]
 
 kokusei_launcher_main_only_sources = [
@@ -243,6 +249,7 @@ kokusei_overlay_main_only_sources = [
   'src/modules/visualizer/bar_visualizer.cpp',
   'src/modules/visualizer/sphere_visualizer.cpp',
   'src/modules/visualizer/visualizer_shaders.cpp',
+  'src/modules/polkit.cpp',
 ]
 
 kokusei_visualizer_test_sources = [
@@ -350,6 +357,11 @@ executable(
     librsvg_dep,
     libdrm_dep,
     pam_dep,
+    glib_dep,
+    gio_dep,
+    gobject_dep,
+    polkit_gobject_dep,
+    polkit_agent_dep,
   ],
   cpp_args: [
     '-DKOKUSEI_FONT_DIR="' + kokusei_font_dir + '"',

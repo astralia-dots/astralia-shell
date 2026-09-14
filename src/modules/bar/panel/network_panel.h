@@ -96,40 +96,26 @@ float sub_panel_height(const std::string &mode);
 
 } // namespace network_panel_detail
 
-bool network_panel_create_surface(NetworkPanelState &state,
-                                  wl_compositor *compositor,
-                                  zwlr_layer_shell_v1 *layer_shell,
-                                  wl_output *output = nullptr);
+bool network_panel_create_surface(NetworkPanelState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output = nullptr);
 
-bool network_panel_init_egl(NetworkPanelState &state, Renderer &renderer,
-                            NetworkState &net, EGLDisplay display,
-                            EGLConfig config, EGLContext context);
+bool network_panel_init_egl(NetworkPanelState &state, Renderer &renderer, NetworkState &net, EGLDisplay display, EGLConfig config, EGLContext context);
 
-void network_panel_request_frame(NetworkPanelState &state, float pill_center_x,
-                                 float bar_height, float bar_top_margin);
+void network_panel_request_frame(NetworkPanelState &state, float pill_center_x, float bar_height, float bar_top_margin);
 
-void network_panel_toggle(NetworkPanelState &state,
-                          float pill_center_x = -1.0f);
+void network_panel_toggle(NetworkPanelState &state, float pill_center_x = -1.0f);
 
-void network_panel_handle_scroll(NetworkPanelState &state, NetworkState &net,
-                                 double dy);
+void network_panel_handle_scroll(NetworkPanelState &state, NetworkState &net, double dy);
 
-void network_panel_open_sub(NetworkPanelState &state, const std::string &mode,
-                            const std::string &ssid);
+void network_panel_open_sub(NetworkPanelState &state, const std::string &mode, const std::string &ssid);
 
 void network_panel_close_sub(NetworkPanelState &state);
 
-void network_panel_handle_key_event(NetworkPanelState &state, NetworkState &net,
-                                    const KeyEvent &event);
+void network_panel_handle_key_event(NetworkPanelState &state, NetworkState &net, const KeyEvent &event);
 
-void network_panel_handle_click(NetworkPanelState &state, NetworkState &net,
-                                double px, double py);
+void network_panel_handle_click(NetworkPanelState &state, NetworkState &net, double px, double py);
 
-void network_panel_paint(NetworkPanelState &state, NetworkState &net,
-                         float pill_center_x, float bar_height,
-                         float bar_top_margin);
+void network_panel_paint(NetworkPanelState &state, NetworkState &net, float pill_center_x, float bar_height, float bar_top_margin);
 
 TextInputState network_panel_text_input_state(const NetworkPanelState &state);
 
-void network_panel_text_input_apply_edit(NetworkPanelState &state,
-                                         const TextInputEdit &edit);
+void network_panel_text_input_apply_edit(NetworkPanelState &state, const TextInputEdit &edit);

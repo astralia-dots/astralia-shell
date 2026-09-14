@@ -101,26 +101,20 @@ struct WallpaperState {
     std::function<void()> on_resize;
 };
 
-bool wallpaper_create_surface(WallpaperState &wp, wl_compositor *compositor,
-                            zwlr_layer_shell_v1 *layer_shell,
-                            wl_output *output = nullptr);
+bool wallpaper_create_surface(WallpaperState &wp, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output = nullptr);
 
-bool wallpaper_init_egl(WallpaperState &wp, Renderer &renderer, EGLDisplay display,
-                      EGLConfig config, EGLContext context);
+bool wallpaper_init_egl(WallpaperState &wp, Renderer &renderer, EGLDisplay display, EGLConfig config, EGLContext context);
 
 void wallpaper_request_frame(WallpaperState &wp);
 
 void wallpaper_wake(WallpaperState &wp);
 
-void wallpaper_draw_columns(const WallpaperState &wp, Node *parent, int32_t width,
-                          int32_t height);
+void wallpaper_draw_columns(const WallpaperState &wp, Node *parent, int32_t width, int32_t height);
 
-void wallpaper_sync_from_config(WallpaperState &wp, const Config &cfg,
-                              const std::string &monitor_name, bool animated);
+void wallpaper_sync_from_config(WallpaperState &wp, const Config &cfg, const std::string &monitor_name, bool animated);
 
 void wallpaper_columns_stop_all(WallpaperState &wp);
 void wallpaper_columns_pause_all(WallpaperState &wp);
 void wallpaper_columns_resume_all(WallpaperState &wp);
 
-MediaDecodeStatus wallpaper_column_status(const WallpaperState &wp,
-                                        int column_index);
+MediaDecodeStatus wallpaper_column_status(const WallpaperState &wp, int column_index);

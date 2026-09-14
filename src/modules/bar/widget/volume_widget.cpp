@@ -43,27 +43,16 @@ Pill volume_pill(MonitorOutput &mon) {
                 volume_label(mon.app->pipewire), nullptr, [&mon, &bs] {
                     close_other_overlays(mon, PillId::Volume);
                     if (!bs.volume_panel.base.open) {
-                        update_pill_expand(bs.capsule, mon.animations,
-                                           PillId::Volume, true, true);
+                        update_pill_expand(bs.capsule, mon.animations, PillId::Volume, true, true);
                         bar_paint(mon);
-                        overlay_panel_ensure(
-                            bs.volume_panel.base, mon.app->display,
-                            [&] {
-                                return volume_panel_create_surface(
-                                    bs.volume_panel, mon.app->compositor,
-                                    mon.app->layer_shell, mon.output.wl);
-                            },
-                            [&] {
-                                return volume_panel_init_egl(
-                                    bs.volume_panel, mon.app->renderer,
-                                    mon.app->pipewire, mon.app->egl_display,
-                                    mon.app->egl_config, mon.app->egl_context);
+                        overlay_panel_ensure(bs.volume_panel.base, mon.app->display, [&] {
+                                return volume_panel_create_surface(bs.volume_panel, mon.app->compositor, mon.app->layer_shell, mon.output.wl);
+                            }, [&] {
+                                return volume_panel_init_egl(bs.volume_panel, mon.app->renderer, mon.app->pipewire, mon.app->egl_display, mon.app->egl_config, mon.app->egl_context);
                             });
                         app_detail::rest_egl_current(*mon.app);
                     }
-                    volume_panel_toggle(
-                        bs.volume_panel,
-                        pill_center_x(bs.capsule, PillId::Volume));
+                    volume_panel_toggle(bs.volume_panel, pill_center_x(bs.capsule, PillId::Volume));
                 }};
 }
 
@@ -89,9 +78,7 @@ void volume_pill_peek_tick(MonitorOutput &mon) {
 
     bool muted = false;
     float level = pipewire_sink_level(mon.app->pipewire, muted);
-    bool changed = bs.volume_peek_last_level < 0.0f ||
-                   std::abs(level - bs.volume_peek_last_level) > 0.001f ||
-                   muted != bs.volume_peek_last_muted;
+    bool changed = bs.volume_peek_last_level < 0.0f || std::abs(level - bs.volume_peek_last_level) > 0.001f || muted != bs.volume_peek_last_muted;
     bs.volume_peek_last_level = level;
     bs.volume_peek_last_muted = muted;
     if (!changed)

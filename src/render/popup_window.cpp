@@ -3,21 +3,13 @@
 
 namespace {
 
-xdg_positioner *make_positioner(xdg_wm_base *wm_base, Rect anchor_rect,
-                                int32_t w, int32_t h) {
+xdg_positioner *make_positioner(xdg_wm_base *wm_base, Rect anchor_rect, int32_t w, int32_t h) {
     xdg_positioner *p = xdg_wm_base_create_positioner(wm_base);
     xdg_positioner_set_size(p, w, h);
-    xdg_positioner_set_anchor_rect(
-        p, static_cast<int32_t>(anchor_rect.x),
-        static_cast<int32_t>(anchor_rect.y),
-        static_cast<int32_t>(anchor_rect.w > 1.0f ? anchor_rect.w : 1.0f),
-        static_cast<int32_t>(anchor_rect.h > 1.0f ? anchor_rect.h : 1.0f));
+    xdg_positioner_set_anchor_rect(p, static_cast<int32_t>(anchor_rect.x), static_cast<int32_t>(anchor_rect.y), static_cast<int32_t>(anchor_rect.w > 1.0f ? anchor_rect.w : 1.0f), static_cast<int32_t>(anchor_rect.h > 1.0f ? anchor_rect.h : 1.0f));
     xdg_positioner_set_anchor(p, XDG_POSITIONER_ANCHOR_BOTTOM_LEFT);
     xdg_positioner_set_gravity(p, XDG_POSITIONER_GRAVITY_BOTTOM_RIGHT);
-    xdg_positioner_set_constraint_adjustment(
-        p, XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_SLIDE_X |
-               XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_SLIDE_Y |
-               XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_Y);
+    xdg_positioner_set_constraint_adjustment(p, XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_SLIDE_X | XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_SLIDE_Y | XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_Y);
     return p;
 }
 
@@ -27,16 +19,14 @@ void xdg_surface_configure(void *data, xdg_surface *surface, uint32_t serial) {
     base->configured = true;
     int32_t scale = base->output_scale.scale;
     if (base->egl_window)
-        wl_egl_window_resize(base->egl_window, base->width * scale,
-                             base->height * scale, 0, 0);
+        wl_egl_window_resize(base->egl_window, base->width * scale, base->height * scale, 0, 0);
 }
 
 const xdg_surface_listener xdg_surface_listener_impl = {
     .configure = xdg_surface_configure,
 };
 
-void popup_configure(void *data, xdg_popup *, int32_t, int32_t, int32_t width,
-                     int32_t height) {
+void popup_configure(void *data, xdg_popup *, int32_t, int32_t, int32_t width, int32_t height) {
     auto *base = static_cast<PopupWindowBase *>(data);
     if (width > 0)
         base->width = width;
@@ -61,11 +51,7 @@ const xdg_popup_listener xdg_popup_listener_impl = {
 
 } // namespace
 
-bool popup_window_create(PopupWindowBase &base, wl_compositor *compositor,
-                         xdg_wm_base *wm_base,
-                         zwlr_layer_surface_v1 *parent_layer, Rect anchor_rect,
-                         int32_t w, int32_t h, wl_seat *seat,
-                         uint32_t grab_serial) {
+bool popup_window_create(PopupWindowBase &base, wl_compositor *compositor, xdg_wm_base *wm_base, zwlr_layer_surface_v1 *parent_layer, Rect anchor_rect, int32_t w, int32_t h, wl_seat *seat, uint32_t grab_serial) {
     base.compositor = compositor;
     base.width = w;
     base.height = h;
@@ -79,8 +65,7 @@ bool popup_window_create(PopupWindowBase &base, wl_compositor *compositor,
         base.surface = nullptr;
         return false;
     }
-    xdg_surface_add_listener(base.shell_surface, &xdg_surface_listener_impl,
-                             &base);
+    xdg_surface_add_listener(base.shell_surface, &xdg_surface_listener_impl, &base);
 
     xdg_positioner *positioner = make_positioner(wm_base, anchor_rect, w, h);
     base.popup = xdg_surface_get_popup(base.shell_surface, nullptr, positioner);
@@ -101,8 +86,7 @@ bool popup_window_create(PopupWindowBase &base, wl_compositor *compositor,
 
     base.output_scale.on_change = [&base](int32_t scale) {
         if (base.egl_window)
-            wl_egl_window_resize(base.egl_window, base.width * scale,
-                                 base.height * scale, 0, 0);
+            wl_egl_window_resize(base.egl_window, base.width * scale, base.height * scale, 0, 0);
         if (base.frame_clock.surface)
             request_frame(base.frame_clock);
     };
@@ -111,20 +95,15 @@ bool popup_window_create(PopupWindowBase &base, wl_compositor *compositor,
     return true;
 }
 
-bool popup_window_init_egl(PopupWindowBase &base, wl_display *display,
-                           EGLDisplay egl_display, EGLConfig config,
-                           EGLContext context) {
+bool popup_window_init_egl(PopupWindowBase &base, wl_display *display, EGLDisplay egl_display, EGLConfig config, EGLContext context) {
     while (!base.configured)
         wl_display_dispatch(display);
 
     base.egl_display = egl_display;
     base.egl_context = context;
     int32_t scale = base.output_scale.scale;
-    base.egl_window = wl_egl_window_create(base.surface, base.width * scale,
-                                           base.height * scale);
-    base.egl_surface = eglCreateWindowSurface(
-        egl_display, config,
-        reinterpret_cast<EGLNativeWindowType>(base.egl_window), nullptr);
+    base.egl_window = wl_egl_window_create(base.surface, base.width * scale, base.height * scale);
+    base.egl_surface = eglCreateWindowSurface(egl_display, config, reinterpret_cast<EGLNativeWindowType>(base.egl_window), nullptr);
     if (base.egl_surface == EGL_NO_SURFACE)
         return false;
     if (!gl_make_current(egl_display, base.egl_surface, context))
@@ -133,8 +112,7 @@ bool popup_window_init_egl(PopupWindowBase &base, wl_display *display,
     return true;
 }
 
-void popup_window_reposition(PopupWindowBase &base, xdg_wm_base *wm_base,
-                             Rect anchor_rect, int32_t w, int32_t h) {
+void popup_window_reposition(PopupWindowBase &base, xdg_wm_base *wm_base, Rect anchor_rect, int32_t w, int32_t h) {
     if (!base.popup)
         return;
     xdg_positioner *positioner = make_positioner(wm_base, anchor_rect, w, h);
@@ -161,8 +139,7 @@ void popup_window_destroy(PopupWindowBase &base) {
     base.frame_clock.mapped = false;
 
     if (base.egl_surface != EGL_NO_SURFACE) {
-        eglMakeCurrent(base.egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE,
-                       EGL_NO_CONTEXT);
+        eglMakeCurrent(base.egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
         eglDestroySurface(base.egl_display, base.egl_surface);
         base.egl_surface = EGL_NO_SURFACE;
     }

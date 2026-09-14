@@ -32,12 +32,8 @@ class AnimationManager {
   public:
     using Id = uint32_t;
 
-    Id animate(float from, float to, float duration_ms, Easing easing,
-               std::function<void(float)> setter,
-               std::function<void()> on_complete = {}, uint64_t owner = 0) {
-        return animate_internal(from, to, duration_ms, easing,
-                                std::move(setter), std::move(on_complete),
-                                owner);
+    Id animate(float from, float to, float duration_ms, Easing easing, std::function<void(float)> setter, std::function<void()> on_complete = {}, uint64_t owner = 0) {
+        return animate_internal(from, to, duration_ms, easing, std::move(setter), std::move(on_complete), owner);
     }
 
     void cancelForOwner(uint64_t owner);
@@ -53,9 +49,7 @@ class AnimationManager {
         Animation anim;
     };
 
-    Id animate_internal(float from, float to, float duration_ms, Easing easing,
-                        std::function<void(float)> setter,
-                        std::function<void()> on_complete, uint64_t owner);
+    Id animate_internal(float from, float to, float duration_ms, Easing easing, std::function<void(float)> setter, std::function<void()> on_complete, uint64_t owner);
 
     std::vector<Entry> entries_;
     Id next_id_ = 1;

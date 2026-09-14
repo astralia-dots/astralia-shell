@@ -42,12 +42,10 @@ int read_int_file(const std::string &path) {
 void brightness_init(BrightnessBackend &backend) {
     backend.device = find_backlight_device();
     if (backend.device.empty()) {
-        klog("brightness: no backlight device found, brightness control "
-             "disabled");
+        klog("brightness: no backlight device found, brightness control " "disabled");
         return;
     }
-    backend.max = read_int_file("/sys/class/backlight/" + backend.device +
-                                "/max_brightness");
+    backend.max = read_int_file("/sys/class/backlight/" + backend.device + "/max_brightness");
     klog("brightness: device %s (max %d)", backend.device.c_str(), backend.max);
 }
 
@@ -64,8 +62,7 @@ void brightness_set(const BrightnessBackend &backend, float level01) {
         return;
     float clamped = std::clamp(level01, kBrightnessMinLevel, 1.0f);
     int percent = static_cast<int>(std::lround(clamped * 100.0f));
-    spawn_detached("brightnessctl -q -d " + backend.device + " set " +
-                   std::to_string(percent) + "%");
+    spawn_detached("brightnessctl -q -d " + backend.device + " set " + std::to_string(percent) + "%");
 }
 
 int brightness_watch_init(const BrightnessBackend &backend) {

@@ -24,8 +24,7 @@ class TextInputService {
     void handle_leave(wl_surface *surface);
     void handle_preedit_string(const char *text);
     void handle_commit_string(const char *text);
-    void handle_delete_surrounding_text(uint32_t before_length,
-                                        uint32_t after_length);
+    void handle_delete_surrounding_text(uint32_t before_length, uint32_t after_length);
     void handle_done(uint32_t serial);
 
   private:

@@ -28,18 +28,14 @@
 
 namespace {
 
-void launcher_layer_surface_configure(void *data,
-                                      zwlr_layer_surface_v1 *layer_surface,
-                                      uint32_t serial, uint32_t width,
-                                      uint32_t height) {
+void launcher_layer_surface_configure(void *data, zwlr_layer_surface_v1 *layer_surface, uint32_t serial, uint32_t width, uint32_t height) {
     auto *state = static_cast<LauncherState *>(data);
     zwlr_layer_surface_v1_ack_configure(layer_surface, serial);
     state->width = static_cast<int32_t>(width);
     state->height = static_cast<int32_t>(height);
     int32_t scale = state->output_scale.scale;
     if (state->egl_window)
-        wl_egl_window_resize(state->egl_window, state->width * scale,
-                             state->height * scale, 0, 0);
+        wl_egl_window_resize(state->egl_window, state->width * scale, state->height * scale, 0, 0);
     state->configured = true;
 }
 
@@ -60,8 +56,7 @@ void launcher_update_input_region(LauncherState &state) {
     wl_region_destroy(empty_region);
 }
 
-std::vector<FileEntry> launcher_dir_lister(const std::string &path,
-                                           bool want_dirs) {
+std::vector<FileEntry> launcher_dir_lister(const std::string &path, bool want_dirs) {
     return run_fd_search("", path, want_dirs, 50, 1, false);
 }
 
@@ -69,14 +64,9 @@ void launcher_search_start_now(LauncherState &state) {
     state.search_query = state.effective_query;
     std::string pattern = to_glob_pattern(state.search_query);
     state.search_started_at = std::chrono::steady_clock::now();
-    pid_t dirs_pid = async_process_start(
-        state.search_dirs_proc,
-        fd_search_argv(pattern, state.search_root, true, kLauncherMaxResults));
-    pid_t files_pid = async_process_start(
-        state.search_files_proc,
-        fd_search_argv(pattern, state.search_root, false, kLauncherMaxResults));
-    klog("launcher: search_start query='%s' dirs_pid=%d files_pid=%d",
-         state.search_query.c_str(), dirs_pid, files_pid);
+    pid_t dirs_pid = async_process_start(state.search_dirs_proc, fd_search_argv(pattern, state.search_root, true, kLauncherMaxResults));
+    pid_t files_pid = async_process_start(state.search_files_proc, fd_search_argv(pattern, state.search_root, false, kLauncherMaxResults));
+    klog("launcher: search_start query='%s' dirs_pid=%d files_pid=%d", state.search_query.c_str(), dirs_pid, files_pid);
     state.search_running = true;
 }
 
@@ -87,12 +77,9 @@ void launcher_search_start(LauncherState &state) {
     }
     if (state.search_running) {
         auto ms =
-            std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::steady_clock::now() - state.search_started_at)
+            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - state.search_started_at)
                 .count();
-        klog("launcher: CANCELLING still-running search after %lldms, "
-             "deferring restart",
-             static_cast<long long>(ms));
+        klog("launcher: CANCELLING still-running search after %lldms, " "deferring restart", static_cast<long long>(ms));
         state.pending_kill_dirs = async_process_cancel(state.search_dirs_proc);
         state.pending_kill_files =
             async_process_cancel(state.search_files_proc);
@@ -112,20 +99,16 @@ void launcher_query_changed(LauncherState &state) {
     state.search_dirty = true;
     state.search_dirty_at = std::chrono::steady_clock::now();
     state.search.cursor_idle_visible = true;
-    text_field_type_anim_sync(state.query_anim, state.animations,
-                              kLauncherQueryCharOwnerBase, state.search.text);
+    text_field_type_anim_sync(state.query_anim, state.animations, kLauncherQueryCharOwnerBase, state.search.text);
 }
 
 void launcher_query_char_clear(LauncherState &state) {
-    text_field_type_anim_clear(state.query_anim, state.animations,
-                               kLauncherQueryCharOwnerBase);
+    text_field_type_anim_clear(state.query_anim, state.animations, kLauncherQueryCharOwnerBase);
 }
 
 void launcher_launch_selected(LauncherState &state) {
     if (state.submenu.screen != SubmenuScreen::Search) {
-        if (state.selected_index < 0 ||
-            state.selected_index >=
-                static_cast<int>(state.submenu.items.size()))
+        if (state.selected_index < 0 || state.selected_index >= static_cast<int>(state.submenu.items.size()))
             return;
         SubmenuEntry entry = state.submenu.items[state.selected_index];
         if (submenu_handle_entry(state.submenu, entry, launcher_dir_lister)) {
@@ -143,8 +126,7 @@ void launcher_launch_selected(LauncherState &state) {
         return;
     }
 
-    if (state.selected_index < 0 ||
-        state.selected_index >= static_cast<int>(state.results.size()))
+    if (state.selected_index < 0 || state.selected_index >= static_cast<int>(state.results.size()))
         return;
     const DrunResult &r = state.results[state.selected_index];
     switch (r.kind) {
@@ -165,27 +147,20 @@ void launcher_launch_selected(LauncherState &state) {
 
 } // namespace
 
-bool launcher_create_surface(LauncherState &state, wl_compositor *compositor,
-                             zwlr_layer_shell_v1 *layer_shell,
-                             wl_output *output) {
+bool launcher_create_surface(LauncherState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
     state.compositor = compositor;
     LayerSurfaceConfig cfg{
         .layer = ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY,
         .name_space = "kokusei-launcher",
-        .anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP |
-                  ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM |
-                  ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT |
-                  ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT,
+        .anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT,
     };
     state.layer_surface =
-        layer_surface_create(state.surface, compositor, layer_shell, cfg,
-                             &launcher_layer_surface_listener, &state, output);
+        layer_surface_create(state.surface, compositor, layer_shell, cfg, &launcher_layer_surface_listener, &state, output);
     if (!state.layer_surface)
         return false;
     state.output_scale.on_change = [&state](int32_t scale) {
         if (state.egl_window)
-            wl_egl_window_resize(state.egl_window, state.width * scale,
-                                 state.height * scale, 0, 0);
+            wl_egl_window_resize(state.egl_window, state.width * scale, state.height * scale, 0, 0);
         if (state.frame_clock.surface)
             request_frame(state.frame_clock);
     };
@@ -197,25 +172,19 @@ bool launcher_create_surface(LauncherState &state, wl_compositor *compositor,
     return true;
 }
 
-bool launcher_init_egl(LauncherState &state, Renderer &renderer,
-                       EGLDisplay display, EGLConfig config,
-                       EGLContext context) {
+bool launcher_init_egl(LauncherState &state, Renderer &renderer, EGLDisplay display, EGLConfig config, EGLContext context) {
     state.renderer = &renderer;
     state.egl_display = display;
     state.egl_context = context;
     int32_t scale = state.output_scale.scale;
-    state.egl_window = wl_egl_window_create(state.surface, state.width * scale,
-                                            state.height * scale);
-    state.egl_surface = eglCreateWindowSurface(
-        display, config,
-        reinterpret_cast<EGLNativeWindowType>(state.egl_window), nullptr);
+    state.egl_window = wl_egl_window_create(state.surface, state.width * scale, state.height * scale);
+    state.egl_surface = eglCreateWindowSurface(display, config, reinterpret_cast<EGLNativeWindowType>(state.egl_window), nullptr);
     if (state.egl_surface == EGL_NO_SURFACE)
         return false;
     if (!gl_make_current(display, state.egl_surface, context))
         return false;
     for (int i = 0; i < kLauncherMaxVisible; ++i)
-        state.bullet_tex[i] = load_image_texture(
-            KOKUSEI_BULLET_DIR "/C" + std::to_string(i + 1) + ".png");
+        state.bullet_tex[i] = load_image_texture(KOKUSEI_BULLET_DIR "/C" + std::to_string(i + 1) + ".png");
     state.frame_clock.surface = state.surface;
     state.frame_clock.draw = [&state] { launcher_paint(state); };
     return true;
@@ -254,14 +223,9 @@ void launcher_destroy_surface(LauncherState &state) {
     state.configured = false;
 }
 
-void launcher_retarget(LauncherState &state, wl_compositor *compositor,
-                       zwlr_layer_shell_v1 *layer_shell, wl_display *display,
-                       Renderer &renderer, EGLDisplay egl_display,
-                       EGLConfig egl_config, EGLContext egl_context,
-                       wl_output *target_output, const char *target_name) {
+void launcher_retarget(LauncherState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_display *display, Renderer &renderer, EGLDisplay egl_display, EGLConfig egl_config, EGLContext egl_context, wl_output *target_output, const char *target_name) {
     wl_output *previous_output = state.bound_output;
-    klog("panel: launcher retargeting from output=%p to '%s'",
-         static_cast<void *>(previous_output), target_name);
+    klog("panel: launcher retargeting from output=%p to '%s'", static_cast<void *>(previous_output), target_name);
 
     launcher_destroy_surface(state);
     state.open = false;
@@ -272,8 +236,7 @@ void launcher_retarget(LauncherState &state, wl_compositor *compositor,
             return false;
         while (!state.configured)
             wl_display_dispatch(display);
-        return launcher_init_egl(state, renderer, egl_display, egl_config,
-                                 egl_context);
+        return launcher_init_egl(state, renderer, egl_display, egl_config, egl_context);
     };
 
     if (bind_to(target_output)) {
@@ -290,17 +253,13 @@ void launcher_retarget(LauncherState &state, wl_compositor *compositor,
 void launcher_search_start_pending(LauncherState &state) {
     if (!state.awaiting_restart)
         return;
-    bool still_alive = async_process_is_alive(state.pending_kill_dirs) ||
-                       async_process_is_alive(state.pending_kill_files);
+    bool still_alive = async_process_is_alive(state.pending_kill_dirs) || async_process_is_alive(state.pending_kill_files);
     auto elapsed =
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now() - state.pending_kill_since)
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - state.pending_kill_since)
             .count();
     if (still_alive && elapsed < kLauncherKillGraceMs)
         return;
-    klog("launcher: pending restart fired (confirmed_dead=%d) after %lldms "
-         "wait",
-         !still_alive, static_cast<long long>(elapsed));
+    klog("launcher: pending restart fired (confirmed_dead=%d) after %lldms " "wait", !still_alive, static_cast<long long>(elapsed));
     state.awaiting_restart = false;
     state.pending_kill_dirs = -1;
     state.pending_kill_files = -1;
@@ -320,8 +279,7 @@ bool launcher_search_poll(LauncherState &state) {
     std::vector<ScoredApp> apps = search_apps(state.apps, state.search_query);
     std::vector<FileEntry> files;
     for (bool want_dirs : {true, false}) {
-        const std::string &raw = want_dirs ? state.search_dirs_proc.buffer
-                                           : state.search_files_proc.buffer;
+        const std::string &raw = want_dirs ? state.search_dirs_proc.buffer : state.search_files_proc.buffer;
         for (FileEntry &fe : fd_search_parse_output(raw, want_dirs)) {
             fe.score = score_path(fe.name, state.search_query);
             if (fe.score >= 0.0f)
@@ -331,25 +289,16 @@ bool launcher_search_poll(LauncherState &state) {
     state.results =
         combined_drun_results(apps, files, state.visits, kLauncherMaxResults);
     state.selected_index = state.results.empty() ? -1 : 0;
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                  std::chrono::steady_clock::now() - state.search_started_at)
-                  .count();
-    klog("launcher: search_poll DONE after %lldms query='%s' results=%zu",
-         static_cast<long long>(ms), state.search_query.c_str(),
-         state.results.size());
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - state.search_started_at).count();
+    klog("launcher: search_poll DONE after %lldms query='%s' results=%zu", static_cast<long long>(ms), state.search_query.c_str(), state.results.size());
     return true;
 }
 
-const Texture *launcher_icon_lookup(LauncherState &state, const std::string &id,
-                                    const std::string &icon_field) {
+const Texture *launcher_icon_lookup(LauncherState &state, const std::string &id, const std::string &icon_field) {
     auto it = state.app_icon_cache.find(id);
     if (it == state.app_icon_cache.end()) {
         std::string path = resolve_app_icon_path(icon_field);
-        it = state.app_icon_cache
-                 .emplace(id, path.empty()
-                                  ? Texture{}
-                                  : load_image_texture(path, kIconTargetSize))
-                 .first;
+        it = state.app_icon_cache.emplace(id, path.empty() ? Texture{} : load_image_texture(path, kIconTargetSize)).first;
     }
     return it->second.id ? &it->second : nullptr;
 }
@@ -358,16 +307,12 @@ int launcher_poll_timeout_ms(const LauncherState &state) {
     int timeout_ms = -1;
     if (state.search_dirty) {
         auto elapsed =
-            std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::steady_clock::now() - state.search_dirty_at)
+            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - state.search_dirty_at)
                 .count();
-        timeout_ms = static_cast<int>(
-            std::max<long long>(0, kLauncherSearchDebounceMs - elapsed));
+        timeout_ms = static_cast<int>(std::max<long long>(0, kLauncherSearchDebounceMs - elapsed));
     }
     if (state.awaiting_restart)
-        timeout_ms = timeout_ms < 0
-                         ? kLauncherKillCheckMs
-                         : std::min(timeout_ms, kLauncherKillCheckMs);
+        timeout_ms = timeout_ms < 0 ? kLauncherKillCheckMs : std::min(timeout_ms, kLauncherKillCheckMs);
     return timeout_ms;
 }
 
@@ -389,10 +334,7 @@ void launcher_toggle(LauncherState &state, bool global) {
         return;
 
     if (state.open) {
-        klog("launcher: CLOSE (was_search_running=%d dirs_pid=%d "
-             "files_pid=%d)",
-             state.search_running, async_process_pid(state.search_dirs_proc),
-             async_process_pid(state.search_files_proc));
+        klog("launcher: CLOSE (was_search_running=%d dirs_pid=%d " "files_pid=%d)", state.search_running, async_process_pid(state.search_dirs_proc), async_process_pid(state.search_files_proc));
         state.search_dirty = false;
         async_process_cancel(state.search_dirs_proc);
         async_process_cancel(state.search_files_proc);
@@ -403,10 +345,7 @@ void launcher_toggle(LauncherState &state, bool global) {
         if (state.sync_text_input_focus)
             state.sync_text_input_focus(false);
 
-        state.animations.animate(
-            state.opacity, 0.0f, kOverlayFadeMs, Easing::EaseOutCubic,
-            [&state](float v) { state.opacity = v; },
-            [&state] {
+        state.animations.animate(state.opacity, 0.0f, kOverlayFadeMs, Easing::EaseOutCubic, [&state](float v) { state.opacity = v; }, [&state] {
                 state.open = false;
                 state.search.text.clear();
                 launcher_query_char_clear(state);
@@ -419,17 +358,14 @@ void launcher_toggle(LauncherState &state, bool global) {
                 state.highlight_offset_target = -1.0f;
                 state.scroll_offset_target = -1.0f;
                 submenu_close(state.submenu);
-                zwlr_layer_surface_v1_set_keyboard_interactivity(
-                    state.layer_surface,
-                    ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
+                zwlr_layer_surface_v1_set_keyboard_interactivity(state.layer_surface, ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
                 launcher_update_input_region(state);
                 wl_surface_commit(state.surface);
                 DeferredCall::call_later([&state] {
                     if (!state.open)
                         launcher_destroy_surface(state);
                 });
-            },
-            kOverlayFadeOwner);
+            }, kOverlayFadeOwner);
         launcher_request_frame(state);
         return;
     }
@@ -440,14 +376,10 @@ void launcher_toggle(LauncherState &state, bool global) {
     state.apps = scan_desktop_entries();
     state.open = true;
     state.search.cursor_idle_visible = true;
-    zwlr_layer_surface_v1_set_keyboard_interactivity(
-        state.layer_surface,
-        ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE);
+    zwlr_layer_surface_v1_set_keyboard_interactivity(state.layer_surface, ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE);
     launcher_update_input_region(state);
     wl_surface_commit(state.surface);
-    state.animations.animate(
-        state.opacity, 1.0f, kOverlayFadeMs, Easing::EaseOutCubic,
-        [&state](float v) { state.opacity = v; }, {}, kOverlayFadeOwner);
+    state.animations.animate(state.opacity, 1.0f, kOverlayFadeMs, Easing::EaseOutCubic, [&state](float v) { state.opacity = v; }, {}, kOverlayFadeOwner);
     launcher_request_frame(state);
     if (state.sync_text_input_focus)
         state.sync_text_input_focus(true);
@@ -545,9 +477,7 @@ void launcher_handle_click(LauncherState &state, double px, double py) {
         launcher_toggle(state, false);
 }
 
-void launcher_handle_pointer_move(LauncherState &state,
-                                  wl_surface *focused_surface, double px,
-                                  double py) {
+void launcher_handle_pointer_move(LauncherState &state, wl_surface *focused_surface, double px, double py) {
     int prev = state.hovered_index;
     if (!state.open || focused_surface != state.surface)
         state.hovered_index = -1;
@@ -609,8 +539,7 @@ std::vector<Row> visible_rows(LauncherState &state, int &first) {
                                 path_collapse_home(r.file.path)});
                 break;
             case DrunResult::Kind::File:
-                rows.push_back(
-                    {icon::edit, r.file.name, path_collapse_home(r.file.path)});
+                rows.push_back({icon::edit, r.file.name, path_collapse_home(r.file.path)});
                 break;
             }
         }
@@ -630,33 +559,26 @@ std::vector<Row> visible_rows(LauncherState &state, int &first) {
     return rows;
 }
 
-const Texture *cached_text(TextureCache &cache, const std::string &s,
-                           int32_t scale) {
+const Texture *cached_text(TextureCache &cache, const std::string &s, int32_t scale) {
     if (s.empty())
         return nullptr;
-    return cache.get("t" + std::to_string(scale) + ":" + s,
-                     [&] { return rasterize_text(s, scale); });
+    return cache.get("t" + std::to_string(scale) + ":" + s, [&] { return rasterize_text(s, scale); });
 }
 
-const Texture *cached_text_small(TextureCache &cache, const std::string &s,
-                                 int32_t scale) {
+const Texture *cached_text_small(TextureCache &cache, const std::string &s, int32_t scale) {
     if (s.empty())
         return nullptr;
-    return cache.get("s" + std::to_string(scale) + ":" + s,
-                     [&] { return rasterize_text_small(s, scale); });
+    return cache.get("s" + std::to_string(scale) + ":" + s, [&] { return rasterize_text_small(s, scale); });
 }
 
-const Texture *cached_icon(TextureCache &cache, const char *codepoint,
-                           int32_t scale) {
-    return cache.get("i" + std::to_string(scale) + ":" + codepoint,
-                     [&] { return rasterize_icon(codepoint, scale); });
+const Texture *cached_icon(TextureCache &cache, const char *codepoint, int32_t scale) {
+    return cache.get("i" + std::to_string(scale) + ":" + codepoint, [&] { return rasterize_icon(codepoint, scale); });
 }
 
 int launcher_surface_height(int visible_rows) {
     float h = kLauncherMenuPad * 2.0f + kLauncherSearchHeight;
     if (visible_rows > 0)
-        h += kLauncherListGap + visible_rows * kLauncherRowHeight +
-             (visible_rows - 1) * kLauncherRowSpacing;
+        h += kLauncherListGap + visible_rows * kLauncherRowHeight + (visible_rows - 1) * kLauncherRowSpacing;
     return static_cast<int>(h);
 }
 
@@ -683,11 +605,7 @@ void launcher_paint(LauncherState &state) {
         state.anim_height_target = static_cast<float>(content_h);
     } else if (static_cast<float>(content_h) != state.anim_height_target) {
         state.anim_height_target = static_cast<float>(content_h);
-        state.animations.animate(
-            state.anim_height, state.anim_height_target, kLauncherHeightAnimMs,
-            Easing::EaseInOutCubic,
-            [&state](float v) { state.anim_height = v; }, {},
-            kLauncherHeightOwner);
+        state.animations.animate(state.anim_height, state.anim_height_target, kLauncherHeightAnimMs, Easing::EaseInOutCubic, [&state](float v) { state.anim_height = v; }, {}, kLauncherHeightOwner);
     }
 
     gl_make_current(state.egl_display, state.egl_surface, state.egl_context);
@@ -697,14 +615,10 @@ void launcher_paint(LauncherState &state) {
     glClear(GL_COLOR_BUFFER_BIT);
 
     auto tex_w = [](const Texture *t) {
-        return t ? static_cast<float>(t->width) /
-                       static_cast<float>(t->scale > 0 ? t->scale : 1)
-                 : 0.0f;
+        return t ? static_cast<float>(t->width) / static_cast<float>(t->scale > 0 ? t->scale : 1) : 0.0f;
     };
     auto tex_h = [](const Texture *t) {
-        return t ? static_cast<float>(t->height) /
-                       static_cast<float>(t->scale > 0 ? t->scale : 1)
-                 : 0.0f;
+        return t ? static_cast<float>(t->height) / static_cast<float>(t->scale > 0 ? t->scale : 1) : 0.0f;
     };
 
     state.scene.rebuild();
@@ -719,70 +633,47 @@ void launcher_paint(LauncherState &state) {
         float box_y = (static_cast<float>(state.height) - box_h) / 2.0f;
         state.box_rect = {box_x, box_y, kLauncherSurfaceWidth, box_h};
 
-        node_add_rrect(root, box_x, box_y, kLauncherSurfaceWidth, box_h,
-                       metrics::radius_md, kLauncherMenuBorderWidth,
-                       rgba(palette::base_alpha80), rgba(palette::accent));
+        node_add_rrect(root, box_x, box_y, kLauncherSurfaceWidth, box_h, metrics::radius_md, kLauncherMenuBorderWidth, rgba(palette::base_alpha80), rgba(palette::accent));
 
         float clip_inset = metrics::radius_md;
         Node *outer =
-            node_add_group(root, box_x + clip_inset, box_y + clip_inset,
-                           kLauncherSurfaceWidth - 2 * clip_inset,
-                           box_h - 2 * clip_inset, true);
+            node_add_group(root, box_x + clip_inset, box_y + clip_inset, kLauncherSurfaceWidth - 2 * clip_inset, box_h - 2 * clip_inset, true);
         auto orx = [&](float v) { return v - (box_x + clip_inset); };
         auto ory = [&](float v) { return v - (box_y + clip_inset); };
 
         constexpr float kTransparent[4] = {0, 0, 0, 0};
         float mode_box_x = box_x + kLauncherMenuPad;
         float mode_box_w = kLauncherSearchHeight;
-        node_add_rrect(outer, orx(mode_box_x), ory(box_y + kLauncherMenuPad),
-                       mode_box_w, kLauncherSearchHeight, metrics::radius_sm,
-                       kLauncherBorderWidth, kTransparent,
-                       rgba(palette::accent));
+        node_add_rrect(outer, orx(mode_box_x), ory(box_y + kLauncherMenuPad), mode_box_w, kLauncherSearchHeight, metrics::radius_sm, kLauncherBorderWidth, kTransparent, rgba(palette::accent));
         const Texture *mode_tex =
             cached_icon(state.tcache, mode_icon(state.mode), scale);
         if (mode_tex) {
-            node_add_texture(
-                outer, orx(mode_box_x + (mode_box_w - tex_w(mode_tex)) / 2.0f),
-                ory(box_y + kLauncherMenuPad +
-                    (kLauncherSearchHeight - tex_h(mode_tex)) / 2.0f),
-                *mode_tex, white);
+            node_add_texture(outer, orx(mode_box_x + (mode_box_w - tex_w(mode_tex)) / 2.0f), ory(box_y + kLauncherMenuPad + (kLauncherSearchHeight - tex_h(mode_tex)) / 2.0f), *mode_tex, white);
         }
 
         float field_box_x = mode_box_x + mode_box_w + kLauncherPad;
         float field_box_w =
             box_x + kLauncherSurfaceWidth - kLauncherMenuPad - field_box_x;
-        node_add_rrect(outer, orx(field_box_x), ory(box_y + kLauncherMenuPad),
-                       field_box_w, kLauncherSearchHeight, metrics::radius_sm,
-                       kLauncherBorderWidth, kTransparent,
-                       rgba(palette::accent));
+        node_add_rrect(outer, orx(field_box_x), ory(box_y + kLauncherMenuPad), field_box_w, kLauncherSearchHeight, metrics::radius_sm, kLauncherBorderWidth, kTransparent, rgba(palette::accent));
         float text_x = field_box_x + kLauncherPad;
         float field_center_y =
             box_y + kLauncherMenuPad + kLauncherSearchHeight / 2.0f;
 
         std::string display = elide(state.search.text);
-        float advance = draw_text_field_value(
-            outer, state.tcache, scale, display, orx(text_x),
-            ory(field_center_y), white, &state.query_anim);
+        float advance = draw_text_field_value(outer, state.tcache, scale, display, orx(text_x), ory(field_center_y), white, &state.query_anim);
         float cx = text_x + advance;
 
-        draw_text_field_preedit(outer, state.tcache, scale,
-                                state.search.preedit, orx(cx),
-                                ory(field_center_y), white);
+        draw_text_field_preedit(outer, state.tcache, scale, state.search.preedit, orx(cx), ory(field_center_y), white);
 
         float caret_h = kLauncherSearchHeight - 2.0f * kLauncherPad;
         state.search.cursor_rect = {cx, field_center_y - caret_h / 2.0f,
                                     kCaretW, caret_h};
-        draw_text_field_caret(
-            outer, state.search,
-            {orx(cx), ory(field_center_y - caret_h / 2.0f), kCaretW, caret_h},
-            rgba(palette::text), true);
+        draw_text_field_caret(outer, state.search, {orx(cx), ory(field_center_y - caret_h / 2.0f), kCaretW, caret_h}, rgba(palette::text), true);
 
         float content_x = mode_box_x + mode_box_w + kLauncherBulletGap;
         float list_top = box_y + kLauncherListTop;
         float list_h = box_y + box_h - clip_inset - list_top;
-        Node *list_clip = node_add_group(
-            outer, orx(mode_box_x), ory(list_top),
-            kLauncherSurfaceWidth - 2 * kLauncherMenuPad, list_h, true);
+        Node *list_clip = node_add_group(outer, orx(mode_box_x), ory(list_top), kLauncherSurfaceWidth - 2 * kLauncherMenuPad, list_h, true);
 
         float row_bg_x = content_x - mode_box_x;
         float row_bg_w =
@@ -796,11 +687,7 @@ void launcher_paint(LauncherState &state) {
                 state.highlight_offset_target = highlight_target;
             } else if (highlight_target != state.highlight_offset_target) {
                 state.highlight_offset_target = highlight_target;
-                state.animations.animate(
-                    state.highlight_offset, state.highlight_offset_target,
-                    kLauncherHighlightAnimMs, Easing::EaseOutCubic,
-                    [&state](float v) { state.highlight_offset = v; }, {},
-                    kLauncherHighlightOwner);
+                state.animations.animate(state.highlight_offset, state.highlight_offset_target, kLauncherHighlightAnimMs, Easing::EaseOutCubic, [&state](float v) { state.highlight_offset = v; }, {}, kLauncherHighlightOwner);
             }
 
             float scroll_target = static_cast<float>(first) * kRowPitch;
@@ -809,11 +696,7 @@ void launcher_paint(LauncherState &state) {
                 state.scroll_offset_target = scroll_target;
             } else if (scroll_target != state.scroll_offset_target) {
                 state.scroll_offset_target = scroll_target;
-                state.animations.animate(
-                    state.scroll_offset, state.scroll_offset_target,
-                    kLauncherHighlightAnimMs, Easing::EaseOutCubic,
-                    [&state](float v) { state.scroll_offset = v; }, {},
-                    kLauncherScrollOwner);
+                state.animations.animate(state.scroll_offset, state.scroll_offset_target, kLauncherHighlightAnimMs, Easing::EaseOutCubic, [&state](float v) { state.scroll_offset = v; }, {}, kLauncherScrollOwner);
             }
         } else {
             state.highlight_offset_target = -1.0f;
@@ -824,53 +707,34 @@ void launcher_paint(LauncherState &state) {
             float y = static_cast<float>(i) * kRowPitch - state.scroll_offset;
 
             if (y >= 0.0f && y + kLauncherRowHeight <= list_h)
-                state.row_hitboxes.push_back(
-                    {{content_x, list_top + y, row_bg_w, kLauncherRowHeight},
-                     i});
+                state.row_hitboxes.push_back({{content_x, list_top + y, row_bg_w, kLauncherRowHeight}, i});
 
-            Node *rowg = node_add_group(
-                list_clip, 0, y, kLauncherSurfaceWidth - 2 * kLauncherMenuPad,
-                kLauncherRowHeight, true);
+            Node *rowg = node_add_group(list_clip, 0, y, kLauncherSurfaceWidth - 2 * kLauncherMenuPad, kLauncherRowHeight, true);
             auto lrx = [&](float v) { return v - mode_box_x; };
             auto lry = [&](float v) { return v - y; };
 
             constexpr float kRowTransparent[4] = {0, 0, 0, 0};
-            node_add_rrect(rowg, row_bg_x, 0, row_bg_w, kLauncherRowHeight,
-                           metrics::radius_sm, 0.0f,
-                           rgba(palette::text_alpha03), kRowTransparent);
+            node_add_rrect(rowg, row_bg_x, 0, row_bg_w, kLauncherRowHeight, metrics::radius_sm, 0.0f, rgba(palette::text_alpha03), kRowTransparent);
 
             if (i == state.hovered_index && i != state.selected_index)
-                node_add_rrect(rowg, row_bg_x, 0, row_bg_w, kLauncherRowHeight,
-                               metrics::radius_sm, kLauncherBorderWidth,
-                               kRowTransparent, rgba(palette::accent));
+                node_add_rrect(rowg, row_bg_x, 0, row_bg_w, kLauncherRowHeight, metrics::radius_sm, kLauncherBorderWidth, kRowTransparent, rgba(palette::accent));
 
             float rowx = content_x + kLauncherPad;
             if (rows[i].icon_tex) {
                 const Texture &tex = *rows[i].icon_tex;
-                node_add_texture_rect(
-                    rowg, lrx(rowx),
-                    lry(y + (kLauncherRowHeight - kIconTargetSize) / 2.0f),
-                    kIconTargetSize, kIconTargetSize, tex, white);
+                node_add_texture_rect(rowg, lrx(rowx), lry(y + (kLauncherRowHeight - kIconTargetSize) / 2.0f), kIconTargetSize, kIconTargetSize, tex, white);
             } else {
                 const Texture *row_icon =
                     cached_icon(state.tcache, rows[i].icon, scale);
                 if (row_icon) {
-                    node_add_texture(
-                        rowg,
-                        lrx(rowx + (kIconTargetSize - tex_w(row_icon)) / 2.0f),
-                        lry(y + (kLauncherRowHeight - tex_h(row_icon)) / 2.0f),
-                        *row_icon, white);
+                    node_add_texture(rowg, lrx(rowx + (kIconTargetSize - tex_w(row_icon)) / 2.0f), lry(y + (kLauncherRowHeight - tex_h(row_icon)) / 2.0f), *row_icon, white);
                 }
             }
             rowx += kIconTargetSize + kLauncherPad;
             const Texture *label =
                 cached_text(state.tcache, elide(rows[i].label), scale);
             if (!rows[i].subtitle.empty()) {
-                const Texture *subtitle = cached_text_small(
-                    state.tcache,
-                    elide_middle(rows[i].subtitle,
-                                 launcher_detail::kMaxRowChars),
-                    scale);
+                const Texture *subtitle = cached_text_small(state.tcache, elide_middle(rows[i].subtitle, launcher_detail::kMaxRowChars), scale);
                 float th = tex_h(label);
                 float sh = tex_h(subtitle);
                 float top =
@@ -879,14 +743,9 @@ void launcher_paint(LauncherState &state) {
                 if (label)
                     node_add_texture(rowg, lrx(rowx), lry(top), *label, white);
                 if (subtitle)
-                    node_add_texture(rowg, lrx(rowx),
-                                     lry(top + th + kLauncherTwoLineGap),
-                                     *subtitle, rgba(palette::text_alpha65));
+                    node_add_texture(rowg, lrx(rowx), lry(top + th + kLauncherTwoLineGap), *subtitle, rgba(palette::text_alpha65));
             } else if (label) {
-                node_add_texture(
-                    rowg, lrx(rowx),
-                    lry(y + (kLauncherRowHeight - tex_h(label)) / 2.0f), *label,
-                    white);
+                node_add_texture(rowg, lrx(rowx), lry(y + (kLauncherRowHeight - tex_h(label)) / 2.0f), *label, white);
             }
         }
 
@@ -895,21 +754,12 @@ void launcher_paint(LauncherState &state) {
             if (!bullet.id)
                 continue;
             float slot_y = static_cast<float>(slot) * kRowPitch;
-            node_add_texture_rect(
-                list_clip, (mode_box_w - kLauncherBulletSize) / 2.0f,
-                slot_y + (kLauncherRowHeight - kLauncherBulletSize) / 2.0f,
-                kLauncherBulletSize, kLauncherBulletSize, bullet, white);
+            node_add_texture_rect(list_clip, (mode_box_w - kLauncherBulletSize) / 2.0f, slot_y + (kLauncherRowHeight - kLauncherBulletSize) / 2.0f, kLauncherBulletSize, kLauncherBulletSize, bullet, white);
         }
 
         if (state.selected_index >= 0) {
             constexpr float kTransparent2[4] = {0, 0, 0, 0};
-            node_add_rrect(list_clip, content_x - mode_box_x,
-                           state.highlight_offset - state.scroll_offset,
-                           box_x + kLauncherSurfaceWidth - kLauncherMenuPad -
-                               content_x,
-                           kLauncherRowHeight, metrics::radius_sm,
-                           kLauncherHighlightBorderWidth, kTransparent2,
-                           rgba(palette::accent_alt_alpha50));
+            node_add_rrect(list_clip, content_x - mode_box_x, state.highlight_offset - state.scroll_offset, box_x + kLauncherSurfaceWidth - kLauncherMenuPad - content_x, kLauncherRowHeight, metrics::radius_sm, kLauncherHighlightBorderWidth, kTransparent2, rgba(palette::accent_alt_alpha50));
         }
     }
 
@@ -932,8 +782,7 @@ TextInputState launcher_text_input_state(const LauncherState &state) {
     return s;
 }
 
-void launcher_text_input_apply_edit(LauncherState &state,
-                                    const TextInputEdit &edit) {
+void launcher_text_input_apply_edit(LauncherState &state, const TextInputEdit &edit) {
     if (edit.has_delete)
         for (uint32_t i = 0; i < edit.delete_before_length; ++i)
             text_field_backspace(state.search.text);

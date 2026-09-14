@@ -38,14 +38,9 @@ extern const zwlr_layer_surface_v1_listener overlay_panel_listener;
 
 void overlay_panel_update_input_region(OverlayPanelBase &base);
 
-bool overlay_panel_create_surface(OverlayPanelBase &base,
-                                  wl_compositor *compositor,
-                                  zwlr_layer_shell_v1 *layer_shell,
-                                  const char *name_space,
-                                  wl_output *output = nullptr);
+bool overlay_panel_create_surface(OverlayPanelBase &base, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, const char *name_space, wl_output *output = nullptr);
 
-bool overlay_panel_init_egl(OverlayPanelBase &base, EGLDisplay display,
-                            EGLConfig config, EGLContext context);
+bool overlay_panel_init_egl(OverlayPanelBase &base, EGLDisplay display, EGLConfig config, EGLContext context);
 
 void overlay_panel_request_frame(OverlayPanelBase &base);
 
@@ -53,9 +48,7 @@ void overlay_panel_toggle(OverlayPanelBase &base);
 
 void overlay_panel_destroy_surface(OverlayPanelBase &base);
 
-inline void overlay_panel_release_output(OverlayPanelBase &base,
-                                         wl_output *&bound_output,
-                                         wl_output *removed) {
+inline void overlay_panel_release_output(OverlayPanelBase &base, wl_output *&bound_output, wl_output *removed) {
     if (!removed || bound_output != removed)
         return;
     overlay_panel_destroy_surface(base);
@@ -73,16 +66,12 @@ struct PanelHeightReveal {
 
 void panel_reveal_open(PanelHeightReveal &r);
 
-float panel_reveal_tick(PanelHeightReveal &r, OverlayPanelBase &base,
-                        float target_h);
+float panel_reveal_tick(PanelHeightReveal &r, OverlayPanelBase &base, float target_h);
 
-void panel_reveal_close(PanelHeightReveal &r, OverlayPanelBase &base,
-                        std::function<void()> on_done);
+void panel_reveal_close(PanelHeightReveal &r, OverlayPanelBase &base, std::function<void()> on_done);
 
 template <typename CreateSurface, typename InitEgl>
-inline bool overlay_panel_ensure(OverlayPanelBase &base, wl_display *display,
-                                 CreateSurface create_surface,
-                                 InitEgl init_egl) {
+inline bool overlay_panel_ensure(OverlayPanelBase &base, wl_display *display, CreateSurface create_surface, InitEgl init_egl) {
     if (base.layer_surface)
         return true;
     if (!create_surface())
@@ -94,13 +83,8 @@ inline bool overlay_panel_ensure(OverlayPanelBase &base, wl_display *display,
 
 template <typename CreateSurface, typename InitEgl>
 inline wl_output *
-overlay_panel_retarget(OverlayPanelBase &base, wl_display *display,
-                       wl_output *previous_output, wl_output *target_output,
-                       const char *target_name, CreateSurface create_surface,
-                       InitEgl init_egl) {
-    klog("panel: %s retargeting from output=%p to '%s'",
-         base.name_space ? base.name_space : "?",
-         static_cast<void *>(previous_output), target_name);
+overlay_panel_retarget(OverlayPanelBase &base, wl_display *display, wl_output *previous_output, wl_output *target_output, const char *target_name, CreateSurface create_surface, InitEgl init_egl) {
+    klog("panel: %s retargeting from output=%p to '%s'", base.name_space ? base.name_space : "?", static_cast<void *>(previous_output), target_name);
     overlay_panel_destroy_surface(base);
     base.configured = false;
     base.open = false;
@@ -118,15 +102,12 @@ overlay_panel_retarget(OverlayPanelBase &base, wl_display *display,
         return target_output;
     if (previous_output && bind_to(previous_output))
         return previous_output;
-    klog("panel: %s retarget fallback also failed",
-         base.name_space ? base.name_space : "?");
+    klog("panel: %s retarget fallback also failed", base.name_space ? base.name_space : "?");
     return nullptr;
 }
 
 template <typename OnOpen, typename OnClose>
-inline bool panel_lock_toggle(OverlayPanelBase &base, float &locked_center_x,
-                                 float pill_center_x, OnOpen on_open,
-                                 OnClose on_close) {
+inline bool panel_lock_toggle(OverlayPanelBase &base, float &locked_center_x, float pill_center_x, OnOpen on_open, OnClose on_close) {
     bool was_open = base.open;
     overlay_panel_toggle(base);
     if (was_open) {

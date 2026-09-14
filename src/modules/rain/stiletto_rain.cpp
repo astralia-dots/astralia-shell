@@ -47,16 +47,14 @@ cairo_surface_t *stiletto_sprite() {
         }
         double aspect = 1.0;
         gdouble nat_w = 0.0, nat_h = 0.0;
-        if (rsvg_handle_get_intrinsic_size_in_pixels(handle, &nat_w, &nat_h) &&
-            nat_h > 0.0)
+        if (rsvg_handle_get_intrinsic_size_in_pixels(handle, &nat_w, &nat_h) && nat_h > 0.0)
             aspect = nat_w / nat_h;
         int h = static_cast<int>(kStilettoRainHeadHeightPx);
         int w = std::max(1, static_cast<int>(std::lround(h * aspect)));
         cairo_surface_t *s =
             cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w, h);
         cairo_t *cr = cairo_create(s);
-        RsvgRectangle viewport = {0.0, 0.0, static_cast<double>(w),
-                                  static_cast<double>(h)};
+        RsvgRectangle viewport = {0.0, 0.0, static_cast<double>(w), static_cast<double>(h)};
         rsvg_handle_render_document(handle, cr, &viewport, nullptr);
         cairo_destroy(cr);
         cairo_surface_flush(s);
@@ -66,8 +64,7 @@ cairo_surface_t *stiletto_sprite() {
     return sprite;
 }
 
-void draw_sprite_centered(cairo_t *cr, cairo_surface_t *sprite, float cx,
-                          float y, const Color &color) {
+void draw_sprite_centered(cairo_t *cr, cairo_surface_t *sprite, float cx, float y, const Color &color) {
     if (!sprite)
         return;
     float sw = static_cast<float>(cairo_image_surface_get_width(sprite));
@@ -102,17 +99,14 @@ void StilettoRain::rebuild(int width, int height, bool async_speed) {
     comets_.assign(static_cast<size_t>(column_count_), Comet{});
     for (Comet &c : comets_) {
         c.drop = start_drop();
-        c.speed = async_speed
-                      ? random_range(kRainAsyncSpeedMin, kRainAsyncSpeedMax)
-                      : 1.0f;
+        c.speed = async_speed ? random_range(kRainAsyncSpeedMin, kRainAsyncSpeedMax) : 1.0f;
     }
 
     sweeping_ = true;
     sweep_drop_ = start_drop();
 
     stride_ = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, width_);
-    buffer_.assign(static_cast<size_t>(stride_) * static_cast<size_t>(height_),
-                   0);
+    buffer_.assign(static_cast<size_t>(stride_) * static_cast<size_t>(height_), 0);
     frame_.assign(buffer_.size(), 0);
     texture_ = Texture{};
 }
@@ -148,8 +142,7 @@ void StilettoRain::tick() {
 
     cairo_surface_t *sprite = stiletto_sprite();
 
-    cairo_surface_t *trail = cairo_image_surface_create_for_data(
-        buffer_.data(), CAIRO_FORMAT_ARGB32, width_, height_, stride_);
+    cairo_surface_t *trail = cairo_image_surface_create_for_data(buffer_.data(), CAIRO_FORMAT_ARGB32, width_, height_, stride_);
     cairo_t *tcr = cairo_create(trail);
     for (int i = 0; i < column_count_; ++i) {
         Comet &c = comets_[static_cast<size_t>(i)];
@@ -170,8 +163,7 @@ void StilettoRain::tick() {
     cairo_surface_destroy(trail);
 
     frame_ = buffer_;
-    cairo_surface_t *surface = cairo_image_surface_create_for_data(
-        frame_.data(), CAIRO_FORMAT_ARGB32, width_, height_, stride_);
+    cairo_surface_t *surface = cairo_image_surface_create_for_data(frame_.data(), CAIRO_FORMAT_ARGB32, width_, height_, stride_);
     cairo_t *cr = cairo_create(surface);
     for (int i = 0; i < column_count_; ++i) {
         const Comet &c = comets_[static_cast<size_t>(i)];
@@ -194,11 +186,8 @@ void StilettoRain::tick() {
     } else {
         for (Comet &c : comets_) {
             c.drop += kStilettoRainStepPx * c.speed;
-            if (c.drop > static_cast<float>(height_) &&
-                random01() < kRainResetChance) {
-                c.drop = c.ever_reset
-                             ? -(random01() * static_cast<float>(height_))
-                             : start_drop();
+            if (c.drop > static_cast<float>(height_) && random01() < kRainResetChance) {
+                c.drop = c.ever_reset ? -(random01() * static_cast<float>(height_)) : start_drop();
                 c.ever_reset = true;
                 c.last_valid = false;
             }

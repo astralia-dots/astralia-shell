@@ -22,8 +22,7 @@ constexpr float kSysMonBarHeight = 6.0f;
 constexpr float kSysMonBarRadius = 3.0f;
 constexpr float kSysMonBarTopGap = 12.0f;
 constexpr float kSysMonRowBottomPad = 10.0f;
-constexpr float kSysMonRowHeight = kSysMonTextRowHeight + kSysMonBarTopGap +
-                                   kSysMonBarHeight + kSysMonRowBottomPad;
+constexpr float kSysMonRowHeight = kSysMonTextRowHeight + kSysMonBarTopGap + kSysMonBarHeight + kSysMonRowBottomPad;
 constexpr float kSysMonNetRowHeight = 18.0f;
 constexpr float kSysMonNetLabelWidth = 90.0f;
 
@@ -70,39 +69,18 @@ float panel_height(const std::vector<PanelRow> &rows);
 
 } // namespace system_monitor_panel_detail
 
-bool system_monitor_panel_create_surface(SystemMonitorPanelState &state,
-                                         wl_compositor *compositor,
-                                         zwlr_layer_shell_v1 *layer_shell,
-                                         wl_output *output = nullptr);
+bool system_monitor_panel_create_surface(SystemMonitorPanelState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output = nullptr);
 
-bool system_monitor_panel_init_egl(SystemMonitorPanelState &state,
-                                   Renderer &renderer,
-                                   const CpuTempState &cpu_temp,
-                                   const GpuTempState &gpu_temp,
-                                   const SystemStatsState &stats,
-                                   EGLDisplay display, EGLConfig config,
-                                   EGLContext context);
+bool system_monitor_panel_init_egl(SystemMonitorPanelState &state, Renderer &renderer, const CpuTempState &cpu_temp, const GpuTempState &gpu_temp, const SystemStatsState &stats, EGLDisplay display, EGLConfig config, EGLContext context);
 
-void system_monitor_panel_request_frame(SystemMonitorPanelState &state,
-                                        float pill_center_x,
-                                        float bar_height,
-                                        float bar_top_margin);
+void system_monitor_panel_request_frame(SystemMonitorPanelState &state, float pill_center_x, float bar_height, float bar_top_margin);
 
-void system_monitor_panel_toggle(SystemMonitorPanelState &state,
-                                 float pill_center_x = -1.0f);
+void system_monitor_panel_toggle(SystemMonitorPanelState &state, float pill_center_x = -1.0f);
 
-void system_monitor_panel_handle_scroll(SystemMonitorPanelState &state,
-                                        const GpuTempState &gpu, double dy);
+void system_monitor_panel_handle_scroll(SystemMonitorPanelState &state, const GpuTempState &gpu, double dy);
 
-void system_monitor_panel_handle_click(SystemMonitorPanelState &state,
-                                       double px, double py);
+void system_monitor_panel_handle_click(SystemMonitorPanelState &state, double px, double py);
 
-void system_monitor_panel_handle_key_event(SystemMonitorPanelState &state,
-                                           const KeyEvent &event);
+void system_monitor_panel_handle_key_event(SystemMonitorPanelState &state, const KeyEvent &event);
 
-void system_monitor_panel_paint(SystemMonitorPanelState &state,
-                                const CpuTempState &cpu_temp,
-                                const GpuTempState &gpu_temp,
-                                const SystemStatsState &stats,
-                                float pill_center_x, float bar_height,
-                                float bar_top_margin);
+void system_monitor_panel_paint(SystemMonitorPanelState &state, const CpuTempState &cpu_temp, const GpuTempState &gpu_temp, const SystemStatsState &stats, float pill_center_x, float bar_height, float bar_top_margin);

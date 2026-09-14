@@ -28,28 +28,23 @@ void dock_apply_geometry(DockState &state) {
         zone =
             state.entries.empty() ? 0 : kDockCapsuleHeight + kDockMarginBottom;
     zwlr_layer_surface_v1_set_size(state.layer_surface, 0, height);
-    zwlr_layer_surface_v1_set_margin(state.layer_surface, 0, 0, margin_bottom,
-                                     0);
+    zwlr_layer_surface_v1_set_margin(state.layer_surface, 0, 0, margin_bottom, 0);
     zwlr_layer_surface_v1_set_exclusive_zone(state.layer_surface, zone);
     state.last_exclusive_zone = zone;
     wl_surface_commit(state.surface);
     int32_t scale = state.output_scale.scale;
     if (state.egl_window)
-        wl_egl_window_resize(state.egl_window, state.width * scale,
-                             height * scale, 0, 0);
+        wl_egl_window_resize(state.egl_window, state.width * scale, height * scale, 0, 0);
 }
 
-void dock_layer_surface_configure(void *data,
-                                  zwlr_layer_surface_v1 *layer_surface,
-                                  uint32_t serial, uint32_t width, uint32_t) {
+void dock_layer_surface_configure(void *data, zwlr_layer_surface_v1 *layer_surface, uint32_t serial, uint32_t width, uint32_t) {
     auto *state = static_cast<DockState *>(data);
     zwlr_layer_surface_v1_ack_configure(layer_surface, serial);
     bool changed = state->width != static_cast<int32_t>(width);
     state->width = static_cast<int32_t>(width);
     if (changed && state->egl_window) {
         int32_t scale = state->output_scale.scale;
-        wl_egl_window_resize(state->egl_window, state->width * scale,
-                             dock_current_height(*state) * scale, 0, 0);
+        wl_egl_window_resize(state->egl_window, state->width * scale, dock_current_height(*state) * scale, 0, 0);
         if (state->frame_clock.surface)
             request_frame(state->frame_clock);
     }
@@ -77,16 +72,12 @@ void dock_update_autohide(DockState &state) {
     }
     float target = want_shown ? 1.0f : 0.0f;
     float duration = want_shown ? kDockAutoHideRevealMs : kDockAutoHideHideMs;
-    state.animations.animate(
-        state.autohide.opacity, target, duration, Easing::EaseOutCubic,
-        [&state](float v) { state.autohide.opacity = v; },
-        [&state] {
+    state.animations.animate(state.autohide.opacity, target, duration, Easing::EaseOutCubic, [&state](float v) { state.autohide.opacity = v; }, [&state] {
             if (state.autohide.hidden && !state.autohide.collapsed) {
                 state.autohide.collapsed = true;
                 dock_apply_geometry(state);
             }
-        },
-        kDockAutoHideAnimOwner);
+        }, kDockAutoHideAnimOwner);
 }
 
 void dock_paint(DockState &state) {
@@ -100,8 +91,7 @@ void dock_paint(DockState &state) {
 
     int32_t height = dock_current_height(state);
     state.renderer->begin_frame(state.width, height, state.output_scale.scale);
-    state.renderer->set_opacity(state.autohide.enabled ? state.autohide.opacity
-                                                       : 1.0f);
+    state.renderer->set_opacity(state.autohide.enabled ? state.autohide.opacity : 1.0f);
     glClearColor(0, 0, 0, 0);
     glClear(GL_COLOR_BUFFER_BIT);
 
@@ -111,14 +101,8 @@ void dock_paint(DockState &state) {
         float capsule_w = row_w + kDockPaddingH * 2.0f;
         float capsule_x =
             std::round((static_cast<float>(state.width) - capsule_w) / 2.0f);
-        node_add_rrect(&state.scene.root, capsule_x, 0.0f, capsule_w,
-                       kDockCapsuleHeight, metrics::radius_md,
-                       metrics::border_thin, rgba(palette::overlay),
-                       rgba(palette::accent));
-        draw_dock_row(&state.scene.root, state.icons, state.row,
-                      state.animations, capsule_x + kDockPaddingH,
-                      kDockCapsuleHeight / 2.0f, state.entries,
-                      kDockAnimOwnerBase);
+        node_add_rrect(&state.scene.root, capsule_x, 0.0f, capsule_w, kDockCapsuleHeight, metrics::radius_md, metrics::border_thin, rgba(palette::overlay), rgba(palette::accent));
+        draw_dock_row(&state.scene.root, state.icons, state.row, state.animations, capsule_x + kDockPaddingH, kDockCapsuleHeight / 2.0f, state.entries, kDockAnimOwnerBase);
     }
     state.scene.draw(*state.renderer);
     eglSwapBuffers(state.egl_display, state.egl_surface);
@@ -129,29 +113,24 @@ void dock_paint(DockState &state) {
 
 } // namespace
 
-bool dock_create_surface(DockState &state, wl_compositor *compositor,
-                         zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
+bool dock_create_surface(DockState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
     state.compositor = compositor;
     LayerSurfaceConfig cfg{
         .layer = ZWLR_LAYER_SHELL_V1_LAYER_TOP,
         .name_space = "kokusei-dock",
-        .anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM |
-                  ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT |
-                  ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT,
+        .anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT,
         .height = kDockCapsuleHeight,
         .margin_bottom = kDockMarginBottom,
         .exclusive_zone = 0,
         .empty_input_region = true,
     };
     state.layer_surface =
-        layer_surface_create(state.surface, compositor, layer_shell, cfg,
-                             &dock_layer_surface_listener, &state, output);
+        layer_surface_create(state.surface, compositor, layer_shell, cfg, &dock_layer_surface_listener, &state, output);
     if (!state.layer_surface)
         return false;
     state.output_scale.on_change = [&state](int32_t scale) {
         if (state.egl_window)
-            wl_egl_window_resize(state.egl_window, state.width * scale,
-                                 dock_current_height(state) * scale, 0, 0);
+            wl_egl_window_resize(state.egl_window, state.width * scale, dock_current_height(state) * scale, 0, 0);
         if (state.frame_clock.surface)
             request_frame(state.frame_clock);
     };
@@ -160,17 +139,13 @@ bool dock_create_surface(DockState &state, wl_compositor *compositor,
     return true;
 }
 
-bool dock_init_egl(DockState &state, Renderer &renderer, EGLDisplay display,
-                   EGLConfig config, EGLContext context) {
+bool dock_init_egl(DockState &state, Renderer &renderer, EGLDisplay display, EGLConfig config, EGLContext context) {
     state.egl_display = display;
     state.egl_context = context;
     state.renderer = &renderer;
     int32_t scale = state.output_scale.scale;
-    state.egl_window = wl_egl_window_create(state.surface, state.width * scale,
-                                            dock_current_height(state) * scale);
-    state.egl_surface = eglCreateWindowSurface(
-        display, config,
-        reinterpret_cast<EGLNativeWindowType>(state.egl_window), nullptr);
+    state.egl_window = wl_egl_window_create(state.surface, state.width * scale, dock_current_height(state) * scale);
+    state.egl_surface = eglCreateWindowSurface(display, config, reinterpret_cast<EGLNativeWindowType>(state.egl_window), nullptr);
     if (state.egl_surface == EGL_NO_SURFACE)
         return false;
     if (!gl_make_current(display, state.egl_surface, context))

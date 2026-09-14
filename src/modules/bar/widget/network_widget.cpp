@@ -52,27 +52,16 @@ Pill wifi_pill(MonitorOutput &mon) {
                 wifi_label(mon.app->network), nullptr, [&mon, &bs] {
                     close_other_overlays(mon, PillId::Wifi);
                     if (!bs.network_panel.base.open) {
-                        update_pill_expand(bs.capsule, mon.animations,
-                                           PillId::Wifi, true, true);
+                        update_pill_expand(bs.capsule, mon.animations, PillId::Wifi, true, true);
                         bar_paint(mon);
-                        overlay_panel_ensure(
-                            bs.network_panel.base, mon.app->display,
-                            [&] {
-                                return network_panel_create_surface(
-                                    bs.network_panel, mon.app->compositor,
-                                    mon.app->layer_shell, mon.output.wl);
-                            },
-                            [&] {
-                                return network_panel_init_egl(
-                                    bs.network_panel, mon.app->renderer,
-                                    mon.app->network, mon.app->egl_display,
-                                    mon.app->egl_config, mon.app->egl_context);
+                        overlay_panel_ensure(bs.network_panel.base, mon.app->display, [&] {
+                                return network_panel_create_surface(bs.network_panel, mon.app->compositor, mon.app->layer_shell, mon.output.wl);
+                            }, [&] {
+                                return network_panel_init_egl(bs.network_panel, mon.app->renderer, mon.app->network, mon.app->egl_display, mon.app->egl_config, mon.app->egl_context);
                             });
                         app_detail::rest_egl_current(*mon.app);
                     }
-                    network_panel_toggle(
-                        bs.network_panel,
-                        pill_center_x(bs.capsule, PillId::Wifi));
+                    network_panel_toggle(bs.network_panel, pill_center_x(bs.capsule, PillId::Wifi));
                     if (bs.network_panel.base.open)
                         network_scan(mon.app->network);
                 }};

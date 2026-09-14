@@ -45,14 +45,12 @@ void finish_unlock(LockState &st);
 float px_h(const Texture *t) {
     if (!t)
         return 0.0f;
-    return static_cast<float>(t->height) /
-           static_cast<float>(t->scale > 0 ? t->scale : 1);
+    return static_cast<float>(t->height) / static_cast<float>(t->scale > 0 ? t->scale : 1);
 }
 float px_w(const Texture *t) {
     if (!t)
         return 0.0f;
-    return static_cast<float>(t->width) /
-           static_cast<float>(t->scale > 0 ? t->scale : 1);
+    return static_cast<float>(t->width) / static_cast<float>(t->scale > 0 ? t->scale : 1);
 }
 
 std::string strftime_now(const char *fmt, size_t cap) {
@@ -71,37 +69,25 @@ std::string date_string() {
     return s;
 }
 
-const Texture *tc_text(LockState &st, const std::string &s, int px,
-                       bool bold, int32_t scale) {
+const Texture *tc_text(LockState &st, const std::string &s, int px, bool bold, int32_t scale) {
     if (s.empty())
         return nullptr;
     std::string key = "pt:" + std::to_string(px) + (bold ? "b:" : "n:") + s;
-    return st.tcache.get(key,
-                         [&] { return rasterize_text_px(s, px, bold, scale); });
+    return st.tcache.get(key, [&] { return rasterize_text_px(s, px, bold, scale); });
 }
 
-const Texture *tc_icon(LockState &st, const char *glyph, int px,
-                       int32_t scale) {
+const Texture *tc_icon(LockState &st, const char *glyph, int px, int32_t scale) {
     std::string key = std::string("pi:") + std::to_string(px) + ":" + glyph;
     return st.tcache.get(key, [&] { return rasterize_icon(glyph, scale, px); });
 }
 
 std::string wm_name(const WaylandState *app) {
-    return app && app->compositor_backend ==
-                       WaylandState::CompositorBackend::Hyprland
-               ? "Hyprland"
-               : "Wayland";
+    return app && app->compositor_backend == WaylandState::CompositorBackend::Hyprland ? "Hyprland" : "Wayland";
 }
 
-void draw_center_column(LockState &st, LockOutputSurface &los,
-                        Node *content, const LockRect &col, int32_t scale,
-                        float ca);
-void draw_left_column(LockState &st, LockOutputSurface &los,
-                      Node *content, const LockRect &col, int32_t scale,
-                      float ca);
-void draw_right_column(LockState &st, LockOutputSurface &los,
-                       Node *content, const LockRect &col, int32_t scale,
-                       float ca);
+void draw_center_column(LockState &st, LockOutputSurface &los, Node *content, const LockRect &col, int32_t scale, float ca);
+void draw_left_column(LockState &st, LockOutputSurface &los, Node *content, const LockRect &col, int32_t scale, float ca);
+void draw_right_column(LockState &st, LockOutputSurface &los, Node *content, const LockRect &col, int32_t scale, float ca);
 
 size_t utf8_len(const std::string &s) {
     size_t n = 0;
@@ -128,9 +114,7 @@ void request_all(LockState &st) {
 
 void start_init_anim(LockState &st, LockOutputSurface &los) {
     (void)st;
-    klog("lock: init anim start on '%s' box=%.0f target=%.0fx%.0f",
-         los.output_name.c_str(), lock_icon_box_size(), los.panel_w_target,
-         los.panel_h_target);
+    klog("lock: init anim start on '%s' box=%.0f target=%.0fx%.0f", los.output_name.c_str(), lock_icon_box_size(), los.panel_w_target, los.panel_h_target);
     los.anim_started = true;
     los.panel_scale = kLockScaleHidden;
     los.panel_rotation = 0.0f;
@@ -145,83 +129,37 @@ void start_init_anim(LockState &st, LockOutputSurface &los) {
     float target_h = los.panel_h_target > 0 ? los.panel_h_target : box;
 
     auto &a = los.animations;
-    a.animate(
-        kLockScaleHidden, kLockScaleFull, kLockAnimSpinMs,
-        Easing::EaseOutBack, [&los](float v) { los.panel_scale = v; }, {},
-        kLockOwnerPanelScale);
-    a.animate(
-        0.0f, 360.0f, kLockAnimSpinMs, Easing::EaseInOutCubic,
-        [&los](float v) { los.panel_rotation = v; },
-        [&los, target_w, target_h] {
-            klog("lock: entrance expand begin on '%s' -> %.0fx%.0f",
-                 los.output_name.c_str(), target_w, target_h);
+    a.animate(kLockScaleHidden, kLockScaleFull, kLockAnimSpinMs, Easing::EaseOutBack, [&los](float v) { los.panel_scale = v; }, {}, kLockOwnerPanelScale);
+    a.animate(0.0f, 360.0f, kLockAnimSpinMs, Easing::EaseInOutCubic, [&los](float v) { los.panel_rotation = v; }, [&los, target_w, target_h] {
+            klog("lock: entrance expand begin on '%s' -> %.0fx%.0f", los.output_name.c_str(), target_w, target_h);
             los.panel_rotation = 0.0f;
             auto &a2 = los.animations;
-            a2.animate(
-                los.panel_w, target_w, kLockAnimExpandMs,
-                Easing::EaseOutCubic, [&los](float v) { los.panel_w = v; }, {},
-                kLockOwnerPanelWidth);
-            a2.animate(
-                los.panel_h, target_h, kLockAnimExpandMs,
-                Easing::EaseOutCubic, [&los](float v) { los.panel_h = v; }, {},
-                kLockOwnerPanelHeight);
-            a2.animate(
-                1.0f, 0.0f, kLockAnimIconFadeOutMs, Easing::EaseOutCubic,
-                [&los](float v) { los.icon_alpha = v; }, {},
-                kLockOwnerIconAlpha);
-            a2.animate(
-                0.0f, 1.0f, kLockAnimContentFadeInMs, Easing::EaseOutCubic,
-                [&los](float v) { los.content_alpha = v; }, {},
-                kLockOwnerContentAlpha);
-            a2.animate(
-                kLockScaleHidden, kLockScaleFull,
-                kLockAnimContentScaleInMs, Easing::EaseOutBack,
-                [&los](float v) { los.content_scale = v; }, {},
-                kLockOwnerContentScale);
-        },
-        kLockOwnerPanelRotation);
+            a2.animate(los.panel_w, target_w, kLockAnimExpandMs, Easing::EaseOutCubic, [&los](float v) { los.panel_w = v; }, {}, kLockOwnerPanelWidth);
+            a2.animate(los.panel_h, target_h, kLockAnimExpandMs, Easing::EaseOutCubic, [&los](float v) { los.panel_h = v; }, {}, kLockOwnerPanelHeight);
+            a2.animate(1.0f, 0.0f, kLockAnimIconFadeOutMs, Easing::EaseOutCubic, [&los](float v) { los.icon_alpha = v; }, {}, kLockOwnerIconAlpha);
+            a2.animate(0.0f, 1.0f, kLockAnimContentFadeInMs, Easing::EaseOutCubic, [&los](float v) { los.content_alpha = v; }, {}, kLockOwnerContentAlpha);
+            a2.animate(kLockScaleHidden, kLockScaleFull, kLockAnimContentScaleInMs, Easing::EaseOutBack, [&los](float v) { los.content_scale = v; }, {}, kLockOwnerContentScale);
+        }, kLockOwnerPanelRotation);
 }
 
 void start_unlock_anim(LockState &st, LockOutputSurface &los) {
     float box = lock_icon_box_size();
     auto &a = los.animations;
-    a.animate(
-        los.panel_w, box, kLockAnimShrinkMs, Easing::EaseInCubic,
-        [&los](float v) { los.panel_w = v; }, {}, kLockOwnerPanelWidth);
-    a.animate(
-        los.panel_h, box, kLockAnimShrinkMs, Easing::EaseInCubic,
-        [&los](float v) { los.panel_h = v; }, {}, kLockOwnerPanelHeight);
-    a.animate(
-        los.icon_alpha, 1.0f, kLockAnimIconFadeInMs, Easing::EaseInCubic,
-        [&los](float v) { los.icon_alpha = v; }, {}, kLockOwnerIconAlpha);
-    a.animate(
-        los.content_alpha, 0.0f, kLockAnimContentFadeOutMs,
-        Easing::EaseInCubic, [&los](float v) { los.content_alpha = v; }, {},
-        kLockOwnerContentAlpha);
-    a.animate(
-        los.content_scale, kLockScaleHidden, kLockAnimContentScaleOutMs,
-        Easing::EaseInBack, [&los](float v) { los.content_scale = v; }, {},
-        kLockOwnerContentScale);
+    a.animate(los.panel_w, box, kLockAnimShrinkMs, Easing::EaseInCubic, [&los](float v) { los.panel_w = v; }, {}, kLockOwnerPanelWidth);
+    a.animate(los.panel_h, box, kLockAnimShrinkMs, Easing::EaseInCubic, [&los](float v) { los.panel_h = v; }, {}, kLockOwnerPanelHeight);
+    a.animate(los.icon_alpha, 1.0f, kLockAnimIconFadeInMs, Easing::EaseInCubic, [&los](float v) { los.icon_alpha = v; }, {}, kLockOwnerIconAlpha);
+    a.animate(los.content_alpha, 0.0f, kLockAnimContentFadeOutMs, Easing::EaseInCubic, [&los](float v) { los.content_alpha = v; }, {}, kLockOwnerContentAlpha);
+    a.animate(los.content_scale, kLockScaleHidden, kLockAnimContentScaleOutMs, Easing::EaseInBack, [&los](float v) { los.content_scale = v; }, {}, kLockOwnerContentScale);
 
     bool is_primary = !st.surfaces.empty() && st.surfaces.front().get() == &los;
-    a.animate(
-        0.0f, 1.0f, kLockAnimShrinkMs, Easing::Linear, [](float) {},
-        [&st, &los, is_primary] {
+    a.animate(0.0f, 1.0f, kLockAnimShrinkMs, Easing::Linear, [](float) {}, [&st, &los, is_primary] {
             auto &a2 = los.animations;
-            a2.animate(
-                los.panel_scale, kLockScaleHidden, kLockAnimSpinMs,
-                Easing::EaseInBack, [&los](float v) { los.panel_scale = v; },
-                {}, kLockOwnerPanelScale);
-            a2.animate(
-                0.0f, -360.0f, kLockAnimSpinMs, Easing::EaseInOutCubic,
-                [&los](float v) { los.panel_rotation = v; },
-                [&st, is_primary] {
+            a2.animate(los.panel_scale, kLockScaleHidden, kLockAnimSpinMs, Easing::EaseInBack, [&los](float v) { los.panel_scale = v; }, {}, kLockOwnerPanelScale);
+            a2.animate(0.0f, -360.0f, kLockAnimSpinMs, Easing::EaseInOutCubic, [&los](float v) { los.panel_rotation = v; }, [&st, is_primary] {
                     if (is_primary)
                         DeferredCall::call_later([&st] { finish_unlock(st); });
-                },
-                kLockOwnerPanelRotation);
-        },
-        kLockOwnerSequence);
+                }, kLockOwnerPanelRotation);
+        }, kLockOwnerSequence);
 }
 
 std::deque<Color> &color_pool() {
@@ -265,18 +203,14 @@ void build_panel(LockState &st, LockOutputSurface &los, Node *root) {
     float px, py;
     lock_panel_origin(ow, oh, pw, ph, px, py);
 
-    Node *panel = node_add_rrect(root, px, py, pw, ph, kLockCardRadius,
-                                 kLockBgBorderWidth, rgba(palette::overlay),
-                                 rgba(palette::accent));
+    Node *panel = node_add_rrect(root, px, py, pw, ph, kLockCardRadius, kLockBgBorderWidth, rgba(palette::overlay), rgba(palette::accent));
     panel->rotation = los.panel_rotation;
     panel->scale = los.panel_scale;
     panel->clip_children = true;
 
     if (icon_tex && los.icon_alpha > 0.001f) {
         float iw = px_w(icon_tex), ih = px_h(icon_tex);
-        node_add_texture_rect(panel, rnd((pw - iw) * 0.5f),
-                              rnd((ph - ih) * 0.5f), iw, ih, *icon_tex,
-                              cmod(palette::accent, los.icon_alpha));
+        node_add_texture_rect(panel, rnd((pw - iw) * 0.5f), rnd((ph - ih) * 0.5f), iw, ih, *icon_tex, cmod(palette::accent, los.icon_alpha));
     }
 
     if (los.content_alpha <= 0.001f) {
@@ -289,8 +223,7 @@ void build_panel(LockState &st, LockOutputSurface &los, Node *root) {
     LockRect left, center, right;
     lock_columns(card_w, card_h, center_w, left, center, right);
 
-    Node *content = node_add_group(panel, (pw - card_w) * 0.5f,
-                                   (ph - card_h) * 0.5f, card_w, card_h);
+    Node *content = node_add_group(panel, (pw - card_w) * 0.5f, (ph - card_h) * 0.5f, card_w, card_h);
     content->scale = los.content_scale;
 
     draw_left_column(st, los, content, left, scale, ca);
@@ -300,8 +233,7 @@ void build_panel(LockState &st, LockOutputSurface &los, Node *root) {
     if (los.content_scale < 0.99f) {
         los.media_prev = los.media_play = los.media_next = los.pill_button = {};
     } else {
-        Rect *rects[] = {&los.media_prev, &los.media_play, &los.media_next,
-                         &los.pill_button};
+        Rect *rects[] = {&los.media_prev, &los.media_play, &los.media_next, &los.pill_button};
         for (Rect *rp : rects)
             if (rp->w > 0.0f) {
                 rp->x += px;
@@ -310,38 +242,26 @@ void build_panel(LockState &st, LockOutputSurface &los, Node *root) {
     }
 }
 
-void draw_pill(LockState &st, LockOutputSurface &los, Node *content,
-               float x, float y, float w, int32_t scale, float ca) {
+void draw_pill(LockState &st, LockOutputSurface &los, Node *content, float x, float y, float w, int32_t scale, float ca) {
     float h = kLockInputHeight;
     float r = h * 0.5f;
-    node_add_rrect(content, x, y, w, h, r, kLockBgBorderWidth,
-                   cmod(palette::field_bg, ca), cmod(palette::accent, ca));
+    node_add_rrect(content, x, y, w, h, r, kLockBgBorderWidth, cmod(palette::field_bg, ca), cmod(palette::accent, ca));
 
     float cy = y + h * 0.5f;
 
     const Texture *lock_t =
         tc_icon(st, icon::lock, static_cast<int>(kLockPillIconSize), scale);
     if (lock_t)
-        node_add_texture_rect(content, rnd(x + r - px_w(lock_t) * 0.5f),
-                              rnd(cy - px_h(lock_t) * 0.5f), px_w(lock_t),
-                              px_h(lock_t), *lock_t,
-                              cmod(palette::text_muted, ca));
+        node_add_texture_rect(content, rnd(x + r - px_w(lock_t) * 0.5f), rnd(cy - px_h(lock_t) * 0.5f), px_w(lock_t), px_h(lock_t), *lock_t, cmod(palette::text_muted, ca));
 
     bool has_text = !st.password.text.empty();
     float btn = kLockPillButtonSize;
     float btn_x = x + w - btn - (h - btn) * 0.5f;
     float btn_y = cy - btn * 0.5f;
-    node_add_rrect(content, btn_x, btn_y, btn, btn, btn * 0.5f, 0.0f,
-                   cmod(has_text ? palette::accent : palette::surface_alt, ca),
-                   kNodeTransparent);
-    const Texture *arrow_t = tc_icon(
-        st, icon::arrow_right, static_cast<int>(kLockPillIconSize), scale);
+    node_add_rrect(content, btn_x, btn_y, btn, btn, btn * 0.5f, 0.0f, cmod(has_text ? palette::accent : palette::surface_alt, ca), kNodeTransparent);
+    const Texture *arrow_t = tc_icon(st, icon::arrow_right, static_cast<int>(kLockPillIconSize), scale);
     if (arrow_t)
-        node_add_texture_rect(
-            content, rnd(btn_x + (btn - px_w(arrow_t)) * 0.5f),
-            rnd(btn_y + (btn - px_h(arrow_t)) * 0.5f), px_w(arrow_t),
-            px_h(arrow_t), *arrow_t,
-            cmod(has_text ? palette::base : palette::text_muted, ca));
+        node_add_texture_rect(content, rnd(btn_x + (btn - px_w(arrow_t)) * 0.5f), rnd(btn_y + (btn - px_h(arrow_t)) * 0.5f), px_w(arrow_t), px_h(arrow_t), *arrow_t, cmod(has_text ? palette::base : palette::text_muted, ca));
     los.pill_button = {btn_x, btn_y, btn, btn};
 
     float mid_x0 = x + h;
@@ -354,13 +274,9 @@ void draw_pill(LockState &st, LockOutputSurface &los, Node *content,
     if (!has_text) {
         if (st.failed) {
             const Texture *ft =
-                tc_text(st, kLockFailText,
-                        static_cast<int>(kLockFontNormal), false, scale);
+                tc_text(st, kLockFailText, static_cast<int>(kLockFontNormal), false, scale);
             if (ft)
-                node_add_texture_rect(
-                    content, rnd(mid_x0 + (mid_w - px_w(ft)) * 0.5f),
-                    rnd(cy - px_h(ft) * 0.5f), px_w(ft), px_h(ft), *ft,
-                    cmod(palette::critical, ca));
+                node_add_texture_rect(content, rnd(mid_x0 + (mid_w - px_w(ft)) * 0.5f), rnd(cy - px_h(ft) * 0.5f), px_w(ft), px_h(ft), *ft, cmod(palette::critical, ca));
             return;
         }
         const char *ph =
@@ -368,20 +284,13 @@ void draw_pill(LockState &st, LockOutputSurface &los, Node *content,
         const Texture *pt =
             tc_text(st, ph, static_cast<int>(kLockFontNormal), false, scale);
         if (pt)
-            node_add_texture_rect(content,
-                                  rnd(mid_x0 + (mid_w - px_w(pt)) * 0.5f),
-                                  rnd(cy - px_h(pt) * 0.5f), px_w(pt), px_h(pt),
-                                  *pt, cmod(palette::text_muted, ca));
-        text_field_row_slide(st.pw_row_slide, los.animations,
-                             kLockOwnerDotRowX,
-                             mid_x0 + lock_dot_x(0, 0, mid_w));
+            node_add_texture_rect(content, rnd(mid_x0 + (mid_w - px_w(pt)) * 0.5f), rnd(cy - px_h(pt) * 0.5f), px_w(pt), px_h(pt), *pt, cmod(palette::text_muted, ca));
+        text_field_row_slide(st.pw_row_slide, los.animations, kLockOwnerDotRowX, mid_x0 + lock_dot_x(0, 0, mid_w));
         return;
     }
 
     int n = static_cast<int>(utf8_len(st.password.text));
-    float row_x = text_field_row_slide(st.pw_row_slide, los.animations,
-                                       kLockOwnerDotRowX,
-                                       mid_x0 + lock_dot_x(0, n, mid_w));
+    float row_x = text_field_row_slide(st.pw_row_slide, los.animations, kLockOwnerDotRowX, mid_x0 + lock_dot_x(0, n, mid_w));
     for (int i = 0; i < n; ++i) {
         const TextFieldCharAnim *anim =
             i < static_cast<int>(st.pw_anim.chars.size())
@@ -394,11 +303,9 @@ void draw_pill(LockState &st, LockOutputSurface &los, Node *content,
         float gx = rnd(dx + (kLockDotSize - dsz) * 0.5f);
         float gy = rnd(cy - dsz * 0.5f);
         if (st.echo_glyph.id)
-            node_add_texture_rect(content, gx, gy, dsz, dsz, st.echo_glyph,
-                                  cmod(palette::text, ca));
+            node_add_texture_rect(content, gx, gy, dsz, dsz, st.echo_glyph, cmod(palette::text, ca));
         else
-            node_add_rrect(content, gx, gy, dsz, dsz, dsz * 0.5f, 0.0f,
-                           cmod(palette::text, ca), kNodeTransparent);
+            node_add_rrect(content, gx, gy, dsz, dsz, dsz * 0.5f, 0.0f, cmod(palette::text, ca), kNodeTransparent);
     }
 }
 
@@ -408,11 +315,8 @@ struct LockCard {
     float w = 0.0f;
 };
 
-LockCard draw_card(LockState &st, Node *content, const LockRect &col,
-                      const std::string &title, int32_t scale, float ca) {
-    node_add_rrect(content, col.x, col.y, col.w, col.h, kLockSidePanelRadius,
-                   kLockCardBorderWidth, cmod(palette::overlay, ca),
-                   cmod(palette::accent, ca));
+LockCard draw_card(LockState &st, Node *content, const LockRect &col, const std::string &title, int32_t scale, float ca) {
+    node_add_rrect(content, col.x, col.y, col.w, col.h, kLockSidePanelRadius, kLockCardBorderWidth, cmod(palette::overlay, ca), cmod(palette::accent, ca));
 
     float x = col.x + kLockSidePanelPad;
     float y = col.y + kLockSidePanelPad;
@@ -422,18 +326,15 @@ LockCard draw_card(LockState &st, Node *content, const LockRect &col,
     if (!title_t)
         return {x, y, w};
 
-    node_add_texture_rect(content, rnd(x), rnd(y), px_w(title_t), px_h(title_t),
-                          *title_t, cmod(palette::text, ca));
+    node_add_texture_rect(content, rnd(x), rnd(y), px_w(title_t), px_h(title_t), *title_t, cmod(palette::text, ca));
     return {x, y + px_h(title_t) + kLockCardHeaderGap, w};
 }
 
-void draw_fetch(LockState &st, Node *content, const LockRect &col,
-                int32_t scale, float ca) {
+void draw_fetch(LockState &st, Node *content, const LockRect &col, int32_t scale, float ca) {
     float pad = kLockSidePanelPad;
     int fpx = static_cast<int>(kLockFontMono);
     float inner_w = col.w - 2.0f * pad;
-    size_t maxc = static_cast<size_t>(
-        std::max(1.0f, inner_w / (static_cast<float>(fpx) * 0.62f)));
+    size_t maxc = static_cast<size_t>(std::max(1.0f, inner_w / (static_cast<float>(fpx) * 0.62f)));
 
     std::vector<std::string> lines;
     lines.push_back("OS  : " + user_info::os_pretty_name());
@@ -468,22 +369,16 @@ void draw_fetch(LockState &st, Node *content, const LockRect &col,
 
     float hx = x;
     if (prompt_t) {
-        node_add_texture_rect(content, rnd(hx),
-                              rnd(y + (head_h - px_h(prompt_t)) * 0.5f),
-                              px_w(prompt_t), px_h(prompt_t), *prompt_t,
-                              cmod(palette::accent, ca));
+        node_add_texture_rect(content, rnd(hx), rnd(y + (head_h - px_h(prompt_t)) * 0.5f), px_w(prompt_t), px_h(prompt_t), *prompt_t, cmod(palette::accent, ca));
         hx += px_w(prompt_t) + kLockFetchChipPad;
     }
     if (label_t)
-        node_add_texture_rect(
-            content, rnd(hx), rnd(y + (head_h - px_h(label_t)) * 0.5f),
-            px_w(label_t), px_h(label_t), *label_t, cmod(palette::text, ca));
+        node_add_texture_rect(content, rnd(hx), rnd(y + (head_h - px_h(label_t)) * 0.5f), px_w(label_t), px_h(label_t), *label_t, cmod(palette::text, ca));
     y += head_h + kLockFetchLineGap;
 
     for (const Texture *t : line_tex) {
         if (t)
-            node_add_texture_rect(content, rnd(x), rnd(y), px_w(t), px_h(t), *t,
-                                  cmod(palette::text_muted, ca));
+            node_add_texture_rect(content, rnd(x), rnd(y), px_w(t), px_h(t), *t, cmod(palette::text_muted, ca));
         y += line_h + kLockFetchLineGap;
     }
 
@@ -492,9 +387,7 @@ void draw_fetch(LockState &st, Node *content, const LockRect &col,
         int in_row = std::min(per_row, total_boxes - drawn);
         float bx = x;
         for (int i = 0; i < in_row; ++i) {
-            node_add_rrect(content, bx, y, kLockFetchColorBox,
-                           kLockFetchColorBox, kLockResTileRadius * 0.4f,
-                           0.0f, cmod(*term[drawn], ca), kNodeTransparent);
+            node_add_rrect(content, bx, y, kLockFetchColorBox, kLockFetchColorBox, kLockResTileRadius * 0.4f, 0.0f, cmod(*term[drawn], ca), kNodeTransparent);
             bx += kLockFetchColorBox + kLockFetchColorGap;
             ++drawn;
         }
@@ -502,8 +395,7 @@ void draw_fetch(LockState &st, Node *content, const LockRect &col,
     }
 }
 
-void draw_media(LockState &st, LockOutputSurface &los, Node *content,
-                const LockRect &col, int32_t scale, float ca) {
+void draw_media(LockState &st, LockOutputSurface &los, Node *content, const LockRect &col, int32_t scale, float ca) {
     los.media_prev = los.media_play = los.media_next = {};
     float pad = kLockSidePanelPad;
     if (col.h < kLockMediaArt + 2.0f * pad)
@@ -516,18 +408,14 @@ void draw_media(LockState &st, LockOutputSurface &los, Node *content,
     float art = kLockMediaArt;
     float bs = kLockMediaBtnSize;
     int tpx = static_cast<int>(kLockFontNormal);
-    size_t maxc = static_cast<size_t>(std::max(
-        1.0f, (col.w - 2.0f * pad) / (static_cast<float>(tpx) * 0.62f)));
+    size_t maxc = static_cast<size_t>(std::max(1.0f, (col.w - 2.0f * pad) / (static_cast<float>(tpx) * 0.62f)));
     std::string title = m.has_player && !m.track.title.empty()
                             ? m.track.title
                             : "Nothing playing";
-    std::string artist = m.has_player && !m.track.artist.empty()
-                             ? m.track.artist
-                             : "Try playing some music";
+    std::string artist = m.has_player && !m.track.artist.empty() ? m.track.artist : "Try playing some music";
     const Texture *tt = tc_text(st, elide(title, maxc), tpx, true, scale);
     const Texture *at =
-        tc_text(st, elide(artist, maxc), static_cast<int>(kLockFontMono),
-                false, scale);
+        tc_text(st, elide(artist, maxc), static_cast<int>(kLockFontMono), false, scale);
 
     float block_h = art + kLockMediaTextGap * 3.0f + px_h(tt) +
                     kLockMediaTextGap + px_h(at) +
@@ -535,9 +423,7 @@ void draw_media(LockState &st, LockOutputSurface &los, Node *content,
     float avail_h = col.y + col.h - pad - cc.y;
     float ay = cc.y + std::max(0.0f, (avail_h - block_h) * 0.5f);
 
-    node_add_rrect(content, cx - art * 0.5f, ay, art, art,
-                   kLockResTileRadius, 0.0f, cmod(palette::field_bg, ca),
-                   kNodeTransparent);
+    node_add_rrect(content, cx - art * 0.5f, ay, art, art, kLockResTileRadius, 0.0f, cmod(palette::field_bg, ca), kNodeTransparent);
 
     const Texture *art_tex = nullptr;
     if (m.has_player && mpris_detail_is_local_art_url(m.track.art_url)) {
@@ -549,28 +435,20 @@ void draw_media(LockState &st, LockOutputSurface &los, Node *content,
             art_tex = &it->second;
     }
     if (art_tex)
-        node_add_texture_rect(content, cx - art * 0.5f, ay, art, art, *art_tex,
-                              cmod(palette::text, ca));
+        node_add_texture_rect(content, cx - art * 0.5f, ay, art, art, *art_tex, cmod(palette::text, ca));
     else {
         const Texture *note =
             tc_icon(st, icon::music_note, static_cast<int>(art * 0.4f), scale);
         if (note)
-            node_add_texture_rect(content, rnd(cx - px_w(note) * 0.5f),
-                                  rnd(ay + (art - px_h(note)) * 0.5f),
-                                  px_w(note), px_h(note), *note,
-                                  cmod(palette::text_dim, ca));
+            node_add_texture_rect(content, rnd(cx - px_w(note) * 0.5f), rnd(ay + (art - px_h(note)) * 0.5f), px_w(note), px_h(note), *note, cmod(palette::text_dim, ca));
     }
 
     float ty = ay + art + kLockMediaTextGap * 3.0f;
     if (tt)
-        node_add_texture_rect(content, rnd(cx - px_w(tt) * 0.5f), rnd(ty),
-                              px_w(tt), px_h(tt), *tt,
-                              cmod(palette::accent, ca));
+        node_add_texture_rect(content, rnd(cx - px_w(tt) * 0.5f), rnd(ty), px_w(tt), px_h(tt), *tt, cmod(palette::accent, ca));
     ty += px_h(tt) + kLockMediaTextGap;
     if (at)
-        node_add_texture_rect(content, rnd(cx - px_w(at) * 0.5f), rnd(ty),
-                              px_w(at), px_h(at), *at,
-                              cmod(palette::text_muted, ca));
+        node_add_texture_rect(content, rnd(cx - px_w(at) * 0.5f), rnd(ty), px_w(at), px_h(at), *at, cmod(palette::text_muted, ca));
     ty += px_h(at) + kLockMediaBtnGap * 1.5f;
 
     if (ty + bs > col.y + col.h - pad)
@@ -579,27 +457,19 @@ void draw_media(LockState &st, LockOutputSurface &los, Node *content,
     float bx = cx - row_w * 0.5f;
 
     auto button = [&](float rx, const char *glyph, Rect &out) {
-        node_add_rrect(content, rx, ty, bs, bs, bs * 0.5f, 0.0f,
-                       cmod(palette::field_bg, ca), kNodeTransparent);
+        node_add_rrect(content, rx, ty, bs, bs, bs * 0.5f, 0.0f, cmod(palette::field_bg, ca), kNodeTransparent);
         const Texture *g =
             tc_icon(st, glyph, static_cast<int>(bs * 0.5f), scale);
         if (g)
-            node_add_texture_rect(content, rnd(rx + (bs - px_w(g)) * 0.5f),
-                                  rnd(ty + (bs - px_h(g)) * 0.5f), px_w(g),
-                                  px_h(g), *g, cmod(palette::text, ca));
+            node_add_texture_rect(content, rnd(rx + (bs - px_w(g)) * 0.5f), rnd(ty + (bs - px_h(g)) * 0.5f), px_w(g), px_h(g), *g, cmod(palette::text, ca));
         out = {rx, ty, bs, bs};
     };
     button(bx, icon::player_prev, los.media_prev);
-    button(bx + bs + kLockMediaBtnGap,
-           m.status == MprisPlaybackStatus::Playing ? icon::player_pause
-                                                    : icon::player_play,
-           los.media_play);
-    button(bx + 2.0f * (bs + kLockMediaBtnGap), icon::player_next,
-           los.media_next);
+    button(bx + bs + kLockMediaBtnGap, m.status == MprisPlaybackStatus::Playing ? icon::player_pause : icon::player_play, los.media_play);
+    button(bx + 2.0f * (bs + kLockMediaBtnGap), icon::player_next, los.media_next);
 }
 
-void draw_resources(LockState &st, Node *content, const LockRect &col,
-                    int32_t scale, float ca) {
+void draw_resources(LockState &st, Node *content, const LockRect &col, int32_t scale, float ca) {
     float pad = kLockSidePanelPad;
     float gap = kLockResTileGap;
 
@@ -620,49 +490,30 @@ void draw_resources(LockState &st, Node *content, const LockRect &col,
         const Color *label_color;
         int row;
     };
-    auto temp_label = [](const char *base, float celsius,
-                         const Color *&label_color) {
+    auto temp_label = [](const char *base, float celsius, const Color *&label_color) {
         if (celsius <= 0.0f)
             return std::string(base);
         int c = static_cast<int>(std::lround(celsius));
-        label_color = celsius >= kLockResTempWarnC ? &palette::critical
-                                                      : &palette::text_dim;
-        return std::string(base) + " - " + std::to_string(c) +
-               "\xC2\xB0"
-               "C";
+        label_color = celsius >= kLockResTempWarnC ? &palette::critical : &palette::text_dim;
+        return std::string(base) + " - " + std::to_string(c) + "\xC2\xB0" "C";
     };
     std::vector<Tile> tiles;
     const Color *cpu_label_color = &palette::text_dim;
     std::string cpu_label = temp_label("CPU", ct.celsius, cpu_label_color);
-    tiles.push_back({icon::cpu, cpu_label, std::max(0.0f, s.cpu_usage),
-                     s.cpu_usage >= 0.0f
-                         ? static_cast<int>(std::lround(s.cpu_usage * 100.0f))
-                         : -1,
-                     &palette::accent, cpu_label_color, 0});
+    tiles.push_back({icon::cpu, cpu_label, std::max(0.0f, s.cpu_usage), s.cpu_usage >= 0.0f ? static_cast<int>(std::lround(s.cpu_usage * 100.0f)) : -1, &palette::accent, cpu_label_color, 0});
     if (show_gpu) {
         const Color *gpu_label_color = &palette::text_dim;
         std::string gpu_label = temp_label("GPU", gt.celsius, gpu_label_color);
-        tiles.push_back({icon::gpu, gpu_label,
-                         std::clamp(gt.usage_percent / 100.0f, 0.0f, 1.0f),
-                         static_cast<int>(std::lround(gt.usage_percent)),
-                         &kLockResGaugeGpuColor, gpu_label_color, 0});
+        tiles.push_back({icon::gpu, gpu_label, std::clamp(gt.usage_percent / 100.0f, 0.0f, 1.0f), static_cast<int>(std::lround(gt.usage_percent)), &kLockResGaugeGpuColor, gpu_label_color, 0});
     }
-    tiles.push_back({icon::device_desktop, "RAM", std::max(0.0f, s.mem_usage),
-                     s.mem_usage >= 0.0f
-                         ? static_cast<int>(std::lround(s.mem_usage * 100.0f))
-                         : -1,
-                     &palette::lavender, &palette::text_dim, 1});
-    tiles.push_back(
-        {icon::folder, "DISK", std::max(0.0f, s.disk_pct / 100.0f),
-         s.disk_pct >= 0.0f ? static_cast<int>(std::lround(s.disk_pct)) : -1,
-         &palette::accent_alt, &palette::text_dim, 1});
+    tiles.push_back({icon::device_desktop, "RAM", std::max(0.0f, s.mem_usage), s.mem_usage >= 0.0f ? static_cast<int>(std::lround(s.mem_usage * 100.0f)) : -1, &palette::lavender, &palette::text_dim, 1});
+    tiles.push_back({icon::folder, "DISK", std::max(0.0f, s.disk_pct / 100.0f), s.disk_pct >= 0.0f ? static_cast<int>(std::lround(s.disk_pct)) : -1, &palette::accent_alt, &palette::text_dim, 1});
 
     const Texture *label_probe =
         tc_text(st, "CPU", static_cast<int>(kLockFontMono), false, scale);
     float cell_extra = px_h(label_probe) + kLockResGaugeLabelGap;
 
-    float tile_sz = std::min((col.w - 3.0f * gap) * 0.5f,
-                             (avail_h - gap - 2.0f * cell_extra) * 0.5f);
+    float tile_sz = std::min((col.w - 3.0f * gap) * 0.5f, (avail_h - gap - 2.0f * cell_extra) * 0.5f);
     float stroke = tile_sz * kLockResGaugeStrokeRatio;
 
     float col_gap = (col.w - 2.0f * tile_sz) / 3.0f;
@@ -677,10 +528,7 @@ void draw_resources(LockState &st, Node *content, const LockRect &col,
 
     for (const Tile &t : tiles) {
         int within = row_seen[t.row]++;
-        float tx = row_count[t.row] == 1
-                       ? col.x + (col.w - tile_sz) * 0.5f
-                       : (within == 0 ? col.x + col_gap
-                                      : col.x + col.w - col_gap - tile_sz);
+        float tx = row_count[t.row] == 1 ? col.x + (col.w - tile_sz) * 0.5f : (within == 0 ? col.x + col_gap : col.x + col.w - col_gap - tile_sz);
         float ty = row_y[t.row];
 
         float frac = std::clamp(t.frac, 0.0f, 1.0f);
@@ -688,42 +536,29 @@ void draw_resources(LockState &st, Node *content, const LockRect &col,
         const Texture *ic =
             tc_icon(st, t.glyph, static_cast<int>(kLockResIconSize), scale);
         const Texture *vt =
-            tc_text(st, t.pct >= 0 ? std::to_string(t.pct) + "%" : "--",
-                    static_cast<int>(kLockResValueFont), true, scale);
-        const Texture *lt = tc_text(
-            st, t.label, static_cast<int>(kLockFontMono), false, scale);
-        draw_arc_gauge(content, st.tcache, scale, tx, ty, tile_sz, stroke, frac,
-                       arc_color, ic, cmod(*t.accent, ca), vt,
-                       cmod(palette::text, ca), lt, cmod(*t.label_color, ca),
-                       kLockResGaugeIconValueGap, kLockResGaugeLabelGap);
+            tc_text(st, t.pct >= 0 ? std::to_string(t.pct) + "%" : "--", static_cast<int>(kLockResValueFont), true, scale);
+        const Texture *lt = tc_text(st, t.label, static_cast<int>(kLockFontMono), false, scale);
+        draw_arc_gauge(content, st.tcache, scale, tx, ty, tile_sz, stroke, frac, arc_color, ic, cmod(*t.accent, ca), vt, cmod(palette::text, ca), lt, cmod(*t.label_color, ca), kLockResGaugeIconValueGap, kLockResGaugeLabelGap);
     }
 }
 
-void draw_notifs(LockState &st, Node *content, const LockRect &col,
-                 int32_t scale, float ca) {
+void draw_notifs(LockState &st, Node *content, const LockRect &col, int32_t scale, float ca) {
     if (col.h < 60.0f)
         return;
 
     float pad = kLockSidePanelPad;
     const std::vector<NotificationRecord> &recs = st.app->notifications.records;
 
-    std::string hdr = recs.empty() ? "Notifications"
-                                   : std::to_string(recs.size()) +
-                                         (recs.size() == 1 ? " notification"
-                                                           : " notifications");
+    std::string hdr = recs.empty() ? "Notifications" : std::to_string(recs.size()) + (recs.size() == 1 ? " notification" : " notifications");
     LockCard cc = draw_card(st, content, col, hdr, scale, ca);
     float x = cc.x;
     float y = cc.y;
 
     if (recs.empty()) {
         const Texture *nt =
-            tc_text(st, "No Notifications",
-                    static_cast<int>(kLockFontNormal), false, scale);
+            tc_text(st, "No Notifications", static_cast<int>(kLockFontNormal), false, scale);
         if (nt)
-            node_add_texture_rect(content,
-                                  rnd(col.x + (col.w - px_w(nt)) * 0.5f),
-                                  rnd(col.y + col.h * 0.5f), px_w(nt), px_h(nt),
-                                  *nt, cmod(palette::text_dim, ca));
+            node_add_texture_rect(content, rnd(col.x + (col.w - px_w(nt)) * 0.5f), rnd(col.y + col.h * 0.5f), px_w(nt), px_h(nt), *nt, cmod(palette::text_dim, ca));
         return;
     }
 
@@ -731,50 +566,37 @@ void draw_notifs(LockState &st, Node *content, const LockRect &col,
     Node *clip = node_add_group(content, x, y, cc.w, clip_h, true);
     float cw = col.w - 2.0f * pad;
     float cardpad = kLockNotifCardPad;
-    size_t maxc = static_cast<size_t>(
-        std::max(1.0f, (cw - 2.0f * cardpad) / (kLockFontMono * 0.62f)));
+    size_t maxc = static_cast<size_t>(std::max(1.0f, (cw - 2.0f * cardpad) / (kLockFontMono * 0.62f)));
 
     float cy = 0.0f;
     int shown = 0;
     for (const NotificationRecord &rec : recs) {
         if (shown >= kLockNotifMaxCards || cy >= clip_h)
             break;
-        const Texture *appt = tc_text(
-            st,
-            elide(rec.app_name.empty() ? "Notification" : rec.app_name, maxc),
-            static_cast<int>(kLockFontMono), true, scale);
+        const Texture *appt = tc_text(st, elide(rec.app_name.empty() ? "Notification" : rec.app_name, maxc), static_cast<int>(kLockFontMono), true, scale);
         const Texture *sumt =
             rec.summary.empty()
                 ? nullptr
-                : tc_text(st, elide(rec.summary, maxc),
-                          static_cast<int>(kLockFontNormal), false, scale);
+                : tc_text(st, elide(rec.summary, maxc), static_cast<int>(kLockFontNormal), false, scale);
         const Texture *bodyt =
             rec.body.empty()
                 ? nullptr
-                : tc_text(st, elide(rec.body, maxc),
-                          static_cast<int>(kLockFontMono), false, scale);
-        float ch = 2.0f * cardpad + px_h(appt) +
-                   (sumt ? kLockMediaTextGap + px_h(sumt) : 0.0f) +
-                   (bodyt ? kLockMediaTextGap + px_h(bodyt) : 0.0f);
+                : tc_text(st, elide(rec.body, maxc), static_cast<int>(kLockFontMono), false, scale);
+        float ch = 2.0f * cardpad + px_h(appt) + (sumt ? kLockMediaTextGap + px_h(sumt) : 0.0f) + (bodyt ? kLockMediaTextGap + px_h(bodyt) : 0.0f);
 
-        node_add_rrect(clip, 0.0f, cy, cw, ch, kLockNotifCardRadius, 0.0f,
-                       cmod(palette::field_bg, ca), kNodeTransparent);
+        node_add_rrect(clip, 0.0f, cy, cw, ch, kLockNotifCardRadius, 0.0f, cmod(palette::field_bg, ca), kNodeTransparent);
         float ix = cardpad;
         float iy = cy + cardpad;
         if (appt) {
-            node_add_texture_rect(clip, rnd(ix), rnd(iy), px_w(appt),
-                                  px_h(appt), *appt, cmod(palette::accent, ca));
+            node_add_texture_rect(clip, rnd(ix), rnd(iy), px_w(appt), px_h(appt), *appt, cmod(palette::accent, ca));
             iy += px_h(appt) + kLockMediaTextGap;
         }
         if (sumt) {
-            node_add_texture_rect(clip, rnd(ix), rnd(iy), px_w(sumt),
-                                  px_h(sumt), *sumt, cmod(palette::text, ca));
+            node_add_texture_rect(clip, rnd(ix), rnd(iy), px_w(sumt), px_h(sumt), *sumt, cmod(palette::text, ca));
             iy += px_h(sumt) + kLockMediaTextGap;
         }
         if (bodyt)
-            node_add_texture_rect(clip, rnd(ix), rnd(iy), px_w(bodyt),
-                                  px_h(bodyt), *bodyt,
-                                  cmod(palette::text_muted, ca));
+            node_add_texture_rect(clip, rnd(ix), rnd(iy), px_w(bodyt), px_h(bodyt), *bodyt, cmod(palette::text_muted, ca));
 
         cy += ch + kLockNotifCardGap;
         ++shown;
@@ -795,8 +617,7 @@ const char *battery_glyph(const UpowerState &u) {
     return icon::battery4;
 }
 
-float draw_battery(LockState &st, Node *content, const LockRect &col,
-                   int32_t scale, float ca) {
+float draw_battery(LockState &st, Node *content, const LockRect &col, int32_t scale, float ca) {
     if (!st.app || !st.app->upower.present)
         return 0.0f;
 
@@ -811,44 +632,31 @@ float draw_battery(LockState &st, Node *content, const LockRect &col,
         tc_text(st, "Battery  " + label, fpx, false, scale);
 
     float row_h = std::max(px_h(icon_t), px_h(label_t));
-    float card_h = kLockSidePanelPad + px_h(title_t) +
-                   kLockCardHeaderGap + row_h + kLockBatteryRowGap +
-                   kLockBatteryBarHeight + kLockSidePanelPad;
+    float card_h = kLockSidePanelPad + px_h(title_t) + kLockCardHeaderGap + row_h + kLockBatteryRowGap + kLockBatteryBarHeight + kLockSidePanelPad;
 
-    LockCard cc = draw_card(st, content, {col.x, col.y, col.w, card_h},
-                               "Battery", scale, ca);
+    LockCard cc = draw_card(st, content, {col.x, col.y, col.w, card_h}, "Battery", scale, ca);
     float x = cc.x;
     float y = cc.y;
     float content_w = cc.w;
 
     float rx = x;
     if (icon_t) {
-        node_add_texture_rect(
-            content, rnd(rx), rnd(y + (row_h - px_h(icon_t)) * 0.5f),
-            px_w(icon_t), px_h(icon_t), *icon_t, cmod(palette::text, ca));
+        node_add_texture_rect(content, rnd(rx), rnd(y + (row_h - px_h(icon_t)) * 0.5f), px_w(icon_t), px_h(icon_t), *icon_t, cmod(palette::text, ca));
         rx += px_w(icon_t) + kLockBatteryIconGap;
     }
     if (label_t)
-        node_add_texture_rect(
-            content, rnd(rx), rnd(y + (row_h - px_h(label_t)) * 0.5f),
-            px_w(label_t), px_h(label_t), *label_t, cmod(palette::text, ca));
+        node_add_texture_rect(content, rnd(rx), rnd(y + (row_h - px_h(label_t)) * 0.5f), px_w(label_t), px_h(label_t), *label_t, cmod(palette::text, ca));
     y += row_h + kLockBatteryRowGap;
 
-    node_add_rrect(content, rnd(x), rnd(y), content_w, kLockBatteryBarHeight,
-                   kLockBatteryBarRadius, 0.0f,
-                   cmod(palette::text_alpha11, ca), kNodeTransparent);
+    node_add_rrect(content, rnd(x), rnd(y), content_w, kLockBatteryBarHeight, kLockBatteryBarRadius, 0.0f, cmod(palette::text_alpha11, ca), kNodeTransparent);
     float fill_w = content_w * std::clamp(u.percent / 100.0f, 0.0f, 1.0f);
     if (fill_w > 0.0f)
-        node_add_rrect(content, rnd(x), rnd(y), fill_w,
-                       kLockBatteryBarHeight, kLockBatteryBarRadius, 0.0f,
-                       cmod(palette::accent, ca), kNodeTransparent);
+        node_add_rrect(content, rnd(x), rnd(y), fill_w, kLockBatteryBarHeight, kLockBatteryBarRadius, 0.0f, cmod(palette::accent, ca), kNodeTransparent);
 
     return card_h;
 }
 
-void draw_left_column(LockState &st, LockOutputSurface &los,
-                      Node *content, const LockRect &col, int32_t scale,
-                      float ca) {
+void draw_left_column(LockState &st, LockOutputSurface &los, Node *content, const LockRect &col, int32_t scale, float ca) {
     float bat_h = draw_battery(st, content, col, scale, ca);
     float top = col.y + (bat_h > 0.0f ? bat_h + kLockPanelGap : 0.0f);
     float rem = col.h - (top - col.y);
@@ -859,9 +667,7 @@ void draw_left_column(LockState &st, LockOutputSurface &los,
     draw_media(st, los, content, media, scale, ca);
 }
 
-void draw_right_column(LockState &st, LockOutputSurface &los,
-                       Node *content, const LockRect &col, int32_t scale,
-                       float ca) {
+void draw_right_column(LockState &st, LockOutputSurface &los, Node *content, const LockRect &col, int32_t scale, float ca) {
     (void)los;
     float ch = lock_side_card_height(col.h);
     LockRect res{col.x, col.y, col.w, ch};
@@ -870,9 +676,7 @@ void draw_right_column(LockState &st, LockOutputSurface &los,
     draw_notifs(st, content, notif, scale, ca);
 }
 
-void draw_center_column(LockState &st, LockOutputSurface &los,
-                        Node *content, const LockRect &col, int32_t scale,
-                        float ca) {
+void draw_center_column(LockState &st, LockOutputSurface &los, Node *content, const LockRect &col, int32_t scale, float ca) {
     draw_card(st, content, col, "", scale, ca);
 
     float oh = static_cast<float>(los.height);
@@ -882,8 +686,7 @@ void draw_center_column(LockState &st, LockOutputSurface &los,
     const Texture *ht = tc_text(st, hour_string(), clock_px, true, scale);
     const Texture *colon_t = tc_text(st, ":", clock_px, true, scale);
     const Texture *mt = tc_text(st, minute_string(), clock_px, true, scale);
-    const Texture *dt = tc_text(
-        st, date_string(), static_cast<int>(kLockFontDate), true, scale);
+    const Texture *dt = tc_text(st, date_string(), static_cast<int>(kLockFontDate), true, scale);
 
     float clock_h = std::max(px_h(ht), px_h(mt));
     float clock_w = px_w(ht) + kLockClockGap + px_w(colon_t) +
@@ -896,33 +699,25 @@ void draw_center_column(LockState &st, LockOutputSurface &los,
 
     float mx = cx - clock_w * 0.5f;
     if (ht) {
-        node_add_texture_rect(content, rnd(mx), rnd(y + clock_h - px_h(ht)),
-                              px_w(ht), px_h(ht), *ht,
-                              cmod(palette::accent, ca));
+        node_add_texture_rect(content, rnd(mx), rnd(y + clock_h - px_h(ht)), px_w(ht), px_h(ht), *ht, cmod(palette::accent, ca));
         mx += px_w(ht) + kLockClockGap;
     }
     if (colon_t) {
-        node_add_texture_rect(content, rnd(mx),
-                              rnd(y + clock_h - px_h(colon_t)), px_w(colon_t),
-                              px_h(colon_t), *colon_t, cmod(palette::text, ca));
+        node_add_texture_rect(content, rnd(mx), rnd(y + clock_h - px_h(colon_t)), px_w(colon_t), px_h(colon_t), *colon_t, cmod(palette::text, ca));
         mx += px_w(colon_t) + kLockClockGap;
     }
     if (mt)
-        node_add_texture_rect(content, rnd(mx), rnd(y + clock_h - px_h(mt)),
-                              px_w(mt), px_h(mt), *mt,
-                              cmod(palette::lavender, ca));
+        node_add_texture_rect(content, rnd(mx), rnd(y + clock_h - px_h(mt)), px_w(mt), px_h(mt), *mt, cmod(palette::lavender, ca));
     y += clock_h + kLockGapClockDate;
 
     if (dt)
-        node_add_texture_rect(content, rnd(cx - px_w(dt) * 0.5f), rnd(y),
-                              px_w(dt), px_h(dt), *dt, cmod(palette::text, ca));
+        node_add_texture_rect(content, rnd(cx - px_w(dt) * 0.5f), rnd(y), px_w(dt), px_h(dt), *dt, cmod(palette::text, ca));
     y += date_h + kLockGapDateAvatar;
 
     float ax = cx - kLockProfileSize * 0.5f;
     st.avatar.style.ring_fill = rgba(palette::field_bg);
     st.avatar.style.border_color = rgba(palette::accent);
-    animated_image_draw(st.avatar, content, rnd(ax), rnd(y),
-                        kLockProfileSize, kLockProfileSize, ca);
+    animated_image_draw(st.avatar, content, rnd(ax), rnd(y), kLockProfileSize, kLockProfileSize, ca);
     y += kLockProfileSize + kLockGapAvatarInput;
 
     float pill_w = col.w * kLockInputWidthFrac;
@@ -941,14 +736,12 @@ void lock_paint(LockState &st, LockOutputSurface &los) {
     bool trace = f <= 90;
     auto step = [&](const char *what) {
         if (trace)
-            klog("lock: paint #%d '%s' %s", f, los.output_name.c_str(),
-                 what);
+            klog("lock: paint #%d '%s' %s", f, los.output_name.c_str(), what);
     };
 
     Renderer &r = st.app->renderer;
     step("enter -> eglMakeCurrent");
-    if (!gl_make_current(st.app->egl_display, los.egl_surface,
-                         st.app->egl_context))
+    if (!gl_make_current(st.app->egl_display, los.egl_surface, st.app->egl_context))
         return;
     t_make = clk::now();
     step("begin_frame");
@@ -980,8 +773,7 @@ void lock_paint(LockState &st, LockOutputSurface &los) {
     t_draw = clk::now();
     step("eglSwapBuffers");
     if (!eglSwapBuffers(st.app->egl_display, los.egl_surface))
-        klog("lock: eglSwapBuffers failed on '%s', egl error 0x%04x",
-             los.output_name.c_str(), eglGetError());
+        klog("lock: eglSwapBuffers failed on '%s', egl error 0x%04x", los.output_name.c_str(), eglGetError());
     t_swap = clk::now();
     step("swapped");
 
@@ -989,25 +781,16 @@ void lock_paint(LockState &st, LockOutputSurface &los) {
         return std::chrono::duration<float, std::milli>(b - a).count();
     };
     if (ms(t_begin, t_swap) > 50.0f)
-        klog("lock: SLOW frame #%d '%s' make=%.1f wallpaper=%.1f panel=%.1f "
-             "draw=%.1f swap=%.1f",
-             f, los.output_name.c_str(), ms(t_begin, t_make),
-             ms(t_make, t_wallpaper), ms(t_wallpaper, t_panel), ms(t_panel, t_draw),
-             ms(t_draw, t_swap));
+        klog("lock: SLOW frame #%d '%s' make=%.1f wallpaper=%.1f panel=%.1f " "draw=%.1f swap=%.1f", f, los.output_name.c_str(), ms(t_begin, t_make), ms(t_make, t_wallpaper), ms(t_wallpaper, t_panel), ms(t_panel, t_draw), ms(t_draw, t_swap));
     else if (f % 30 == 0)
-        klog("lock: paint #%d '%s' locked=%d unlocking=%d gated=%d "
-             "scale=%.2f content=%.2f",
-             f, los.output_name.c_str(), st.locked, st.unlocking,
-             los.panel_gated, los.panel_scale, los.content_alpha);
+        klog("lock: paint #%d '%s' locked=%d unlocking=%d gated=%d " "scale=%.2f content=%.2f", f, los.output_name.c_str(), st.locked, st.unlocking, los.panel_gated, los.panel_scale, los.content_alpha);
 
-    bool avatar_running = st.locked && !st.unlocking && !los.panel_gated &&
-                          animated_image_animating(st.avatar);
+    bool avatar_running = st.locked && !st.unlocking && !los.panel_gated && animated_image_animating(st.avatar);
     if (los.animations.hasActive() || avatar_running)
         request_frame(los.frame_clock);
 }
 
-void surface_configure(void *data, ext_session_lock_surface_v1 *s,
-                       uint32_t serial, uint32_t w, uint32_t h) {
+void surface_configure(void *data, ext_session_lock_surface_v1 *s, uint32_t serial, uint32_t w, uint32_t h) {
     auto *los = static_cast<LockOutputSurface *>(data);
     ext_session_lock_surface_v1_ack_configure(s, serial);
 
@@ -1018,21 +801,16 @@ void surface_configure(void *data, ext_session_lock_surface_v1 *s,
     los->height = static_cast<int32_t>(h);
 
     if (first) {
-        los->egl_window = wl_egl_window_create(los->surface, los->width * scale,
-                                               los->height * scale);
-        los->egl_surface = eglCreateWindowSurface(
-            st->app->egl_display, st->app->egl_config,
-            reinterpret_cast<EGLNativeWindowType>(los->egl_window), nullptr);
+        los->egl_window = wl_egl_window_create(los->surface, los->width * scale, los->height * scale);
+        los->egl_surface = eglCreateWindowSurface(st->app->egl_display, st->app->egl_config, reinterpret_cast<EGLNativeWindowType>(los->egl_window), nullptr);
         if (los->egl_surface == EGL_NO_SURFACE) {
-            klog("lock: eglCreateWindowSurface failed on '%s'",
-                 los->output_name.c_str());
+            klog("lock: eglCreateWindowSurface failed on '%s'", los->output_name.c_str());
             return;
         }
         los->frame_clock.surface = los->surface;
         los->frame_clock.draw = [st, los] { lock_paint(*st, *los); };
     } else if (los->egl_window) {
-        wl_egl_window_resize(los->egl_window, los->width * scale,
-                             los->height * scale, 0, 0);
+        wl_egl_window_resize(los->egl_window, los->width * scale, los->height * scale, 0, 0);
     }
     los->configured = true;
     request_frame(los->frame_clock);
@@ -1053,9 +831,7 @@ void handle_locked(void *data, ext_session_lock_v1 *) {
         st->app->session_locked = true;
     klog("lock: session locked, %zu surface(s)", st->surfaces.size());
     for (auto &up : st->surfaces)
-        klog("lock:   '%s' configured=%d egl=%d %dx%d",
-             up->output_name.c_str(), up->configured,
-             up->egl_surface != EGL_NO_SURFACE, up->width, up->height);
+        klog("lock:   '%s' configured=%d egl=%d %dx%d", up->output_name.c_str(), up->configured, up->egl_surface != EGL_NO_SURFACE, up->width, up->height);
     request_all(*st);
 }
 
@@ -1106,14 +882,12 @@ void try_authenticate(LockState &st) {
     std::thread([&st, gen, pw = std::move(pw)]() mutable {
         pam_auth::Result res = pam_auth::authenticate_current_user(pw);
         pam_auth::secure_clear(pw);
-        DeferredCall::call_later(
-            [&st, gen, res] { deliver_auth(st, gen, res); });
+        DeferredCall::call_later([&st, gen, res] { deliver_auth(st, gen, res); });
     }).detach();
     request_all(st);
 }
 
-void create_output_surface(LockState &st, wl_output *output,
-                           const std::string &name) {
+void create_output_surface(LockState &st, wl_output *output, const std::string &name) {
     auto los = std::make_unique<LockOutputSurface>();
     los->owner = &st;
     los->output = output;
@@ -1126,12 +900,10 @@ void create_output_surface(LockState &st, wl_output *output,
         wl_surface_destroy(los->surface);
         return;
     }
-    ext_session_lock_surface_v1_add_listener(los->lock_surface,
-                                             &kSurfaceListener, los.get());
+    ext_session_lock_surface_v1_add_listener(los->lock_surface, &kSurfaceListener, los.get());
     los->output_scale.on_change = [ptr = los.get()](int32_t s) {
         if (ptr->egl_window)
-            wl_egl_window_resize(ptr->egl_window, ptr->width * s,
-                                 ptr->height * s, 0, 0);
+            wl_egl_window_resize(ptr->egl_window, ptr->width * s, ptr->height * s, 0, 0);
         if (ptr->frame_clock.surface)
             request_frame(ptr->frame_clock);
     };
@@ -1146,8 +918,7 @@ void destroy_output_surface(LockState &st, LockOutputSurface &los) {
         los.frame_clock.callback = nullptr;
     }
     if (los.egl_surface != EGL_NO_SURFACE) {
-        eglMakeCurrent(st.app->egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE,
-                       st.app->egl_context);
+        eglMakeCurrent(st.app->egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, st.app->egl_context);
         eglDestroySurface(st.app->egl_display, los.egl_surface);
         los.egl_surface = EGL_NO_SURFACE;
     }
@@ -1207,10 +978,8 @@ bool lock_request(LockState &st, WaylandState &app) {
     avatar_style.size = kLockProfileSize;
     avatar_style.circular = true;
     avatar_style.border_width = kLockProfileBorderWidth;
-    avatar_style.decode = {static_cast<int>(kLockAvatarFps),
-                           static_cast<int>(kLockProfileSize) * 2};
-    animated_image_set_source(st.avatar, user_info::profile_media_path(),
-                              avatar_style);
+    avatar_style.decode = {static_cast<int>(kLockAvatarFps), static_cast<int>(kLockProfileSize) * 2};
+    animated_image_set_source(st.avatar, user_info::profile_media_path(), avatar_style);
     animated_image_show(st.avatar, [&st] { request_all(st); });
 
     for (auto &mon : app.outputs)
@@ -1273,16 +1042,14 @@ void lock_handle_key(LockState &st, const KeyEvent &ev) {
             if (up->surface == fs)
                 focus = up.get();
         if (focus)
-            text_field_type_anim_sync(st.pw_anim, focus->animations,
-                                      kLockOwnerDotBase, st.password.text);
+            text_field_type_anim_sync(st.pw_anim, focus->animations, kLockOwnerDotBase, st.password.text);
         else
             st.pw_anim.chars.resize(text_field_utf8_len(st.password.text));
         request_all(st);
     }
 }
 
-void lock_handle_click(LockState &st, wl_surface *surf, double x,
-                          double y) {
+void lock_handle_click(LockState &st, wl_surface *surf, double x, double y) {
     LockOutputSurface *los = surface_for(st, surf);
     if (!los)
         return;
@@ -1294,8 +1061,7 @@ void lock_handle_click(LockState &st, wl_surface *surf, double x,
         return;
 
     auto hit = [x, y](const Rect &r) {
-        return r.w > 0.0f && x >= r.x && x < r.x + r.w && y >= r.y &&
-               y < r.y + r.h;
+        return r.w > 0.0f && x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
     };
     if (hit(los->pill_button)) {
         try_authenticate(st);
@@ -1322,8 +1088,7 @@ void lock_timer_tick(LockState &st) {
     request_all(st);
 }
 
-void lock_hotplug_add(LockState &st, wl_output *output,
-                         const char *name) {
+void lock_hotplug_add(LockState &st, wl_output *output, const char *name) {
     if (!st.active)
         return;
     for (auto &up : st.surfaces)
@@ -1337,10 +1102,7 @@ void lock_hotplug_remove(LockState &st, wl_output *output) {
     if (!st.active)
         return;
     auto it =
-        std::find_if(st.surfaces.begin(), st.surfaces.end(),
-                     [output](const std::unique_ptr<LockOutputSurface> &u) {
-                         return u->output == output;
-                     });
+        std::find_if(st.surfaces.begin(), st.surfaces.end(), [output](const std::unique_ptr<LockOutputSurface> &u) { return u->output == output; });
     if (it == st.surfaces.end())
         return;
     destroy_output_surface(st, **it);

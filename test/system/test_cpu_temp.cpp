@@ -17,8 +17,7 @@ void test_cpu_temp() {
     assert(cpu_temp_detail_core_label_index("Core 0") == 0);
     assert(cpu_temp_detail_core_label_index("Core 9") == 9);
     assert(cpu_temp_detail_core_label_index("Core 10") == 10);
-    assert(cpu_temp_detail_core_label_index("Core 9") <
-           cpu_temp_detail_core_label_index("Core 10"));
+    assert(cpu_temp_detail_core_label_index("Core 9") < cpu_temp_detail_core_label_index("Core 10"));
     assert(cpu_temp_detail_core_label_index("") == -1);
     assert(cpu_temp_detail_core_label_index("Package id 0") == 0);
 

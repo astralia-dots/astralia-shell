@@ -86,37 +86,27 @@ float content_height(const std::vector<PanelRow> &rows) {
 }
 
 float panel_height(const std::vector<PanelRow> &rows) {
-    float h = kPanelPadding + kPanelHeaderHeight + kPanelHeaderDividerGap +
-              1.0f + kPanelContentGap + content_height(rows) + kPanelPadding;
+    float h = kPanelPadding + kPanelHeaderHeight + kPanelHeaderDividerGap + 1.0f + kPanelContentGap + content_height(rows) + kPanelPadding;
     return std::min(kPanelMaxHeight, h);
 }
 
 } // namespace battery_panel_detail
 
-bool battery_panel_create_surface(BatteryPanelState &state,
-                                  wl_compositor *compositor,
-                                  zwlr_layer_shell_v1 *layer_shell,
-                                  wl_output *output) {
-    return overlay_panel_create_surface(state.base, compositor, layer_shell,
-                                        "kokusei-battery-panel", output);
+bool battery_panel_create_surface(BatteryPanelState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
+    return overlay_panel_create_surface(state.base, compositor, layer_shell, "kokusei-battery-panel", output);
 }
 
-bool battery_panel_init_egl(BatteryPanelState &state, Renderer &renderer,
-                            UpowerState &u, EGLDisplay display,
-                            EGLConfig config, EGLContext context) {
+bool battery_panel_init_egl(BatteryPanelState &state, Renderer &renderer, UpowerState &u, EGLDisplay display, EGLConfig config, EGLContext context) {
     state.renderer = &renderer;
     if (!overlay_panel_init_egl(state.base, display, config, context))
         return false;
     state.base.frame_clock.draw = [&state, &u] {
-        battery_panel_paint(state, u, state.pending_pill_center_x,
-                            state.pending_bar_height,
-                            state.pending_bar_top_margin);
+        battery_panel_paint(state, u, state.pending_pill_center_x, state.pending_bar_height, state.pending_bar_top_margin);
     };
     return true;
 }
 
-void battery_panel_request_frame(BatteryPanelState &state, float pill_center_x,
-                                 float bar_height, float bar_top_margin) {
+void battery_panel_request_frame(BatteryPanelState &state, float pill_center_x, float bar_height, float bar_top_margin) {
     state.pending_pill_center_x = pill_center_x;
     state.pending_bar_height = bar_height;
     state.pending_bar_top_margin = bar_top_margin;
@@ -124,30 +114,20 @@ void battery_panel_request_frame(BatteryPanelState &state, float pill_center_x,
 }
 
 void battery_panel_toggle(BatteryPanelState &state, float pill_center_x) {
-    panel_lock_toggle(
-        state.base, state.locked_center_x, pill_center_x,
-        [&state] { panel_reveal_open(state.reveal); },
-        [&state] {
+    panel_lock_toggle(state.base, state.locked_center_x, pill_center_x, [&state] { panel_reveal_open(state.reveal); }, [&state] {
             state.scroll_offset = 0.0f;
-            panel_reveal_close(state.reveal, state.base,
-                               [&state] { state.locked_center_x = -1.0f; });
+            panel_reveal_close(state.reveal, state.base, [&state] { state.locked_center_x = -1.0f; });
         });
 }
 
-void battery_panel_handle_scroll(BatteryPanelState &state, const UpowerState &u,
-                                 double dy) {
+void battery_panel_handle_scroll(BatteryPanelState &state, const UpowerState &u, double dy) {
     state.scroll_offset =
-        panel_clamp_scroll(state.scroll_offset, static_cast<float>(dy),
-                           battery_panel_detail::content_height(
-                               battery_panel_detail::build_rows(u)),
-                           state.visible_content_height);
+        panel_clamp_scroll(state.scroll_offset, static_cast<float>(dy), battery_panel_detail::content_height(battery_panel_detail::build_rows(u)), state.visible_content_height);
 }
 
-void battery_panel_handle_click(BatteryPanelState &state, double px,
-                                double py) {
+void battery_panel_handle_click(BatteryPanelState &state, double px, double py) {
     auto hit = [](const Rect &r, double x, double y) {
-        return r.w > 0 && x >= r.x && x < r.x + r.w && y >= r.y &&
-               y < r.y + r.h;
+        return r.w > 0 && x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
     };
 
     for (const PanelClickRegion &region : state.click_regions) {
@@ -162,23 +142,19 @@ void battery_panel_handle_click(BatteryPanelState &state, double px,
         battery_panel_toggle(state);
 }
 
-void battery_panel_handle_key_event(BatteryPanelState &state,
-                                    const KeyEvent &event) {
+void battery_panel_handle_key_event(BatteryPanelState &state, const KeyEvent &event) {
     if (event.kind == KeyKind::Escape)
         battery_panel_toggle(state);
 }
 
 using namespace battery_panel_detail;
 
-void battery_panel_paint(BatteryPanelState &state, const UpowerState &u,
-                         float pill_center_x, float bar_height,
-                         float bar_top_margin) {
+void battery_panel_paint(BatteryPanelState &state, const UpowerState &u, float pill_center_x, float bar_height, float bar_top_margin) {
     using namespace panel_chrome_detail;
     if (state.base.egl_surface == EGL_NO_SURFACE)
         return;
     state.base.animations.tick(std::chrono::steady_clock::now());
-    gl_make_current(state.base.egl_display, state.base.egl_surface,
-                    state.base.egl_context);
+    gl_make_current(state.base.egl_display, state.base.egl_surface, state.base.egl_context);
     int32_t scale = state.base.output_scale.scale;
     state.renderer->begin_frame(state.base.width, state.base.height, scale);
     glClearColor(0, 0, 0, 0);
@@ -203,9 +179,7 @@ void battery_panel_paint(BatteryPanelState &state, const UpowerState &u,
     float clip_h =
         panel_reveal_tick(state.reveal, state.base, panel_height(rows));
     float panel_h = std::max(0.0f, state.reveal.target);
-    float panel_x = std::clamp(
-        state.locked_center_x - panel_w / 2.0f, kPanelSideMargin,
-        static_cast<float>(state.base.width) - panel_w - kPanelSideMargin);
+    float panel_x = std::clamp(state.locked_center_x - panel_w / 2.0f, kPanelSideMargin, static_cast<float>(state.base.width) - panel_w - kPanelSideMargin);
     float panel_y = bar_height + bar_top_margin + kPanelGap;
     state.panel_rect = {panel_x, panel_y, panel_w, panel_h};
 
@@ -214,13 +188,10 @@ void battery_panel_paint(BatteryPanelState &state, const UpowerState &u,
 
     panel_draw_box(root, panel_x, panel_y, panel_w, panel_h);
     float header_y = panel_y + kPanelPadding;
-    panel_draw_header(root, state.tcache, scale, "Battery", panel_x, panel_y,
-                      panel_w, state.click_regions);
+    panel_draw_header(root, state.tcache, scale, "Battery", panel_x, panel_y, panel_w, state.click_regions);
 
     float divider_y = header_y + kPanelHeaderHeight + kPanelHeaderDividerGap;
-    node_add_rect(root, panel_x + kPanelPadding, divider_y,
-                  panel_w - 2 * kPanelPadding, 1.0f,
-                  rgba(palette::text_alpha06));
+    node_add_rect(root, panel_x + kPanelPadding, divider_y, panel_w - 2 * kPanelPadding, 1.0f, rgba(palette::text_alpha06));
 
     PanelScrollRegion region =
         panel_scroll_region(panel_x, panel_y, panel_w, panel_h);
@@ -232,8 +203,7 @@ void battery_panel_paint(BatteryPanelState &state, const UpowerState &u,
     state.visible_content_height = std::max(0.0f, content_bottom - content_top);
 
     Node *scroll_clip =
-        node_add_group(root, panel_x, content_top, panel_w,
-                       std::max(0.0f, content_bottom - content_top), true);
+        node_add_group(root, panel_x, content_top, panel_w, std::max(0.0f, content_bottom - content_top), true);
 
     auto rx = [&](float v) { return v - panel_x; };
     auto ry = [&](float v) { return v - content_top; };
@@ -254,22 +224,17 @@ void battery_panel_paint(BatteryPanelState &state, const UpowerState &u,
         switch (row.kind) {
         case RowKind::EmptyPluggedIn:
         case RowKind::EmptyNoBattery: {
-            const char *text = row.kind == RowKind::EmptyPluggedIn
-                                   ? "Plugged in"
-                                   : "No Battery Detected";
+            const char *text = row.kind == RowKind::EmptyPluggedIn ? "Plugged in" : "No Battery Detected";
             const Texture *t = cached_text(state.tcache, text, scale);
             if (t)
-                node_add_texture(clip,
-                                 rx(content_x + (content_w - t->width) / 2.0f),
-                                 ry(y + (row_h - t->height) / 2.0f), *t, dim);
+                node_add_texture(clip, rx(content_x + (content_w - t->width) / 2.0f), ry(y + (row_h - t->height) / 2.0f), *t, dim);
             break;
         }
         case RowKind::Device: {
             const UpowerDeviceEntry &d = *row.entry;
             bool charging = d.state == kStateCharging;
             bool full = d.state == kStateFullyCharged;
-            bool pending = d.state == kStatePendingCharge ||
-                           (d.state == kStateDischarging && !u.on_battery);
+            bool pending = d.state == kStatePendingCharge || (d.state == kStateDischarging && !u.on_battery);
 
             const float *bar_color = white;
             if (charging || full)
@@ -285,18 +250,14 @@ void battery_panel_paint(BatteryPanelState &state, const UpowerState &u,
                 d.native_path.empty() ? "Battery" : d.native_path;
             const char *state_str = charging  ? "Charging"
                                     : full    ? "Full"
-                                    : pending ? "Pending"
-                                              : "Discharging";
+                                    : pending ? "Pending" : "Discharging";
             std::string time_str =
                 format_time(charging ? d.time_to_full_s : d.time_to_empty_s);
 
             const Texture *name_tex = cached_text(state.tcache, name, scale);
             float name_w = 0.0f;
             if (name_tex) {
-                node_add_texture(
-                    clip, rx(content_x),
-                    ry(y + (kBatteryTextRowHeight - name_tex->height) / 2.0f),
-                    *name_tex, white);
+                node_add_texture(clip, rx(content_x), ry(y + (kBatteryTextRowHeight - name_tex->height) / 2.0f), *name_tex, white);
                 name_w = static_cast<float>(name_tex->width) + kPanelTightGap;
             }
             std::string status =
@@ -305,10 +266,7 @@ void battery_panel_paint(BatteryPanelState &state, const UpowerState &u,
             const Texture *status_tex =
                 cached_text(state.tcache, status, scale);
             if (status_tex)
-                node_add_texture(
-                    clip, rx(content_x + name_w),
-                    ry(y + (kBatteryTextRowHeight - status_tex->height) / 2.0f),
-                    *status_tex, charging ? rgba(palette::accent) : dim);
+                node_add_texture(clip, rx(content_x + name_w), ry(y + (kBatteryTextRowHeight - status_tex->height) / 2.0f), *status_tex, charging ? rgba(palette::accent) : dim);
 
             std::string pct_str = std::to_string(d.percent) + "%";
             const Texture *pct_tex = cached_text(state.tcache, pct_str, scale);
@@ -317,17 +275,9 @@ void battery_panel_paint(BatteryPanelState &state, const UpowerState &u,
             float bar_y = y + kBatteryTextRowHeight + kBatteryBarTopGap;
             float bar_w =
                 content_w - pct_w - (pct_tex ? kPanelContentGap : 0.0f);
-            draw_flat_bar(clip, rx(content_x), ry(bar_y), bar_w,
-                          kBatteryPanelBarHeight, kBatteryPanelBarRadius,
-                          std::min(d.percent, 100) / 100.0f,
-                          kBatteryPanelBarRadius * 2,
-                          rgba(palette::text_alpha08), bar_color);
+            draw_flat_bar(clip, rx(content_x), ry(bar_y), bar_w, kBatteryPanelBarHeight, kBatteryPanelBarRadius, std::min(d.percent, 100) / 100.0f, kBatteryPanelBarRadius * 2, rgba(palette::text_alpha08), bar_color);
             if (pct_tex)
-                node_add_texture(
-                    clip, rx(content_x + bar_w + kPanelContentGap),
-                    ry(bar_y +
-                       (kBatteryPanelBarHeight - pct_tex->height) / 2.0f),
-                    *pct_tex, bar_color);
+                node_add_texture(clip, rx(content_x + bar_w + kPanelContentGap), ry(bar_y + (kBatteryPanelBarHeight - pct_tex->height) / 2.0f), *pct_tex, bar_color);
             break;
         }
         case RowKind::Spacer:
@@ -337,8 +287,7 @@ void battery_panel_paint(BatteryPanelState &state, const UpowerState &u,
     }
 
     if (clip_h + 0.5f < panel_h) {
-        ScopedClip clip(*state.renderer, panel_x, panel_y, panel_w,
-                        std::max(0.0f, clip_h));
+        ScopedClip clip(*state.renderer, panel_x, panel_y, panel_w, std::max(0.0f, clip_h));
         state.scene.draw(*state.renderer);
     } else {
         state.scene.draw(*state.renderer);

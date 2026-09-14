@@ -40,5 +40,4 @@ struct VideoTexture {
 void video_texture_detect_caps(EGLDisplay display);
 bool video_texture_import_supported();
 
-bool video_texture_import(VideoTexture &tex, EGLDisplay display,
-                          const DrmFrameImport &frame);
+bool video_texture_import(VideoTexture &tex, EGLDisplay display, const DrmFrameImport &frame);

@@ -16,9 +16,7 @@
 
 namespace {
 
-void osd_layer_surface_configure(void *data,
-                                   zwlr_layer_surface_v1 *layer_surface,
-                                   uint32_t serial, uint32_t, uint32_t) {
+void osd_layer_surface_configure(void *data, zwlr_layer_surface_v1 *layer_surface, uint32_t serial, uint32_t, uint32_t) {
     auto *state = static_cast<OsdState *>(data);
     zwlr_layer_surface_v1_ack_configure(layer_surface, serial);
     state->configured = true;
@@ -55,33 +53,25 @@ void osd_paint(OsdState &state) {
 
         float icon_y = (kOsdSurfaceHeight - KOKUSEI_ICON_PX) / 2.0f;
         if (state.icon_texture.id) {
-            icon_color = lerp_color(palette::text, palette::text_muted,
-                                    state.icon_color_t);
+            icon_color = lerp_color(palette::text, palette::text_muted, state.icon_color_t);
             Node *icon = state.scene.root.claim_child();
             icon->kind = NodeKind::Texture;
             icon->x = kOsdContentMargin;
             icon->y = icon_y;
-            icon->w = static_cast<float>(state.icon_texture.width) /
-                      static_cast<float>(state.icon_texture.scale);
-            icon->h = static_cast<float>(state.icon_texture.height) /
-                      static_cast<float>(state.icon_texture.scale);
+            icon->w = static_cast<float>(state.icon_texture.width) / static_cast<float>(state.icon_texture.scale);
+            icon->h = static_cast<float>(state.icon_texture.height) / static_cast<float>(state.icon_texture.scale);
             icon->tex = &state.icon_texture;
             icon->tint = rgba(icon_color);
         }
 
         float bar_x =
-            kOsdContentMargin + (state.icon_texture.id
-                                       ? KOKUSEI_ICON_PX + kOsdBarMargin
-                                       : 0.0f);
-        float bar_w = kOsdSurfaceWidth - bar_x - kOsdBarMargin -
-                         kOsdLabelWidth - kOsdContentMargin;
+            kOsdContentMargin + (state.icon_texture.id ? KOKUSEI_ICON_PX + kOsdBarMargin : 0.0f);
+        float bar_w = kOsdSurfaceWidth - bar_x - kOsdBarMargin - kOsdLabelWidth - kOsdContentMargin;
         float bar_y = kOsdSurfaceHeight / 2.0f - 3;
 
         const Color &fill_color =
             state.muted ? palette::text_muted : palette::accent;
-        draw_flat_bar(&state.scene.root, bar_x, bar_y, bar_w, 6.0f,
-                      3.0f, state.bar_fill, 0.0f,
-                      rgba(palette::text_alpha11), rgba(fill_color));
+        draw_flat_bar(&state.scene.root, bar_x, bar_y, bar_w, 6.0f, 3.0f, state.bar_fill, 0.0f, rgba(palette::text_alpha11), rgba(fill_color));
 
         if (state.label_texture.id) {
             float label_h = static_cast<float>(state.label_texture.height) /
@@ -116,8 +106,7 @@ PangoFontDescription *osd_label_font() {
 
 } // namespace
 
-bool osd_create_surface(OsdState &state, wl_compositor *compositor,
-                          zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
+bool osd_create_surface(OsdState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
     LayerSurfaceConfig cfg{
         .layer = ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY,
         .name_space = "kokusei-osd",
@@ -129,14 +118,12 @@ bool osd_create_surface(OsdState &state, wl_compositor *compositor,
         .empty_input_region = true,
     };
     state.layer_surface =
-        layer_surface_create(state.surface, compositor, layer_shell, cfg,
-                             &osd_layer_surface_listener, &state, output);
+        layer_surface_create(state.surface, compositor, layer_shell, cfg, &osd_layer_surface_listener, &state, output);
     if (!state.layer_surface)
         return false;
     state.output_scale.on_change = [&state](int32_t scale) {
         if (state.egl_window)
-            wl_egl_window_resize(state.egl_window, kOsdSurfaceWidth * scale,
-                                 kOsdSurfaceHeight * scale, 0, 0);
+            wl_egl_window_resize(state.egl_window, kOsdSurfaceWidth * scale, kOsdSurfaceHeight * scale, 0, 0);
         if (state.frame_clock.surface)
             request_frame(state.frame_clock);
     };
@@ -145,17 +132,13 @@ bool osd_create_surface(OsdState &state, wl_compositor *compositor,
     return true;
 }
 
-bool osd_init_egl(OsdState &state, Renderer &renderer, EGLDisplay display,
-                    EGLConfig config, EGLContext context) {
+bool osd_init_egl(OsdState &state, Renderer &renderer, EGLDisplay display, EGLConfig config, EGLContext context) {
     state.egl_display = display;
     state.egl_context = context;
     state.renderer = &renderer;
     int32_t scale = state.output_scale.scale;
-    state.egl_window = wl_egl_window_create(
-        state.surface, kOsdSurfaceWidth * scale, kOsdSurfaceHeight * scale);
-    state.egl_surface = eglCreateWindowSurface(
-        display, config,
-        reinterpret_cast<EGLNativeWindowType>(state.egl_window), nullptr);
+    state.egl_window = wl_egl_window_create(state.surface, kOsdSurfaceWidth * scale, kOsdSurfaceHeight * scale);
+    state.egl_surface = eglCreateWindowSurface(display, config, reinterpret_cast<EGLNativeWindowType>(state.egl_window), nullptr);
     if (state.egl_surface == EGL_NO_SURFACE)
         return false;
     if (!gl_make_current(display, state.egl_surface, context))
@@ -205,28 +188,16 @@ void osd_show(OsdState &state, OsdKind kind, float level, bool muted) {
             ? "muted"
             : std::to_string(static_cast<int>(std::lround(level * 100))) + "%";
     RasterizedText label_text =
-        rasterize_text_with(label_str, osd_label_font(),
-                            state.output_scale.scale, kOsdLabelWidth);
+        rasterize_text_with(label_str, osd_label_font(), state.output_scale.scale, kOsdLabelWidth);
     state.label_texture = make_texture_from_raster(label_text);
 
-    state.animations.animate(
-        state.opacity, 1.0f, kOsdAnimNormal, Easing::EaseOutCubic,
-        [&state](float v) { state.opacity = v; }, {}, kOsdOwnerOpacity);
-    state.animations.animate(
-        state.bar_fill, std::clamp(level, 0.0f, 1.0f), kOsdAnimFast,
-        Easing::EaseOutCubic, [&state](float v) { state.bar_fill = v; }, {},
-        kOsdOwnerBarFill);
-    state.animations.animate(
-        state.icon_color_t, muted ? 1.0f : 0.0f, kOsdAnimFast, Easing::Linear,
-        [&state](float v) { state.icon_color_t = v; }, {},
-        kOsdOwnerIconColor);
+    state.animations.animate(state.opacity, 1.0f, kOsdAnimNormal, Easing::EaseOutCubic, [&state](float v) { state.opacity = v; }, {}, kOsdOwnerOpacity);
+    state.animations.animate(state.bar_fill, std::clamp(level, 0.0f, 1.0f), kOsdAnimFast, Easing::EaseOutCubic, [&state](float v) { state.bar_fill = v; }, {}, kOsdOwnerBarFill);
+    state.animations.animate(state.icon_color_t, muted ? 1.0f : 0.0f, kOsdAnimFast, Easing::Linear, [&state](float v) { state.icon_color_t = v; }, {}, kOsdOwnerIconColor);
     osd_request_frame(state);
 }
 
 void osd_hide(OsdState &state) {
-    state.animations.animate(
-        state.opacity, 0.0f, kOsdAnimNormal, Easing::EaseOutCubic,
-        [&state](float v) { state.opacity = v; },
-        [&state] { state.visible = false; }, kOsdOwnerOpacity);
+    state.animations.animate(state.opacity, 0.0f, kOsdAnimNormal, Easing::EaseOutCubic, [&state](float v) { state.opacity = v; }, [&state] { state.visible = false; }, kOsdOwnerOpacity);
     osd_request_frame(state);
 }

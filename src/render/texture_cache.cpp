@@ -1,8 +1,7 @@
 #include "render/texture_cache.h"
 
 const Texture *
-TextureCache::get(const std::string &key,
-                  const std::function<RasterizedText()> &rasterize) {
+TextureCache::get(const std::string &key, const std::function<RasterizedText()> &rasterize) {
     auto it = index_.find(key);
     if (it != index_.end()) {
         order_.splice(order_.begin(), order_, it->second.order_it);

@@ -10,8 +10,7 @@ class VisualizerAudioStages {
     bool init();
     void destroy();
 
-    bool run(int size, const std::vector<float> &l, const std::vector<float> &r,
-             int fps);
+    bool run(int size, const std::vector<float> &l, const std::vector<float> &r, int fps);
 
     GLuint smooth_l() const { return smooth_.tex_l; }
     GLuint smooth_r() const { return smooth_.tex_r; }

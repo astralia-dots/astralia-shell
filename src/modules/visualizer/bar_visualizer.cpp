@@ -18,8 +18,7 @@ bool BarVisualizer::init() {
     if (ready_)
         return true;
 
-    prog_ = gl_compile_program_files("visualizer/fullscreen.vert",
-                                     "visualizer/bar/bar.frag", "visualizer_bar");
+    prog_ = gl_compile_program_files("visualizer/fullscreen.vert", "visualizer/bar/bar.frag", "visualizer_bar");
     if (!prog_) {
         klog("visualizer_bar: shader compile failed");
         return false;
@@ -29,8 +28,7 @@ bool BarVisualizer::init() {
     glGenBuffers(1, &vbo_);
     glBindVertexArray(vao_);
     glBindBuffer(GL_ARRAY_BUFFER, vbo_);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(kQuadVerts), kQuadVerts,
-                 GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(kQuadVerts), kQuadVerts, GL_STATIC_DRAW);
     glBindVertexArray(0);
 
     ready_ = true;
@@ -57,9 +55,7 @@ void BarVisualizer::draw_quad() {
     glBindVertexArray(0);
 }
 
-void BarVisualizer::render(int width, int height, int tick, float fade,
-                          GLuint audio_l_tex, GLuint audio_r_tex,
-                          int audio_size, const VisualizerParams &params) {
+void BarVisualizer::render(int width, int height, int tick, float fade, GLuint audio_l_tex, GLuint audio_r_tex, int audio_size, const VisualizerParams &params) {
     (void)tick;
     (void)audio_size;
     (void)params;
@@ -68,8 +64,7 @@ void BarVisualizer::render(int width, int height, int tick, float fade,
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, width, height);
-    glClearColor(palette::window_backdrop.r, palette::window_backdrop.g,
-                 palette::window_backdrop.b, palette::window_backdrop.a * fade);
+    glClearColor(palette::window_backdrop.r, palette::window_backdrop.g, palette::window_backdrop.b, palette::window_backdrop.a * fade);
     glClear(GL_COLOR_BUFFER_BIT);
 
     glEnable(GL_BLEND);
@@ -77,27 +72,19 @@ void BarVisualizer::render(int width, int height, int tick, float fade,
     glUseProgram(prog_);
 
     float slot = kVisualizerBarWidth + kVisualizerBarSpacing;
-    int bar_count = static_cast<int>(
-        (static_cast<float>(width) - kVisualizerBarSpacing) / slot);
+    int bar_count = static_cast<int>((static_cast<float>(width) - kVisualizerBarSpacing) / slot);
     bar_count = bar_count < 1 ? 1 : bar_count;
 
-    glUniform2f(glGetUniformLocation(prog_, "u_resolution"),
-                static_cast<float>(width), static_cast<float>(height));
+    glUniform2f(glGetUniformLocation(prog_, "u_resolution"), static_cast<float>(width), static_cast<float>(height));
     glUniform1f(glGetUniformLocation(prog_, "u_fade"), fade);
-    glUniform3f(glGetUniformLocation(prog_, "u_accent"), palette::accent.r,
-                palette::accent.g, palette::accent.b);
+    glUniform3f(glGetUniformLocation(prog_, "u_accent"), palette::accent.r, palette::accent.g, palette::accent.b);
     glUniform1i(glGetUniformLocation(prog_, "u_barCount"), bar_count);
     glUniform1f(glGetUniformLocation(prog_, "u_barWidth"), kVisualizerBarWidth);
-    glUniform1f(glGetUniformLocation(prog_, "u_barSpacing"),
-                kVisualizerBarSpacing);
-    glUniform1f(glGetUniformLocation(prog_, "u_barRadius"),
-                kVisualizerBarRadius);
-    glUniform1f(glGetUniformLocation(prog_, "u_barHeightRatio"),
-                kVisualizerBarHeightRatio);
-    glUniform1f(glGetUniformLocation(prog_, "u_barOpacity"),
-                kVisualizerBarOpacity);
-    glUniform1f(glGetUniformLocation(prog_, "u_minBarHeight"),
-                kVisualizerBarMinHeight);
+    glUniform1f(glGetUniformLocation(prog_, "u_barSpacing"), kVisualizerBarSpacing);
+    glUniform1f(glGetUniformLocation(prog_, "u_barRadius"), kVisualizerBarRadius);
+    glUniform1f(glGetUniformLocation(prog_, "u_barHeightRatio"), kVisualizerBarHeightRatio);
+    glUniform1f(glGetUniformLocation(prog_, "u_barOpacity"), kVisualizerBarOpacity);
+    glUniform1f(glGetUniformLocation(prog_, "u_minBarHeight"), kVisualizerBarMinHeight);
 
     glActiveTexture(GL_TEXTURE0 + 1);
     glBindTexture(GL_TEXTURE_2D, audio_r_tex);
@@ -109,9 +96,7 @@ void BarVisualizer::render(int width, int height, int tick, float fade,
 
     glActiveTexture(GL_TEXTURE0);
 
-    int band_h = static_cast<int>(kVisualizerBarHeightRatio *
-                                  static_cast<float>(height)) +
-                 1;
+    int band_h = static_cast<int>(kVisualizerBarHeightRatio * static_cast<float>(height)) + 1;
     glEnable(GL_SCISSOR_TEST);
     glScissor(0, 0, width, band_h);
     draw_quad();

@@ -10,8 +10,7 @@ Pill dashboard_pill(MonitorOutput &mon) {
     return Pill{PillId::Dashboard, &bs.dashboard_texture, user_info::username(),
                 nullptr, [&mon, &bs] {
                     close_other_overlays(mon, PillId::Dashboard);
-                    update_pill_expand(bs.capsule, mon.animations,
-                                       PillId::Dashboard, true, true);
+                    update_pill_expand(bs.capsule, mon.animations, PillId::Dashboard, true, true);
                     bar_paint(mon);
                     if (Module *cc = find_overlay_by_name(*mon.app, "dashboard"))
                         cc->toggle_from_widget(*mon.app);

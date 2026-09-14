@@ -19,6 +19,7 @@
 #include "service/network_service.h"
 #include "service/notification_service.h"
 #include "service/pipewire_service.h"
+#include "service/polkit_service.h"
 #include "service/text_input_service.h"
 #include "service/tray_service.h"
 #include "service/upower_service.h"
@@ -47,17 +48,13 @@ void notification_refresh(WaylandState &app) {
             nv->request_frame();
 }
 
-void network_notify(WaylandState &app, const std::string &summary,
-                    const std::string &body) {
-    notification_service_push(app.notifications, "Network", summary, body,
-                              6000);
+void network_notify(WaylandState &app, const std::string &summary, const std::string &body) {
+    notification_service_push(app.notifications, "Network", summary, body, 6000);
     notification_refresh(app);
 }
 
-void bluetooth_notify(WaylandState &app, const std::string &summary,
-                      const std::string &body) {
-    notification_service_push(app.notifications, "Bluetooth", summary, body,
-                              6000);
+void bluetooth_notify(WaylandState &app, const std::string &summary, const std::string &body) {
+    notification_service_push(app.notifications, "Bluetooth", summary, body, 6000);
     notification_refresh(app);
 }
 
@@ -82,8 +79,7 @@ class NotificationBusService final : public Service {
             return sources;
         sources.push_back(sdbus_poll_source(*app.notifications.bus, [&app] {
             int budget = 32;
-            while (budget-- > 0 &&
-                   app.notifications.bus->processPendingEvent()) {
+            while (budget-- > 0 && app.notifications.bus->processPendingEvent()) {
             }
             notification_refresh(app);
         }));
@@ -197,68 +193,51 @@ class NetworkService final : public Service {
     bool init(WaylandState &app) override {
         want_ = app.upower.bus && network_init(app.network, *app.upower.bus);
         if (!want_)
-            klog("network: no system bus available - network info "
-                 "unavailable");
+            klog("network: no system bus available - network info " "unavailable");
         return true;
     }
 
     void timer_tick(WaylandState &app) override {
         if (want_)
-            network_dispatch(
-                app,
-                network_tick(app.network, std::chrono::steady_clock::now()));
+            network_dispatch(app, network_tick(app.network, std::chrono::steady_clock::now()));
     }
 
     std::vector<FnPollSource> poll_sources(WaylandState &app) override {
         std::vector<FnPollSource> sources;
-        auto notify = [&app](const std::string &summary,
-                             const std::string &body) {
+        auto notify = [&app](const std::string &summary, const std::string &body) {
             network_notify(app, summary, body);
         };
         if (app.network.device_proc.wake_fd >= 0)
-            sources.emplace_back(
-                app.network.device_proc.wake_fd, POLLIN, [&app, notify] {
-                    network_dispatch(app,
-                                     network_poll_device(app.network, notify));
+            sources.emplace_back(app.network.device_proc.wake_fd, POLLIN, [&app, notify] {
+                    network_dispatch(app, network_poll_device(app.network, notify));
                 });
         if (app.network.profile_proc.wake_fd >= 0)
-            sources.emplace_back(
-                app.network.profile_proc.wake_fd, POLLIN, [&app] {
+            sources.emplace_back(app.network.profile_proc.wake_fd, POLLIN, [&app] {
                     network_dispatch(app, network_poll_profile(app.network));
                 });
         if (app.network.quick_scan_proc.wake_fd >= 0)
-            sources.emplace_back(
-                app.network.quick_scan_proc.wake_fd, POLLIN, [&app] {
+            sources.emplace_back(app.network.quick_scan_proc.wake_fd, POLLIN, [&app] {
                     network_dispatch(app, network_poll_quick_scan(app.network));
                 });
         if (app.network.scan_proc.wake_fd >= 0)
-            sources.emplace_back(
-                app.network.scan_proc.wake_fd, POLLIN, [&app, notify] {
-                    network_dispatch(app,
-                                     network_poll_scan(app.network, notify));
+            sources.emplace_back(app.network.scan_proc.wake_fd, POLLIN, [&app, notify] {
+                    network_dispatch(app, network_poll_scan(app.network, notify));
                 });
         if (app.network.connect_proc.wake_fd >= 0)
-            sources.emplace_back(
-                app.network.connect_proc.wake_fd, POLLIN, [&app, notify] {
-                    network_dispatch(app,
-                                     network_poll_connect(app.network, notify));
+            sources.emplace_back(app.network.connect_proc.wake_fd, POLLIN, [&app, notify] {
+                    network_dispatch(app, network_poll_connect(app.network, notify));
                 });
         if (app.network.disconnect_proc.wake_fd >= 0)
-            sources.emplace_back(
-                app.network.disconnect_proc.wake_fd, POLLIN, [&app, notify] {
-                    network_dispatch(
-                        app, network_poll_disconnect(app.network, notify));
+            sources.emplace_back(app.network.disconnect_proc.wake_fd, POLLIN, [&app, notify] {
+                    network_dispatch(app, network_poll_disconnect(app.network, notify));
                 });
         if (app.network.forget_proc.wake_fd >= 0)
-            sources.emplace_back(
-                app.network.forget_proc.wake_fd, POLLIN, [&app] {
+            sources.emplace_back(app.network.forget_proc.wake_fd, POLLIN, [&app] {
                     network_dispatch(app, network_poll_forget(app.network));
                 });
         if (app.network.connectivity_proc.wake_fd >= 0)
-            sources.emplace_back(
-                app.network.connectivity_proc.wake_fd, POLLIN, [&app, notify] {
-                    network_dispatch(
-                        app, network_poll_connectivity(app.network, notify));
+            sources.emplace_back(app.network.connectivity_proc.wake_fd, POLLIN, [&app, notify] {
+                    network_dispatch(app, network_poll_connectivity(app.network, notify));
                 });
         return sources;
     }
@@ -275,21 +254,16 @@ class BluetoothService final : public Service {
         want_ =
             app.upower.bus && bluetooth_init(app.bluetooth, *app.upower.bus);
         if (!want_)
-            klog("bluetooth: no system bus available - bluetooth info "
-                 "unavailable");
+            klog("bluetooth: no system bus available - bluetooth info " "unavailable");
         return true;
     }
 
     void timer_tick(WaylandState &app) override {
         if (!want_)
             return;
-        bluetooth_tick(
-            app.bluetooth,
-            [&app](const std::string &summary, const std::string &body) {
+        bluetooth_tick(app.bluetooth, [&app](const std::string &summary, const std::string &body) {
                 bluetooth_notify(app, summary, body);
-            },
-            std::chrono::steady_clock::now(),
-            [&app] { redraw_and_present(app); });
+            }, std::chrono::steady_clock::now(), [&app] { redraw_and_present(app); });
     }
 
   private:
@@ -358,10 +332,7 @@ class CompositorWorkspaceService final : public Service {
     bool init(WaylandState &app) override {
         if (hypr_init(app.hypr))
             app.compositor_backend = WaylandState::CompositorBackend::Hyprland;
-        klog("compositor backend: %s",
-             app.compositor_backend == WaylandState::CompositorBackend::Hyprland
-                 ? "hyprland"
-                 : "none");
+        klog("compositor backend: %s", app.compositor_backend == WaylandState::CompositorBackend::Hyprland ? "hyprland" : "none");
         return true;
     }
 
@@ -408,18 +379,43 @@ class CompositorWorkspaceService final : public Service {
     }
 };
 
+class PolkitService final : public Service {
+  public:
+    const char *name() const override { return "polkit"; }
+
+    bool init(WaylandState &app) override {
+        app.polkit.set_state_callback([&app] { polkit_notify_state_changed(app); });
+        app.polkit.set_ready_callback([](bool ok, const std::string &error) {
+            if (ok)
+                klog("polkit: agent registered");
+            else
+                klog("polkit: agent registration failed: %s", error.c_str());
+        });
+        app.polkit.start();
+        poll_source_ = std::make_unique<PolkitPollSource>(app.polkit);
+        return true;
+    }
+
+    std::vector<PollSource *> raw_poll_sources(WaylandState &) override {
+        if (!poll_source_)
+            return {};
+        return {poll_source_.get()};
+    }
+
+  private:
+    std::unique_ptr<PolkitPollSource> poll_source_;
+};
+
 class TextInputProtocolService final : public Service {
   public:
     const char *name() const override { return "text-input"; }
 
     bool init(WaylandState &app) override {
-        app.keyboard.on_focus_surface = [&app](wl_surface *surface,
-                                               bool entered) {
+        app.keyboard.on_focus_surface = [&app](wl_surface *surface, bool entered) {
             app.text_input.on_keyboard_focus_surface(surface, entered);
         };
         if (!app.text_input.bind(app.text_input_manager, app.seat))
-            klog("text-input: zwp_text_input_manager_v3 unavailable - IME "
-                 "input unavailable");
+            klog("text-input: zwp_text_input_manager_v3 unavailable - IME " "input unavailable");
         return true;
     }
 };
@@ -453,6 +449,7 @@ std::vector<std::unique_ptr<Service>> build_services() {
     services.push_back(std::make_unique<BluetoothService>());
     services.push_back(std::make_unique<TrayService>());
     services.push_back(std::make_unique<MprisService>());
+    services.push_back(std::make_unique<PolkitService>());
     services.push_back(std::make_unique<CompositorWorkspaceService>());
     services.push_back(std::make_unique<TextInputProtocolService>());
     services.push_back(std::make_unique<IdleService>());

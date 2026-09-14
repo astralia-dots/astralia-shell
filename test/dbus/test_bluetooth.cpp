@@ -8,12 +8,10 @@ void test_bluetooth() {
 
     {
         assert(classify_icon("audio-headset") == BluetoothDeviceKind::Headset);
-        assert(classify_icon("audio-headphones") ==
-               BluetoothDeviceKind::Headphones);
+        assert(classify_icon("audio-headphones") == BluetoothDeviceKind::Headphones);
         assert(classify_icon("input-mouse") == BluetoothDeviceKind::Mouse);
         assert(classify_icon("phone") == BluetoothDeviceKind::Phone);
-        assert(classify_icon("something-unrecognized") ==
-               BluetoothDeviceKind::Unknown);
+        assert(classify_icon("something-unrecognized") == BluetoothDeviceKind::Unknown);
     }
 
     {

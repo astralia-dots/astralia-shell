@@ -5,8 +5,7 @@
 
 std::string to_lower(const std::string &s) {
     std::string out = s;
-    std::transform(out.begin(), out.end(), out.begin(),
-                   [](unsigned char c) { return std::tolower(c); });
+    std::transform(out.begin(), out.end(), out.begin(), [](unsigned char c) { return std::tolower(c); });
     return out;
 }
 
@@ -24,8 +23,7 @@ float score_app(const std::string &name, const std::string &query) {
     return score;
 }
 
-std::vector<ScoredApp> search_apps(const std::vector<DesktopEntry> &entries,
-                                   const std::string &query) {
+std::vector<ScoredApp> search_apps(const std::vector<DesktopEntry> &entries, const std::string &query) {
     std::vector<ScoredApp> results;
     if (query.empty())
         return results;

@@ -10,8 +10,6 @@ struct PanelScrollRegion {
     float visible_height = 0.0f;
 };
 
-PanelScrollRegion panel_scroll_region(float panel_x, float panel_y,
-                                      float panel_w, float panel_h) noexcept;
+PanelScrollRegion panel_scroll_region(float panel_x, float panel_y, float panel_w, float panel_h) noexcept;
 
-float panel_clamp_scroll(float scroll_offset, float dy, float content_height,
-                         float visible_height) noexcept;
+float panel_clamp_scroll(float scroll_offset, float dy, float content_height, float visible_height) noexcept;

@@ -13,15 +13,8 @@ std::vector<std::string> split_query_parts(const std::string &query);
 
 float score_path(const std::string &name, const std::string &query);
 
-std::vector<std::string> fd_search_argv(const std::string &pattern,
-                                        const std::string &search_root,
-                                        bool is_dir, int max_results,
-                                        int depth = -1, bool full_path = true);
+std::vector<std::string> fd_search_argv(const std::string &pattern, const std::string &search_root, bool is_dir, int max_results, int depth = -1, bool full_path = true);
 
-std::vector<FileEntry> fd_search_parse_output(const std::string &raw,
-                                              bool is_dir);
+std::vector<FileEntry> fd_search_parse_output(const std::string &raw, bool is_dir);
 
-std::vector<FileEntry> run_fd_search(const std::string &pattern,
-                                     const std::string &search_root,
-                                     bool is_dir, int max_results,
-                                     int depth = -1, bool full_path = true);
+std::vector<FileEntry> run_fd_search(const std::string &pattern, const std::string &search_root, bool is_dir, int max_results, int depth = -1, bool full_path = true);

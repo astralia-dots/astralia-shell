@@ -5,9 +5,7 @@
 
 void test_network_parse() {
     {
-        std::string text = "HomeNet:WPA2:80:*\n"
-                           "Guest:WPA2 WPA3:40:\n"
-                           "Open:--:20:\n";
+        std::string text = "HomeNet:WPA2:80:*\n" "Guest:WPA2 WPA3:40:\n" "Open:--:20:\n";
         std::set<std::string> existing;
         auto nets = network_parse_networks(text, existing);
         assert(nets.size() == 3);
@@ -22,8 +20,7 @@ void test_network_parse() {
     }
 
     {
-        std::string text = "Dup:WPA2:30:\n"
-                           "Dup:WPA2:90:*\n";
+        std::string text = "Dup:WPA2:30:\n" "Dup:WPA2:90:*\n";
         auto nets = network_parse_networks(text, {});
         assert(nets.size() == 1);
         assert(nets.at("Dup").connected);
@@ -52,9 +49,7 @@ void test_network_parse() {
     }
 
     {
-        std::string text = "wlan0:wifi:connected:MyWifi\n"
-                           "eth0:ethernet:connected:Wired connection 1\n"
-                           "lo:loopback:unmanaged:--\n";
+        std::string text = "wlan0:wifi:connected:MyWifi\n" "eth0:ethernet:connected:Wired connection 1\n" "lo:loopback:unmanaged:--\n";
         auto st = network_parse_device_status(text);
         assert(st.wifi);
         assert(st.ethernet);
@@ -75,9 +70,7 @@ void test_network_parse() {
     }
 
     {
-        std::string text = "HomeNet:802-11-wireless\n"
-                           "Wired connection 1:802-3-ethernet\n"
-                           "Guest:802-11-wireless\n";
+        std::string text = "HomeNet:802-11-wireless\n" "Wired connection 1:802-3-ethernet\n" "Guest:802-11-wireless\n";
         auto profiles = network_parse_profiles(text);
         assert(profiles.size() == 2);
         assert(profiles.count("HomeNet") == 1);
@@ -140,8 +133,7 @@ void test_network_parse() {
 
         NetworkState st;
         st.networks = network_parse_networks("HomeNet:WPA2:80:*\n", {});
-        assert(
-            (network_parse_networks("HomeNet:WPA2:80:*\n", {}) == st.networks));
+        assert((network_parse_networks("HomeNet:WPA2:80:*\n", {}) == st.networks));
     }
 
     {

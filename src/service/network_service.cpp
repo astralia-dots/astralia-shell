@@ -30,8 +30,7 @@ std::vector<std::string> nmcli_split(const std::string &line) {
     return parts;
 }
 
-std::string join(const std::vector<std::string> &parts, size_t begin,
-                 size_t end, char sep) {
+std::string join(const std::vector<std::string> &parts, size_t begin, size_t end, char sep) {
     std::string out;
     for (size_t i = begin; i < end; ++i) {
         if (i > begin)
@@ -45,8 +44,7 @@ std::string unescape_nmcli_field(const std::string &s) {
     std::string out;
     out.reserve(s.size());
     for (size_t i = 0; i < s.size(); ++i) {
-        if (s[i] == '\\' && i + 1 < s.size() &&
-            (s[i + 1] == ':' || s[i + 1] == '\\')) {
+        if (s[i] == '\\' && i + 1 < s.size() && (s[i + 1] == ':' || s[i + 1] == '\\')) {
             out += s[i + 1];
             ++i;
         } else {
@@ -61,8 +59,7 @@ std::string unescape_nmcli_field(const std::string &s) {
 } // namespace network_detail
 
 std::map<std::string, NetworkInfo>
-network_parse_networks(const std::string &text,
-                       const std::set<std::string> &existing_profiles) {
+network_parse_networks(const std::string &text, const std::set<std::string> &existing_profiles) {
     using namespace network_detail;
     std::map<std::string, NetworkInfo> result;
     std::istringstream stream(text);
@@ -179,9 +176,7 @@ std::set<std::string> network_parse_profiles(const std::string &text) {
     return profiles;
 }
 
-bool network_scan_would_collapse(
-    const NetworkState &state,
-    const std::map<std::string, NetworkInfo> &parsed) {
+bool network_scan_would_collapse(const NetworkState &state, const std::map<std::string, NetworkInfo> &parsed) {
     int in_range = 0;
     bool self_only = true;
     for (const auto &[ssid, info] : parsed) {
@@ -197,8 +192,7 @@ bool network_scan_would_collapse(
 int network_visible_count(const NetworkState &state) {
     int n = 0;
     for (const auto &[ssid, info] : state.networks) {
-        if (info.connected || (info.existing && info.in_range) ||
-            !info.existing)
+        if (info.connected || (info.existing && info.in_range) || !info.existing)
             ++n;
     }
     return n;
@@ -236,12 +230,10 @@ std::vector<std::string> scan_argv() {
             "device", "wifi", "list", "--rescan",
             "yes"};
 }
-std::vector<std::string> connect_argv(const std::string &ssid,
-                                      const std::string &password, bool saved) {
+std::vector<std::string> connect_argv(const std::string &ssid, const std::string &password, bool saved) {
     if (saved)
         return {"nmcli", "-t", "connection", "up", "id", ssid};
-    std::vector<std::string> argv = {"nmcli", "-t",      "device",
-                                     "wifi",  "connect", ssid};
+    std::vector<std::string> argv = {"nmcli", "-t",      "device", "wifi",  "connect", ssid};
     if (!password.empty()) {
         argv.push_back("password");
         argv.push_back(password);
@@ -266,9 +258,7 @@ std::vector<std::string> connectivity_argv() {
     return {"nmcli", "networking", "connectivity", "check"};
 }
 
-void start_if_idle(AsyncProcess &proc, bool &running_flag,
-                    const std::vector<std::string> &argv,
-                    bool merge_stderr = false) {
+void start_if_idle(AsyncProcess &proc, bool &running_flag, const std::vector<std::string> &argv, bool merge_stderr = false) {
     if (running_flag)
         return;
     running_flag = async_process_start(proc, argv, merge_stderr) > 0;
@@ -280,25 +270,21 @@ void schedule_rescan(NetworkState &state, int ms) {
     state.rescan_scheduled = true;
 }
 
-void set_connectivity(NetworkState &state, const NetworkNotifyFn &notify,
-                      const std::string &value) {
+void set_connectivity(NetworkState &state, const NetworkNotifyFn &notify, const std::string &value) {
     if (value == state.connectivity)
         return;
     state.connectivity = value;
     if (state.init_done && value == "portal" && notify) {
-        notify("Captive Portal",
-               "Sign in required for " + state.connected_ssid());
+        notify("Captive Portal", "Sign in required for " + state.connected_ssid());
     }
 }
 
-void handle_connected_ssid_change(NetworkState &state,
-                                  const NetworkNotifyFn &notify) {
+void handle_connected_ssid_change(NetworkState &state, const NetworkNotifyFn &notify) {
     std::string cur = state.connected_ssid();
     if (cur == state.prev_connected_ssid)
         return;
     if (!cur.empty()) {
-        start_if_idle(state.connectivity_proc, state.connectivity_running,
-                       connectivity_argv());
+        start_if_idle(state.connectivity_proc, state.connectivity_running, connectivity_argv());
     } else if (!state.ethernet_connected) {
         set_connectivity(state, notify, "unknown");
     }
@@ -306,8 +292,7 @@ void handle_connected_ssid_change(NetworkState &state,
         if (!cur.empty())
             notify("Connected", "Connected to " + cur);
         else if (!state.prev_connected_ssid.empty())
-            notify("Disconnected",
-                   "Disconnected from " + state.prev_connected_ssid);
+            notify("Disconnected", "Disconnected from " + state.prev_connected_ssid);
     }
     state.prev_connected_ssid = cur;
 }
@@ -319,14 +304,11 @@ void handle_connected_ssid_change(NetworkState &state,
 bool network_init(NetworkState &state, sdbus::IConnection &bus) {
     using namespace network_detail;
     try {
-        state.nm = sdbus::createProxy(bus, sdbus::ServiceName{kService},
-                                      sdbus::ObjectPath{kObjectPath});
+        state.nm = sdbus::createProxy(bus, sdbus::ServiceName{kService}, sdbus::ObjectPath{kObjectPath});
 
         state.nm->uponSignal("PropertiesChanged")
             .onInterface(kPropertiesIface)
-            .call([&state](const std::string &iface,
-                           const std::map<std::string, sdbus::Variant> &changed,
-                           const std::vector<std::string> &) {
+            .call([&state](const std::string &iface, const std::map<std::string, sdbus::Variant> &changed, const std::vector<std::string> &) {
                 if (iface != kIface)
                     return;
                 auto wifi_it = changed.find("WirelessEnabled");
@@ -353,34 +335,26 @@ bool network_init(NetworkState &state, sdbus::IConnection &bus) {
                     }
                 }
 
-                if (changed.count("State") ||
-                    changed.count("ActiveConnections")) {
-                    start_if_idle(state.device_proc, state.device_running,
-                                   device_status_argv());
+                if (changed.count("State") || changed.count("ActiveConnections")) {
+                    start_if_idle(state.device_proc, state.device_running, device_status_argv());
                     schedule_rescan(state, 1000);
                 }
                 if (changed.count("Connectivity")) {
-                    start_if_idle(state.connectivity_proc,
-                                   state.connectivity_running,
-                                   connectivity_argv());
+                    start_if_idle(state.connectivity_proc, state.connectivity_running, connectivity_argv());
                 }
             });
 
-        bool enabled = state.nm->getProperty("WirelessEnabled")
-                           .onInterface(kIface)
-                           .get<bool>();
+        bool enabled = state.nm->getProperty("WirelessEnabled").onInterface(kIface).get<bool>();
         state.wifi_enabled = enabled;
 
-        start_if_idle(state.device_proc, state.device_running,
-                       device_status_argv());
+        start_if_idle(state.device_proc, state.device_running, device_status_argv());
 
         state.init_at =
             std::chrono::steady_clock::now() + std::chrono::milliseconds(500);
         klog("network: connected to NetworkManager, wifi_enabled=%d", enabled);
         return true;
     } catch (const sdbus::Error &e) {
-        klog("network: connection failed (%s): %s - no network info available",
-             e.getName().c_str(), e.getMessage().c_str());
+        klog("network: connection failed (%s): %s - no network info available", e.getName().c_str(), e.getMessage().c_str());
         state.nm.reset();
         return false;
     }
@@ -391,8 +365,7 @@ void network_scan(NetworkState &state) {
     if (!state.wifi_enabled)
         return;
     state.last_error.clear();
-    if (state.profile_running || state.quick_scan_running ||
-        state.scan_running) {
+    if (state.profile_running || state.quick_scan_running || state.scan_running) {
         state.scan_pending = true;
         return;
     }
@@ -400,8 +373,7 @@ void network_scan(NetworkState &state) {
     state.scanning = true;
 }
 
-void network_connect(NetworkState &state, const std::string &ssid,
-                     const std::string &password) {
+void network_connect(NetworkState &state, const std::string &ssid, const std::string &password) {
     if (state.connecting)
         return;
     state.connecting = true;
@@ -412,24 +384,19 @@ void network_connect(NetworkState &state, const std::string &ssid,
     state.connect_saved = state.existing_profiles.count(ssid) > 0;
 
     state.connect_running =
-        async_process_start(
-            state.connect_proc,
-            network_detail::connect_argv(ssid, password, state.connect_saved),
-            true) > 0;
+        async_process_start(state.connect_proc, network_detail::connect_argv(ssid, password, state.connect_saved), true) > 0;
 }
 
 void network_disconnect(NetworkState &state, const std::string &ssid) {
     state.disconnect_ssid = ssid;
     state.disconnect_running =
-        async_process_start(state.disconnect_proc,
-                            network_detail::disconnect_argv(ssid)) > 0;
+        async_process_start(state.disconnect_proc, network_detail::disconnect_argv(ssid)) > 0;
 }
 
 void network_forget(NetworkState &state, const std::string &ssid) {
     state.forget_ssid = ssid;
     state.forget_running =
-        async_process_start(state.forget_proc,
-                            network_detail::forget_argv(ssid)) > 0;
+        async_process_start(state.forget_proc, network_detail::forget_argv(ssid)) > 0;
 }
 
 void network_set_wifi_enabled(NetworkState &state, bool enabled) {
@@ -441,12 +408,10 @@ void network_set_wifi_enabled(NetworkState &state, bool enabled) {
             .toValue(enabled)
             .uponReplyInvoke([](std::optional<sdbus::Error> err) {
                 if (err)
-                    klog("network: setWirelessEnabled failed (%s): %s",
-                         err->getName().c_str(), err->getMessage().c_str());
+                    klog("network: setWirelessEnabled failed (%s): %s", err->getName().c_str(), err->getMessage().c_str());
             });
     } catch (const sdbus::Error &e) {
-        klog("network: setWirelessEnabled dispatch failed (%s): %s",
-             e.getName().c_str(), e.getMessage().c_str());
+        klog("network: setWirelessEnabled dispatch failed (%s): %s", e.getName().c_str(), e.getMessage().c_str());
     }
 }
 
@@ -460,18 +425,14 @@ bool network_poll_device(NetworkState &state, const NetworkNotifyFn &notify) {
     NetworkDeviceStatus st =
         network_parse_device_status(state.device_proc.buffer);
     bool was_connected = state.ethernet_connected;
-    bool changed = state.wifi_available != st.wifi ||
-                   state.ethernet_available != st.ethernet ||
-                   state.ethernet_connected != st.ethernet_connected ||
-                   state.ethernet_connection_name != st.ethernet_name;
+    bool changed = state.wifi_available != st.wifi || state.ethernet_available != st.ethernet || state.ethernet_connected != st.ethernet_connected || state.ethernet_connection_name != st.ethernet_name;
     state.wifi_available = st.wifi;
     state.ethernet_available = st.ethernet;
     state.ethernet_connected = st.ethernet_connected;
     state.ethernet_connection_name = st.ethernet_name;
     if (st.ethernet_connected != was_connected) {
         if (st.ethernet_connected) {
-            start_if_idle(state.connectivity_proc, state.connectivity_running,
-                           connectivity_argv());
+            start_if_idle(state.connectivity_proc, state.connectivity_running, connectivity_argv());
         } else if (state.connected_ssid().empty()) {
             set_connectivity(state, notify, "unknown");
         }
@@ -511,8 +472,7 @@ bool network_poll_profile(NetworkState &state) {
         }
         state.networks = std::move(pre);
     }
-    start_if_idle(state.quick_scan_proc, state.quick_scan_running,
-                   quick_scan_argv());
+    start_if_idle(state.quick_scan_proc, state.quick_scan_running, quick_scan_argv());
     return true;
 }
 
@@ -527,11 +487,9 @@ bool network_poll_quick_scan(NetworkState &state) {
         state.scanning = false;
         return true;
     }
-    auto quick = network_parse_networks(state.quick_scan_proc.buffer,
-                                        state.existing_profiles);
+    auto quick = network_parse_networks(state.quick_scan_proc.buffer, state.existing_profiles);
     bool any_in_range =
-        std::any_of(quick.begin(), quick.end(),
-                    [](const auto &kv) { return kv.second.in_range; });
+        std::any_of(quick.begin(), quick.end(), [](const auto &kv) { return kv.second.in_range; });
     bool changed = false;
     if (any_in_range && quick != state.networks) {
         state.networks = std::move(quick);
@@ -552,14 +510,12 @@ bool network_poll_scan(NetworkState &state, const NetworkNotifyFn &notify) {
     auto parsed =
         network_parse_networks(state.scan_proc.buffer, state.existing_profiles);
     bool changed = false;
-    if (!network_scan_would_collapse(state, parsed) &&
-        parsed != state.networks) {
+    if (!network_scan_would_collapse(state, parsed) && parsed != state.networks) {
         state.networks = std::move(parsed);
         changed = true;
     }
     bool has_real =
-        std::any_of(state.networks.begin(), state.networks.end(),
-                    [](const auto &kv) { return kv.second.in_range; });
+        std::any_of(state.networks.begin(), state.networks.end(), [](const auto &kv) { return kv.second.in_range; });
 
     int next_ms;
     if (state.scan_pending) {
@@ -575,8 +531,7 @@ bool network_poll_scan(NetworkState &state, const NetworkNotifyFn &notify) {
     schedule_rescan(state, next_ms);
     std::string prev_ssid = state.prev_connected_ssid;
     handle_connected_ssid_change(state, notify);
-    return changed || state.scanning != was_scanning ||
-           state.prev_connected_ssid != prev_ssid;
+    return changed || state.scanning != was_scanning || state.prev_connected_ssid != prev_ssid;
 }
 
 bool network_poll_connect(NetworkState &state, const NetworkNotifyFn &notify) {
@@ -587,8 +542,7 @@ bool network_poll_connect(NetworkState &state, const NetworkNotifyFn &notify) {
         return false;
     state.connect_running = false;
     const std::string &text = state.connect_proc.buffer;
-    bool ok = text.find("successfully activated") != std::string::npos ||
-              text.find("Connection successfully") != std::string::npos;
+    bool ok = text.find("successfully activated") != std::string::npos || text.find("Connection successfully") != std::string::npos;
     if (ok) {
         auto it = state.networks.find(state.connect_ssid);
         if (it != state.networks.end()) {
@@ -596,8 +550,7 @@ bool network_poll_connect(NetworkState &state, const NetworkNotifyFn &notify) {
             it->second.existing = true;
         }
     } else if (!network_detail::trim(text).empty()) {
-        if (text.find("Secrets were required") != std::string::npos ||
-            text.find("no secrets provided") != std::string::npos) {
+        if (text.find("Secrets were required") != std::string::npos || text.find("no secrets provided") != std::string::npos) {
             state.last_error = "Incorrect password";
             network_forget(state, state.connect_ssid);
         } else if (text.find("No network with SSID") != std::string::npos) {
@@ -615,8 +568,7 @@ bool network_poll_connect(NetworkState &state, const NetworkNotifyFn &notify) {
     return true;
 }
 
-bool network_poll_disconnect(NetworkState &state,
-                             const NetworkNotifyFn &notify) {
+bool network_poll_disconnect(NetworkState &state, const NetworkNotifyFn &notify) {
     using namespace network_detail;
     if (!state.disconnect_running)
         return false;
@@ -645,8 +597,7 @@ bool network_poll_forget(NetworkState &state) {
     return true;
 }
 
-bool network_poll_connectivity(NetworkState &state,
-                               const NetworkNotifyFn &notify) {
+bool network_poll_connectivity(NetworkState &state, const NetworkNotifyFn &notify) {
     using namespace network_detail;
     if (!state.connectivity_running)
         return false;
@@ -658,8 +609,7 @@ bool network_poll_connectivity(NetworkState &state,
     return true;
 }
 
-bool network_tick(NetworkState &state,
-                  std::chrono::steady_clock::time_point now) {
+bool network_tick(NetworkState &state, std::chrono::steady_clock::time_point now) {
     using namespace network_detail;
     bool dirty = false;
 
@@ -689,15 +639,13 @@ bool network_tick(NetworkState &state,
     if (connected) {
         if (now >= state.next_connectivity_check_at) {
             state.next_connectivity_check_at = now + std::chrono::seconds(30);
-            start_if_idle(state.connectivity_proc, state.connectivity_running,
-                           connectivity_argv());
+            start_if_idle(state.connectivity_proc, state.connectivity_running, connectivity_argv());
         }
     } else {
         state.next_connectivity_check_at = now + std::chrono::seconds(30);
     }
 
-    bool scanning_state_visible = state.wifi_available && state.wifi_enabled &&
-                                  network_visible_count(state) == 0;
+    bool scanning_state_visible = state.wifi_available && state.wifi_enabled && network_visible_count(state) == 0;
     if (scanning_state_visible && now >= state.next_dot_at) {
         state.next_dot_at = now + std::chrono::milliseconds(400);
         state.scan_dot_step = (state.scan_dot_step + 1) % 4;

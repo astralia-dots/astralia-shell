@@ -18,8 +18,7 @@ constexpr GLfloat kQuadVerts[18] = {-1, -1, 0, 1, -1, 0, -1, 1, 0,
 
 int visualizer_canvas_size(int width, int height) {
     int smaller = width < height ? width : height;
-    int size = static_cast<int>(static_cast<float>(smaller) *
-                                kVisualizerCanvasFraction);
+    int size = static_cast<int>(static_cast<float>(smaller) * kVisualizerCanvasFraction);
     return size < kVisualizerCanvasMin ? kVisualizerCanvasMin : size;
 }
 
@@ -34,15 +33,10 @@ bool SphereVisualizer::init() {
     std::string sphere2 = visualizer_shaders::sphere2_fs();
     std::string glow = visualizer_shaders::glow_fs();
 
-    sphere1_prog_ = gl_compile_program(fullscreen_vs.c_str(), sphere1.c_str(),
-                                       "visualizer_sphere1");
-    sphere2_prog_ = gl_compile_program(fullscreen_vs.c_str(), sphere2.c_str(),
-                                       "visualizer_sphere2");
-    glow_prog_ = gl_compile_program(fullscreen_vs.c_str(), glow.c_str(),
-                                    "visualizer_glow");
-    present_prog_ = gl_compile_program_files("visualizer/sphere/present.vert",
-                                             "visualizer/sphere/present.frag",
-                                             "visualizer_present");
+    sphere1_prog_ = gl_compile_program(fullscreen_vs.c_str(), sphere1.c_str(), "visualizer_sphere1");
+    sphere2_prog_ = gl_compile_program(fullscreen_vs.c_str(), sphere2.c_str(), "visualizer_sphere2");
+    glow_prog_ = gl_compile_program(fullscreen_vs.c_str(), glow.c_str(), "visualizer_glow");
+    present_prog_ = gl_compile_program_files("visualizer/sphere/present.vert", "visualizer/sphere/present.frag", "visualizer_present");
     if (!sphere1_prog_ || !sphere2_prog_ || !glow_prog_ || !present_prog_) {
         klog("visualizer_sphere: shader compile failed");
         return false;
@@ -52,8 +46,7 @@ bool SphereVisualizer::init() {
     glGenBuffers(1, &vbo_);
     glBindVertexArray(vao_);
     glBindBuffer(GL_ARRAY_BUFFER, vbo_);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(kQuadVerts), kQuadVerts,
-                 GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(kQuadVerts), kQuadVerts, GL_STATIC_DRAW);
     glBindVertexArray(0);
     glGenFramebuffers(1, &clear_fbo_);
 
@@ -122,8 +115,7 @@ void SphereVisualizer::ensure_targets(int canvas) {
     glBindTexture(GL_TEXTURE_2D, 0);
 
     glBindFramebuffer(GL_FRAMEBUFFER, clear_fbo_);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
-                           atomic_tex_, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, atomic_tex_, 0);
     const GLuint zero[4] = {0, 0, 0, 0};
     glClearBufferuiv(GL_COLOR, 0, zero);
 
@@ -132,8 +124,7 @@ void SphereVisualizer::ensure_targets(int canvas) {
     for (int i = 0; i < 3; ++i) {
         glGenTextures(1, tex[i]);
         glBindTexture(GL_TEXTURE_2D, *tex[i]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, canvas, canvas, 0, GL_RGBA,
-                     GL_UNSIGNED_BYTE, nullptr);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, canvas, canvas, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -141,8 +132,7 @@ void SphereVisualizer::ensure_targets(int canvas) {
 
         glGenFramebuffers(1, fbo[i]);
         glBindFramebuffer(GL_FRAMEBUFFER, *fbo[i]);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                               GL_TEXTURE_2D, *tex[i], 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, *tex[i], 0);
     }
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -158,27 +148,17 @@ void SphereVisualizer::draw_quad() {
     glBindVertexArray(0);
 }
 
-void SphereVisualizer::set_audio_uniforms(GLuint prog, GLuint audio_l_tex,
-                                         GLuint audio_r_tex, int audio_size,
-                                         int tick, int canvas,
-                                         const VisualizerParams &params) {
-    glUniform2f(glGetUniformLocation(prog, "resolution"),
-                static_cast<float>(canvas), static_cast<float>(canvas));
+void SphereVisualizer::set_audio_uniforms(GLuint prog, GLuint audio_l_tex, GLuint audio_r_tex, int audio_size, int tick, int canvas, const VisualizerParams &params) {
+    glUniform2f(glGetUniformLocation(prog, "resolution"), static_cast<float>(canvas), static_cast<float>(canvas));
     glUniform1f(glGetUniformLocation(prog, "time"), static_cast<float>(tick));
     glUniform1i(glGetUniformLocation(prog, "audioRSize"), audio_size);
     glUniform1i(glGetUniformLocation(prog, "audioLSize"), audio_size);
-    glUniform3f(glGetUniformLocation(prog, "u_accent"), palette::accent.r,
-                palette::accent.g, palette::accent.b);
-    glUniform1f(glGetUniformLocation(prog, "particleThin"),
-                params.particle_thin);
-    glUniform1i(glGetUniformLocation(prog, "u_particleSize"),
-                params.particle_size);
-    glUniform1i(glGetUniformLocation(prog, "u_complexity"),
-                params.fractal_complexity);
-    glUniform1f(glGetUniformLocation(prog, "u_glowDirections"),
-                params.glow_directions);
-    glUniform1f(glGetUniformLocation(prog, "u_glowQuality"),
-                params.glow_quality);
+    glUniform3f(glGetUniformLocation(prog, "u_accent"), palette::accent.r, palette::accent.g, palette::accent.b);
+    glUniform1f(glGetUniformLocation(prog, "particleThin"), params.particle_thin);
+    glUniform1i(glGetUniformLocation(prog, "u_particleSize"), params.particle_size);
+    glUniform1i(glGetUniformLocation(prog, "u_complexity"), params.fractal_complexity);
+    glUniform1f(glGetUniformLocation(prog, "u_glowDirections"), params.glow_directions);
+    glUniform1f(glGetUniformLocation(prog, "u_glowQuality"), params.glow_quality);
 
     glActiveTexture(GL_TEXTURE0 + 1);
     glBindTexture(GL_TEXTURE_2D, audio_r_tex);
@@ -191,9 +171,7 @@ void SphereVisualizer::set_audio_uniforms(GLuint prog, GLuint audio_l_tex,
     glActiveTexture(GL_TEXTURE0);
 }
 
-void SphereVisualizer::render(int width, int height, int tick, float fade,
-                             GLuint audio_l_tex, GLuint audio_r_tex,
-                             int audio_size, const VisualizerParams &params) {
+void SphereVisualizer::render(int width, int height, int tick, float fade, GLuint audio_l_tex, GLuint audio_r_tex, int audio_size, const VisualizerParams &params) {
     if (!ready_ || width <= 0 || height <= 0)
         return;
 
@@ -208,10 +186,7 @@ void SphereVisualizer::render(int width, int height, int tick, float fade,
             return;
         auto t0 = std::chrono::steady_clock::now();
         glFinish();
-        klog("visualizer_sphere: f%d %s %.1fms", tick, tag,
-             std::chrono::duration<float, std::milli>(
-                 std::chrono::steady_clock::now() - t0)
-                 .count());
+        klog("visualizer_sphere: f%d %s %.1fms", tick, tag, std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - t0).count());
     };
 
     bool first_targets = atomic_tex_ == 0 || canvas != canvas_;
@@ -233,28 +208,24 @@ void SphereVisualizer::render(int width, int height, int tick, float fade,
 
     glBindFramebuffer(GL_FRAMEBUFFER, fbo_[0]);
     glUseProgram(sphere1_prog_);
-    set_audio_uniforms(sphere1_prog_, audio_l_tex, audio_r_tex, audio_size,
-                       tick, canvas, params);
+    set_audio_uniforms(sphere1_prog_, audio_l_tex, audio_r_tex, audio_size, tick, canvas, params);
     draw_quad();
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
     mark("sphere1");
 
     glBindFramebuffer(GL_FRAMEBUFFER, fbo_[1]);
     glUseProgram(sphere2_prog_);
-    set_audio_uniforms(sphere2_prog_, audio_l_tex, audio_r_tex, audio_size,
-                       tick, canvas, params);
+    set_audio_uniforms(sphere2_prog_, audio_l_tex, audio_r_tex, audio_size, tick, canvas, params);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, fbo_tex_[0]);
     glUniform1i(glGetUniformLocation(sphere2_prog_, "tex"), 0);
     draw_quad();
-    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT |
-                    GL_TEXTURE_FETCH_BARRIER_BIT);
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
     mark("sphere2");
 
     glBindFramebuffer(GL_FRAMEBUFFER, glow_fbo_);
     glUseProgram(glow_prog_);
-    set_audio_uniforms(glow_prog_, audio_l_tex, audio_r_tex, audio_size, tick,
-                       canvas, params);
+    set_audio_uniforms(glow_prog_, audio_l_tex, audio_r_tex, audio_size, tick, canvas, params);
     glUniform1f(glGetUniformLocation(glow_prog_, "u_fade"), fade);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, fbo_tex_[1]);
@@ -277,8 +248,7 @@ void SphereVisualizer::present(int width, int height, int canvas, float fade) {
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, width, height);
-    glClearColor(palette::window_backdrop.r, palette::window_backdrop.g,
-                 palette::window_backdrop.b, palette::window_backdrop.a * fade);
+    glClearColor(palette::window_backdrop.r, palette::window_backdrop.g, palette::window_backdrop.b, palette::window_backdrop.a * fade);
     glClear(GL_COLOR_BUFFER_BIT);
 
     glViewport(off_x, off_y, canvas, canvas);

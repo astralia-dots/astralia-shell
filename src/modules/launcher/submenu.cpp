@@ -14,8 +14,7 @@ std::string parent_of(const std::string &path) {
     return slash == 0 ? "/" : p.substr(0, slash);
 }
 
-std::vector<SubmenuEntry> listing_to_entries(const DirLister &list_dir,
-                                             const std::string &path) {
+std::vector<SubmenuEntry> listing_to_entries(const DirLister &list_dir, const std::string &path) {
     std::vector<SubmenuEntry> out;
     for (const FileEntry &fe : list_dir(path, true)) {
         SubmenuEntry e;
@@ -36,8 +35,7 @@ std::vector<SubmenuEntry> listing_to_entries(const DirLister &list_dir,
 
 } // namespace
 
-void submenu_open_directory(SubmenuState &s, const std::string &path,
-                            const DirLister &list_dir) {
+void submenu_open_directory(SubmenuState &s, const std::string &path, const DirLister &list_dir) {
     s.screen = SubmenuScreen::Browse;
     s.current_path = path;
     s.items.clear();
@@ -72,9 +70,7 @@ void submenu_open_directory_actions(SubmenuState &s, const std::string &path) {
                     SubmenuEntry::Action::DirOpenFileManager};
     SubmenuEntry editor{"Open Directory in Editor", path, true, icon::code,
                         SubmenuEntry::Action::DirOpenEditor};
-    SubmenuEntry terminal{"Open Directory in Terminal", path, true,
-                          icon::terminal,
-                          SubmenuEntry::Action::DirOpenTerminal};
+    SubmenuEntry terminal{"Open Directory in Terminal", path, true, icon::terminal, SubmenuEntry::Action::DirOpenTerminal};
     s.items = {fm, editor, terminal};
 }
 
@@ -85,16 +81,12 @@ void submenu_open_file_actions(SubmenuState &s, const std::string &path) {
     s.came_from_browse = came_from_browse;
     s.items.clear();
 
-    SubmenuEntry open_file{"Open File", path, false, icon::arrow_right,
-                           SubmenuEntry::Action::FileOpen};
-    SubmenuEntry open_dir{"Open Containing Directory", parent_of(path), true,
-                          icon::folder_open,
-                          SubmenuEntry::Action::OpenContainingDir};
+    SubmenuEntry open_file{"Open File", path, false, icon::arrow_right, SubmenuEntry::Action::FileOpen};
+    SubmenuEntry open_dir{"Open Containing Directory", parent_of(path), true, icon::folder_open, SubmenuEntry::Action::OpenContainingDir};
     s.items = {open_file, open_dir};
 }
 
-bool submenu_handle_entry(SubmenuState &s, const SubmenuEntry &entry,
-                          const DirLister &list_dir) {
+bool submenu_handle_entry(SubmenuState &s, const SubmenuEntry &entry, const DirLister &list_dir) {
     const std::string path = entry.path;
     const bool is_dir = entry.is_dir;
 

@@ -43,19 +43,12 @@ bool wallpaper_picker_is_image(const std::string &path);
 
 bool wallpaper_picker_is_video(const std::string &path);
 
-void wallpaper_picker_scan(WallpaperPickerState &state, std::string dir,
-                         bool (*is_match)(const std::string &));
+void wallpaper_picker_scan(WallpaperPickerState &state, std::string dir, bool (*is_match)(const std::string &));
 
-void wallpaper_picker_request_thumbnail(WallpaperPickerState &state,
-                                      const std::string &path, int target_size,
-                                      EGLDisplay display, EGLSurface surface,
-                                      EGLContext context);
+void wallpaper_picker_request_thumbnail(WallpaperPickerState &state, const std::string &path, int target_size, EGLDisplay display, EGLSurface surface, EGLContext context);
 
-float wallpaper_tab_paint(SettingsState &state, Node *root, int32_t scale, float x,
-                        float y, const Config &cfg);
+float wallpaper_tab_paint(SettingsState &state, Node *root, int32_t scale, float x, float y, const Config &cfg);
 
-bool wallpaper_tab_handle_click(SettingsState &state, const Config &cfg,
-                              const std::function<void(Config)> &on_commit,
-                              const PanelClickRegion &region);
+bool wallpaper_tab_handle_click(SettingsState &state, const Config &cfg, const std::function<void(Config)> &on_commit, const PanelClickRegion &region);
 
 void wallpaper_tab_handle_scroll(SettingsState &state, double dy);

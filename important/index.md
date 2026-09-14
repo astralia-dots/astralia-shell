@@ -64,7 +64,7 @@
 - `popup_window.h`+`.cpp`: Shared `xdg_popup` surface lifecycle parented to a layer surface via `zwlr_layer_surface_v1::get_popup`, with positioner, popup grab, `popup_done`, and reposition-on-resize.
 - `layer_surface.h`+`.cpp`: Shared layer-shell surface creation helper, deduping anchor/margin/listener setup; `destroy_layer_surface` also drops any pending frame callback.
 - `scene.h`: Thin `Scene` holder over `node.h` - a root `Node` plus `dirty`/`draw`/`rebuild` one-liners; no scene-graph logic of its own.
-- `image.h`+`.cpp`: JPEG/PNG/SVG decode (sniffed from content) and GL texture upload, no GIF; SVG rasterized via `librsvg`+Cairo.
+- `image.h`+`.cpp`: JPEG/PNG/SVG decode (sniffed from content) and GL texture upload, no GIF; SVG rasterized via `librsvg`+Cairo; `load_image_texture_first_existing` picks the first candidate path that exists.
 - `texture_cache.h`+`.cpp`: Path-keyed decoded-texture cache built on `texture.h`.
 - `icon.h`+`.cpp`: Direct FreeType+Cairo rendering of single icon glyphs, plus `make_icon_texture` glyph-to-`Texture`.
 - `icons.h`: Tabler Icons codepoint constants.
@@ -98,6 +98,7 @@
 - `settings_service.h`+`.cpp`: Settings field-text parsing into `Config` and the config-save wrapper.
 - `icon_service.h`+`.cpp`: App icon path resolution across GTK icon themes; `resolve_window_icon_path` maps a window class to an icon via `.desktop` ids.
 - `dock_service.h`+`.cpp`: `DockEntry` list for a monitor's active workspace from `HyprlandState`, sorted by window `x`, `focused` = `focus_history_id == 0`; pure, test-linked.
+- `polkit_service.h`+`.cpp`: `PolkitAgent`, an in-session polkit authentication agent registering with `polkit-gobject-1`/`polkit-agent-1` and driving the session through its own nested `GMainContext`; `PolkitPollSource` bridges it into the shared poll loop.
 
 ## src/core
 
@@ -123,6 +124,7 @@
 - `rain.h`+`.cpp`: Rain overlay, a real `xdg_toplevel` window; hosts the `MatrixRain`/`StilettoRain` sims and applies mode/speed config live.
 - `visualizer.h`+`.cpp`: Audio visualizer overlay window; a dedicated self-pacing render thread draws either `SphereVisualizer` or `BarVisualizer`, fed by its own PipeWire capture.
 - `lock.h`+`.cpp`: `ext-session-lock-v1` session lock; one surface per output, `PAM` auth on a worker thread, `caelestia`-style three-column info card.
+- `polkit.h`+`.cpp`: Reactive singleton overlay prompting for the user's password on a polkit authentication request; centered card with `EaseOutBack`/`EaseInBack` scale-in/out, dot-masked password field shared with `lock`'s echo glyph.
 
 ## src/modules/visualizer
 

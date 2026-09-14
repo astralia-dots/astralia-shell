@@ -54,21 +54,17 @@ uint32_t decode_utf8_codepoint(const std::string &s) {
         return static_cast<uint32_t>((c0 & 0x1F) << 6) | (s[1] & 0x3F);
     }
     if ((c0 & 0xF0) == 0xE0 && s.size() >= 3) {
-        return (static_cast<uint32_t>(c0 & 0x0F) << 12) |
-               (static_cast<uint32_t>(s[1] & 0x3F) << 6) | (s[2] & 0x3F);
+        return (static_cast<uint32_t>(c0 & 0x0F) << 12) | (static_cast<uint32_t>(s[1] & 0x3F) << 6) | (s[2] & 0x3F);
     }
     if ((c0 & 0xF8) == 0xF0 && s.size() >= 4) {
-        return (static_cast<uint32_t>(c0 & 0x07) << 18) |
-               (static_cast<uint32_t>(s[1] & 0x3F) << 12) |
-               (static_cast<uint32_t>(s[2] & 0x3F) << 6) | (s[3] & 0x3F);
+        return (static_cast<uint32_t>(c0 & 0x07) << 18) | (static_cast<uint32_t>(s[1] & 0x3F) << 12) | (static_cast<uint32_t>(s[2] & 0x3F) << 6) | (s[3] & 0x3F);
     }
     return 0;
 }
 
 } // namespace
 
-RasterizedText rasterize_icon(const std::string &codepoint_utf8, int32_t scale,
-                              int px) {
+RasterizedText rasterize_icon(const std::string &codepoint_utf8, int32_t scale, int px) {
     RasterizedText result;
     IconFont &font = icon_font();
     if (!font.cairo_face)
@@ -86,8 +82,7 @@ RasterizedText rasterize_icon(const std::string &codepoint_utf8, int32_t scale,
     cairo_matrix_init_scale(&font_matrix, px * scale, px * scale);
     cairo_matrix_t ctm;
     cairo_matrix_init_identity(&ctm);
-    cairo_scaled_font_t *scaled_font = cairo_scaled_font_create(
-        font.cairo_face, &font_matrix, &ctm, kokusei_icon_font_options());
+    cairo_scaled_font_t *scaled_font = cairo_scaled_font_create(font.cairo_face, &font_matrix, &ctm, kokusei_icon_font_options());
 
     cairo_glyph_t measure_glyph = {glyph_index, 0, 0};
     cairo_text_extents_t extents;

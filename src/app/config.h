@@ -68,32 +68,23 @@ struct Config {
     RainParams rain;
 };
 
-bool osd_effective_enabled(const Config &cfg,
-                             const std::string &monitor_name);
+bool osd_effective_enabled(const Config &cfg, const std::string &monitor_name);
 
-bool notifications_effective_enabled(const Config &cfg,
-                               const std::string &monitor_name);
+bool notifications_effective_enabled(const Config &cfg, const std::string &monitor_name);
 
-bool autohide_effective_enabled(const Config &cfg,
-                                const std::string &monitor_name);
+bool autohide_effective_enabled(const Config &cfg, const std::string &monitor_name);
 
-bool dock_autohide_effective_enabled(const Config &cfg,
-                                     const std::string &monitor_name);
+bool dock_autohide_effective_enabled(const Config &cfg, const std::string &monitor_name);
 
-bool ambient_effective_enabled(const Config &cfg,
-                               const std::string &monitor_name);
+bool ambient_effective_enabled(const Config &cfg, const std::string &monitor_name);
 
-uint32_t ambient_effective_timeout_seconds(const Config &cfg,
-                                           const std::string &monitor_name);
+uint32_t ambient_effective_timeout_seconds(const Config &cfg, const std::string &monitor_name);
 
-bool screensaver_effective_enabled(const Config &cfg,
-                                   const std::string &monitor_name);
+bool screensaver_effective_enabled(const Config &cfg, const std::string &monitor_name);
 
-uint32_t screensaver_effective_timeout_seconds(const Config &cfg,
-                                               const std::string &monitor_name);
+uint32_t screensaver_effective_timeout_seconds(const Config &cfg, const std::string &monitor_name);
 
-bool lock_effective_enabled(const Config &cfg,
-                               const std::string &monitor_name);
+bool lock_effective_enabled(const Config &cfg, const std::string &monitor_name);
 
 std::string config_path();
 

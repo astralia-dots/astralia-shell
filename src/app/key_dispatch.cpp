@@ -4,8 +4,7 @@
 
 #include "modules/bar.h"
 
-void dispatch_key_events(WaylandState &state,
-                         const std::vector<KeyEvent> &events) {
+void dispatch_key_events(WaylandState &state, const std::vector<KeyEvent> &events) {
     if (events.empty())
         return;
 

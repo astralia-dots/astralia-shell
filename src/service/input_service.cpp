@@ -10,16 +10,12 @@
 
 #include "service/input_service.h"
 
-std::optional<KeyEvent> translate_key(xkb_state *state, uint32_t keycode,
-                                      xkb_compose_state *compose) {
+std::optional<KeyEvent> translate_key(xkb_state *state, uint32_t keycode, xkb_compose_state *compose) {
     xkb_keycode_t xkb_code = keycode + 8;
     xkb_keysym_t sym = xkb_state_key_get_one_sym(state, xkb_code);
-    bool shift = xkb_state_mod_name_is_active(state, XKB_MOD_NAME_SHIFT,
-                                              XKB_STATE_MODS_EFFECTIVE) > 0;
-    bool alt = xkb_state_mod_name_is_active(state, XKB_MOD_NAME_ALT,
-                                            XKB_STATE_MODS_EFFECTIVE) > 0;
-    bool ctrl = xkb_state_mod_name_is_active(state, XKB_MOD_NAME_CTRL,
-                                             XKB_STATE_MODS_EFFECTIVE) > 0;
+    bool shift = xkb_state_mod_name_is_active(state, XKB_MOD_NAME_SHIFT, XKB_STATE_MODS_EFFECTIVE) > 0;
+    bool alt = xkb_state_mod_name_is_active(state, XKB_MOD_NAME_ALT, XKB_STATE_MODS_EFFECTIVE) > 0;
+    bool ctrl = xkb_state_mod_name_is_active(state, XKB_MOD_NAME_CTRL, XKB_STATE_MODS_EFFECTIVE) > 0;
 
     if (compose) {
         xkb_compose_state_feed(compose, sym);
@@ -42,8 +38,7 @@ std::optional<KeyEvent> translate_key(xkb_state *state, uint32_t keycode,
             int n = xkb_keysym_to_utf8(sym, buf, sizeof(buf));
             if (n <= 0) {
                 char name[64];
-                if (xkb_keysym_get_name(sym, name, sizeof(name)) > 0 &&
-                    std::strncmp(name, "dead_", 5) == 0) {
+                if (xkb_keysym_get_name(sym, name, sizeof(name)) > 0 && std::strncmp(name, "dead_", 5) == 0) {
                     xkb_keysym_t base =
                         xkb_keysym_from_name(name + 5, XKB_KEYSYM_NO_FLAGS);
                     if (base != XKB_KEY_NoSymbol)
@@ -91,8 +86,7 @@ namespace {
 
 namespace kbd {
 
-void keymap_cb(void *data, wl_keyboard *, uint32_t format, int32_t fd,
-               uint32_t size) {
+void keymap_cb(void *data, wl_keyboard *, uint32_t format, int32_t fd, uint32_t size) {
     auto *state = static_cast<KeyboardState *>(data);
     if (format != WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1) {
         close(fd);
@@ -109,9 +103,7 @@ void keymap_cb(void *data, wl_keyboard *, uint32_t format, int32_t fd,
         xkb_state_unref(state->xkb);
     state->xkb = nullptr;
 
-    state->keymap = xkb_keymap_new_from_string(
-        state->ctx, static_cast<const char *>(map), XKB_KEYMAP_FORMAT_TEXT_V1,
-        XKB_KEYMAP_COMPILE_NO_FLAGS);
+    state->keymap = xkb_keymap_new_from_string(state->ctx, static_cast<const char *>(map), XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
     munmap(map, size);
     if (!state->keymap) {
         klog("keyboard: failed to compile keymap");
@@ -120,8 +112,7 @@ void keymap_cb(void *data, wl_keyboard *, uint32_t format, int32_t fd,
     state->xkb = xkb_state_new(state->keymap);
 }
 
-void enter_cb(void *data, wl_keyboard *, uint32_t, wl_surface *surface,
-              wl_array *) {
+void enter_cb(void *data, wl_keyboard *, uint32_t, wl_surface *surface, wl_array *) {
     auto *state = static_cast<KeyboardState *>(data);
     state->focused_surface = surface;
     if (state->on_focus_surface)
@@ -155,8 +146,7 @@ void leave_cb(void *data, wl_keyboard *, uint32_t, wl_surface *surface) {
         state->on_focus_surface(surface, false);
 }
 
-void key_cb(void *data, wl_keyboard *, uint32_t, uint32_t, uint32_t key,
-            uint32_t key_state) {
+void key_cb(void *data, wl_keyboard *, uint32_t, uint32_t, uint32_t key, uint32_t key_state) {
     auto *state = static_cast<KeyboardState *>(data);
     if (!state->xkb)
         return;
@@ -182,13 +172,11 @@ void key_cb(void *data, wl_keyboard *, uint32_t, uint32_t, uint32_t key,
     }
 }
 
-void modifiers_cb(void *data, wl_keyboard *, uint32_t, uint32_t mods_depressed,
-                  uint32_t mods_latched, uint32_t mods_locked, uint32_t group) {
+void modifiers_cb(void *data, wl_keyboard *, uint32_t, uint32_t mods_depressed, uint32_t mods_latched, uint32_t mods_locked, uint32_t group) {
     auto *state = static_cast<KeyboardState *>(data);
     if (!state->xkb)
         return;
-    xkb_state_update_mask(state->xkb, mods_depressed, mods_latched, mods_locked,
-                          0, 0, group);
+    xkb_state_update_mask(state->xkb, mods_depressed, mods_latched, mods_locked, 0, 0, group);
 }
 
 void repeat_info_cb(void *data, wl_keyboard *, int32_t rate, int32_t delay) {
@@ -214,8 +202,7 @@ constexpr wl_keyboard_listener kKeyboardListener = {
 
 namespace ptr {
 
-void enter_cb(void *data, wl_pointer *, uint32_t serial, wl_surface *surface,
-              wl_fixed_t sx, wl_fixed_t sy) {
+void enter_cb(void *data, wl_pointer *, uint32_t serial, wl_surface *surface, wl_fixed_t sx, wl_fixed_t sy) {
     auto *state = static_cast<PointerState *>(data);
     state->focused_surface = surface;
     state->x = wl_fixed_to_double(sx);
@@ -233,33 +220,26 @@ void leave_cb(void *data, wl_pointer *, uint32_t, wl_surface *surface) {
     }
 }
 
-void motion_cb(void *data, wl_pointer *, uint32_t, wl_fixed_t sx,
-               wl_fixed_t sy) {
+void motion_cb(void *data, wl_pointer *, uint32_t, wl_fixed_t sx, wl_fixed_t sy) {
     auto *state = static_cast<PointerState *>(data);
     state->x = wl_fixed_to_double(sx);
     state->y = wl_fixed_to_double(sy);
     state->dirty = true;
 }
 
-void button_cb(void *data, wl_pointer *, uint32_t serial, uint32_t,
-               uint32_t button, uint32_t button_state) {
+void button_cb(void *data, wl_pointer *, uint32_t serial, uint32_t, uint32_t button, uint32_t button_state) {
     auto *state = static_cast<PointerState *>(data);
     if (button != BTN_LEFT && button != BTN_RIGHT)
         return;
     if (button_state == WL_POINTER_BUTTON_STATE_PRESSED)
         state->last_button_serial = serial;
-    state->pending_clicks.push_back(
-        {state->focused_surface,
-         button_state == WL_POINTER_BUTTON_STATE_PRESSED, button, state->x,
-         state->y, serial});
+    state->pending_clicks.push_back({state->focused_surface, button_state == WL_POINTER_BUTTON_STATE_PRESSED, button, state->x, state->y, serial});
 }
-void axis_cb(void *data, wl_pointer *, uint32_t, uint32_t axis,
-             wl_fixed_t value) {
+void axis_cb(void *data, wl_pointer *, uint32_t, uint32_t axis, wl_fixed_t value) {
     if (axis != WL_POINTER_AXIS_VERTICAL_SCROLL)
         return;
     auto *state = static_cast<PointerState *>(data);
-    state->pending_scrolls.push_back(
-        {state->focused_surface, wl_fixed_to_double(value)});
+    state->pending_scrolls.push_back({state->focused_surface, wl_fixed_to_double(value)});
 }
 void frame_cb(void *, wl_pointer *) {}
 void axis_source_cb(void *, wl_pointer *, uint32_t) {}
@@ -322,12 +302,9 @@ void keyboard_attach_seat(SeatCapabilityState &seat_state, wl_seat *seat) {
         seat_state.keyboard->ctx = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
     if (!seat_state.keyboard->compose_table) {
         const char *locale = setlocale(LC_CTYPE, "");
-        seat_state.keyboard->compose_table = xkb_compose_table_new_from_locale(
-            seat_state.keyboard->ctx, locale ? locale : "C",
-            XKB_COMPOSE_COMPILE_NO_FLAGS);
+        seat_state.keyboard->compose_table = xkb_compose_table_new_from_locale(seat_state.keyboard->ctx, locale ? locale : "C", XKB_COMPOSE_COMPILE_NO_FLAGS);
         if (seat_state.keyboard->compose_table)
-            seat_state.keyboard->compose_state = xkb_compose_state_new(
-                seat_state.keyboard->compose_table, XKB_COMPOSE_STATE_NO_FLAGS);
+            seat_state.keyboard->compose_state = xkb_compose_state_new(seat_state.keyboard->compose_table, XKB_COMPOSE_STATE_NO_FLAGS);
     }
     if (seat_state.keyboard->repeat_timer_fd < 0) {
         seat_state.keyboard->repeat_timer_fd =
@@ -375,15 +352,12 @@ void pointer_release(PointerState &state) {
     state.focused_surface = nullptr;
 }
 
-void pointer_set_cursor_shape(PointerState &state,
-                              wp_cursor_shape_device_v1_shape shape) {
+void pointer_set_cursor_shape(PointerState &state, wp_cursor_shape_device_v1_shape shape) {
     if (!state.cursor_shape_manager || !state.pointer)
         return;
     if (!state.cursor_shape_device)
-        state.cursor_shape_device = wp_cursor_shape_manager_v1_get_pointer(
-            state.cursor_shape_manager, state.pointer);
-    wp_cursor_shape_device_v1_set_shape(state.cursor_shape_device,
-                                        state.last_enter_serial, shape);
+        state.cursor_shape_device = wp_cursor_shape_manager_v1_get_pointer(state.cursor_shape_manager, state.pointer);
+    wp_cursor_shape_device_v1_set_shape(state.cursor_shape_device, state.last_enter_serial, shape);
 }
 
 std::vector<PointerClick> pointer_drain_clicks(PointerState &state) {

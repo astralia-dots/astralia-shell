@@ -45,27 +45,16 @@ Pill bluetooth_pill(MonitorOutput &mon) {
                 bluetooth_label(mon.app->bluetooth), nullptr, [&mon, &bs] {
                     close_other_overlays(mon, PillId::Bluetooth);
                     if (!bs.bluetooth_panel.base.open) {
-                        update_pill_expand(bs.capsule, mon.animations,
-                                           PillId::Bluetooth, true, true);
+                        update_pill_expand(bs.capsule, mon.animations, PillId::Bluetooth, true, true);
                         bar_paint(mon);
-                        overlay_panel_ensure(
-                            bs.bluetooth_panel.base, mon.app->display,
-                            [&] {
-                                return bluetooth_panel_create_surface(
-                                    bs.bluetooth_panel, mon.app->compositor,
-                                    mon.app->layer_shell, mon.output.wl);
-                            },
-                            [&] {
-                                return bluetooth_panel_init_egl(
-                                    bs.bluetooth_panel, mon.app->renderer,
-                                    mon.app->bluetooth, mon.app->egl_display,
-                                    mon.app->egl_config, mon.app->egl_context);
+                        overlay_panel_ensure(bs.bluetooth_panel.base, mon.app->display, [&] {
+                                return bluetooth_panel_create_surface(bs.bluetooth_panel, mon.app->compositor, mon.app->layer_shell, mon.output.wl);
+                            }, [&] {
+                                return bluetooth_panel_init_egl(bs.bluetooth_panel, mon.app->renderer, mon.app->bluetooth, mon.app->egl_display, mon.app->egl_config, mon.app->egl_context);
                             });
                         app_detail::rest_egl_current(*mon.app);
                     }
-                    bluetooth_panel_toggle(
-                        bs.bluetooth_panel, mon.app->bluetooth,
-                        pill_center_x(bs.capsule, PillId::Bluetooth));
+                    bluetooth_panel_toggle(bs.bluetooth_panel, mon.app->bluetooth, pill_center_x(bs.capsule, PillId::Bluetooth));
                 }};
 }
 

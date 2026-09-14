@@ -120,5 +120,4 @@ struct SubmenuState {
     std::vector<SubmenuEntry> items;
 };
 
-using DirLister = std::function<std::vector<FileEntry>(const std::string &path,
-                                                       bool want_dirs)>;
+using DirLister = std::function<std::vector<FileEntry>(const std::string &path, bool want_dirs)>;

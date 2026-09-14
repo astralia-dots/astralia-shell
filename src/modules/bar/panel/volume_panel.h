@@ -102,32 +102,20 @@ float panel_height(const std::vector<PanelRow> &rows);
 
 } // namespace volume_panel_detail
 
-bool volume_panel_create_surface(VolumePanelState &state,
-                                 wl_compositor *compositor,
-                                 zwlr_layer_shell_v1 *layer_shell,
-                                 wl_output *output = nullptr);
+bool volume_panel_create_surface(VolumePanelState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output = nullptr);
 
-bool volume_panel_init_egl(VolumePanelState &state, Renderer &renderer,
-                           PipewireState &pw, EGLDisplay display,
-                           EGLConfig config, EGLContext context);
+bool volume_panel_init_egl(VolumePanelState &state, Renderer &renderer, PipewireState &pw, EGLDisplay display, EGLConfig config, EGLContext context);
 
-void volume_panel_request_frame(VolumePanelState &state, float pill_center_x,
-                                float bar_height, float bar_top_margin);
+void volume_panel_request_frame(VolumePanelState &state, float pill_center_x, float bar_height, float bar_top_margin);
 
 void volume_panel_toggle(VolumePanelState &state, float pill_center_x = -1.0f);
 
-void volume_panel_handle_scroll(VolumePanelState &state,
-                                const PipewireState &pw, double dy);
+void volume_panel_handle_scroll(VolumePanelState &state, const PipewireState &pw, double dy);
 
-void volume_panel_handle_pointer_move(VolumePanelState &state,
-                                      PipewireState &pw, double px);
+void volume_panel_handle_pointer_move(VolumePanelState &state, PipewireState &pw, double px);
 
-void volume_panel_handle_click(VolumePanelState &state, PipewireState &pw,
-                               double px, double py);
+void volume_panel_handle_click(VolumePanelState &state, PipewireState &pw, double px, double py);
 
-void volume_panel_handle_key_event(VolumePanelState &state, PipewireState &pw,
-                                   const KeyEvent &event);
+void volume_panel_handle_key_event(VolumePanelState &state, PipewireState &pw, const KeyEvent &event);
 
-void volume_panel_paint(VolumePanelState &state, PipewireState &pw,
-                        float pill_center_x, float bar_height,
-                        float bar_top_margin);
+void volume_panel_paint(VolumePanelState &state, PipewireState &pw, float pill_center_x, float bar_height, float bar_top_margin);

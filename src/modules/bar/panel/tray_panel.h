@@ -67,11 +67,9 @@ void tray_menu_paint(TrayMenuState &state, TrayState &tray);
 
 void tray_menu_close(TrayMenuState &state);
 
-void tray_menu_open(TrayMenuState &state, TrayState &tray, const TrayItem &item,
-                    const Rect &anchor_cell, const TrayMenuOpenArgs &args);
+void tray_menu_open(TrayMenuState &state, TrayState &tray, const TrayItem &item, const Rect &anchor_cell, const TrayMenuOpenArgs &args);
 
-void tray_menu_handle_click(TrayMenuState &state, TrayState &tray, double px,
-                            double py);
+void tray_menu_handle_click(TrayMenuState &state, TrayState &tray, double px, double py);
 
 void tray_menu_handle_key_event(TrayMenuState &state, const KeyEvent &event);
 
@@ -79,9 +77,7 @@ constexpr float kTrayCellSize = 40.0f;
 constexpr float kTrayIconTargetSize = 20.0f;
 constexpr int kTrayColumns = 4;
 constexpr float kTrayGridGap = 4.0f;
-constexpr float kTrayPanelWidth = kTrayColumns * kTrayCellSize +
-                                  (kTrayColumns - 1) * kTrayGridGap +
-                                  2.0f * kPanelPadding;
+constexpr float kTrayPanelWidth = kTrayColumns * kTrayCellSize + (kTrayColumns - 1) * kTrayGridGap + 2.0f * kPanelPadding;
 
 struct TrayPanelState {
     OverlayPanelBase base;
@@ -100,32 +96,21 @@ struct TrayPanelState {
     float pending_bar_top_margin = 0.0f;
 };
 
-const Texture *tray_panel_detail_item_icon_texture(TrayPanelState &state,
-                                                   const TrayItem &item);
+const Texture *tray_panel_detail_item_icon_texture(TrayPanelState &state, const TrayItem &item);
 
-bool tray_panel_create_surface(TrayPanelState &state, wl_compositor *compositor,
-                               zwlr_layer_shell_v1 *layer_shell,
-                               wl_output *output = nullptr);
+bool tray_panel_create_surface(TrayPanelState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output = nullptr);
 
-bool tray_panel_init_egl(TrayPanelState &state, Renderer &renderer,
-                         TrayState &tray, EGLDisplay display, EGLConfig config,
-                         EGLContext context);
+bool tray_panel_init_egl(TrayPanelState &state, Renderer &renderer, TrayState &tray, EGLDisplay display, EGLConfig config, EGLContext context);
 
-void tray_panel_request_frame(TrayPanelState &state, float pill_center_x,
-                              float bar_height, float bar_top_margin);
+void tray_panel_request_frame(TrayPanelState &state, float pill_center_x, float bar_height, float bar_top_margin);
 
 void tray_panel_toggle(TrayPanelState &state, float pill_center_x = -1.0f);
 
-void tray_panel_paint(TrayPanelState &state, TrayState &tray,
-                      float pill_center_x, float bar_height,
-                      float bar_top_margin);
+void tray_panel_paint(TrayPanelState &state, TrayState &tray, float pill_center_x, float bar_height, float bar_top_margin);
 
 struct TrayPanelClickResult {
     const TrayItem *open_menu_for = nullptr;
     Rect anchor_cell;
 };
 
-TrayPanelClickResult tray_panel_handle_click(TrayPanelState &state,
-                                             TrayState &tray,
-                                             TrayMenuState &menu, double px,
-                                             double py, uint32_t button);
+TrayPanelClickResult tray_panel_handle_click(TrayPanelState &state, TrayState &tray, TrayMenuState &menu, double px, double py, uint32_t button);

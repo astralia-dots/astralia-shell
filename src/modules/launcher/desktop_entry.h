@@ -9,13 +9,11 @@
 
 namespace desktop_entry_detail {
 
-std::optional<DesktopEntry> parse_stream(std::istream &in,
-                                         const std::string &id);
+std::optional<DesktopEntry> parse_stream(std::istream &in, const std::string &id);
 
 }
 
-std::optional<DesktopEntry> parse_desktop_entry(const std::string &path,
-                                                const std::string &id);
+std::optional<DesktopEntry> parse_desktop_entry(const std::string &path, const std::string &id);
 
 std::string strip_exec_field_codes(const std::string &exec);
 

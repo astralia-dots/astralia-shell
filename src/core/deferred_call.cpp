@@ -38,9 +38,7 @@ void DeferredCall::drain() {
     auto t0 = std::chrono::steady_clock::now();
     for (auto &fn : fns)
         fn();
-    float ms = std::chrono::duration<float, std::milli>(
-                   std::chrono::steady_clock::now() - t0)
-                   .count();
+    float ms = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - t0).count();
     if (ms > 5.0f)
         klog("deferred: drain %zu callbacks in %.1fms", fns.size(), ms);
 }
@@ -67,12 +65,10 @@ std::vector<std::function<void()>> &DeferredCall::pending() {
 std::size_t DeferredCallPollSource::add_poll_fds(std::vector<pollfd> &fds) {
     if (DeferredCall::poll_fd() < 0)
         return 0;
-    fds.push_back(
-        {.fd = DeferredCall::poll_fd(), .events = POLLIN, .revents = 0});
+    fds.push_back({.fd = DeferredCall::poll_fd(), .events = POLLIN, .revents = 0});
     return 1;
 }
 
-void DeferredCallPollSource::dispatch(const std::vector<pollfd> &,
-                                      std::size_t) {
+void DeferredCallPollSource::dispatch(const std::vector<pollfd> &, std::size_t) {
     DeferredCall::drain();
 }

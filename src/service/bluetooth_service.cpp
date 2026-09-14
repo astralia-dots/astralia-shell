@@ -107,8 +107,7 @@ bool rfkill_set_bluetooth_soft_blocked(bool blocked) {
     int write_errno = errno;
     close(fd);
     if (written != static_cast<ssize_t>(sizeof(ev))) {
-        klog("rfkill: write /dev/rfkill: %s",
-             written < 0 ? strerror(write_errno) : "short write");
+        klog("rfkill: write /dev/rfkill: %s", written < 0 ? strerror(write_errno) : "short write");
         return false;
     }
     return true;
@@ -262,8 +261,7 @@ void merge_device_props(const InterfaceProps &props, BluetoothDeviceInfo &out) {
         out.name = out.address.empty() ? "Unknown Device" : out.address;
 }
 
-void merge_battery_props(const InterfaceProps &props,
-                         BluetoothDeviceInfo &out) {
+void merge_battery_props(const InterfaceProps &props, BluetoothDeviceInfo &out) {
     if (!out.connected) {
         out.has_battery = false;
         out.battery_percent = 0;
@@ -277,8 +275,7 @@ void merge_battery_props(const InterfaceProps &props,
     }
 }
 
-BluetoothDeviceInfo *find_device(BluetoothState &state,
-                                 const std::string &path) {
+BluetoothDeviceInfo *find_device(BluetoothState &state, const std::string &path) {
     for (BluetoothDeviceInfo &d : state.devices)
         if (d.path == path)
             return &d;
@@ -292,8 +289,7 @@ std::string connected_device_path(const BluetoothState &state) {
     return "";
 }
 
-void notify_connection_change(BluetoothState &state,
-                              const BluetoothNotifyFn &notify) {
+void notify_connection_change(BluetoothState &state, const BluetoothNotifyFn &notify) {
     std::string cur = connected_device_path(state);
     if (cur == state.prev_connected_path)
         return;
@@ -304,20 +300,16 @@ void notify_connection_change(BluetoothState &state,
         } else if (!state.prev_connected_path.empty()) {
             const BluetoothDeviceInfo *d =
                 find_device(state, state.prev_connected_path);
-            notify("Disconnected",
-                   "Disconnected from " +
-                       (d ? d->name : state.prev_connected_path));
+            notify("Disconnected", "Disconnected from " + (d ? d->name : state.prev_connected_path));
         }
     }
     state.prev_connected_path = cur;
 }
 
-void apply_managed_objects(BluetoothState &state, const ManagedObjects &objects,
-                           const BluetoothNotifyFn &notify) {
+void apply_managed_objects(BluetoothState &state, const ManagedObjects &objects, const BluetoothNotifyFn &notify) {
     std::vector<BluetoothDeviceInfo> next_devices;
     bool adapter_found = false;
-    bool prev_present = state.adapter_present, prev_powered = state.powered,
-         prev_scanning = state.scanning;
+    bool prev_present = state.adapter_present, prev_powered = state.powered, prev_scanning = state.scanning;
     std::vector<BluetoothDeviceInfo> prev_devices = state.devices;
 
     for (const auto &[path, interfaces] : objects) {
@@ -342,15 +334,12 @@ void apply_managed_objects(BluetoothState &state, const ManagedObjects &objects,
         BluetoothDeviceInfo info;
         info.path = path;
         merge_device_props(dev_it->second, info);
-        if (auto batt_it = interfaces.find(kBatteryIface);
-            batt_it != interfaces.end())
+        if (auto batt_it = interfaces.find(kBatteryIface); batt_it != interfaces.end())
             merge_battery_props(batt_it->second, info);
         next_devices.push_back(std::move(info));
     }
     state.devices = std::move(next_devices);
-    if (state.adapter_present != prev_present ||
-        state.powered != prev_powered || state.scanning != prev_scanning ||
-        state.devices != prev_devices)
+    if (state.adapter_present != prev_present || state.powered != prev_powered || state.scanning != prev_scanning || state.devices != prev_devices)
         state.dirty = true;
     notify_connection_change(state, notify);
 }
@@ -359,9 +348,7 @@ sdbus::IProxy *adapter(BluetoothState &state) {
     if (!state.adapter_present)
         return nullptr;
     if (!state.adapter) {
-        state.adapter = sdbus::createProxy(
-            state.root->getConnection(), sdbus::ServiceName{kService},
-            sdbus::ObjectPath{state.adapter_path});
+        state.adapter = sdbus::createProxy(state.root->getConnection(), sdbus::ServiceName{kService}, sdbus::ObjectPath{state.adapter_path});
     }
     return state.adapter.get();
 }
@@ -370,9 +357,7 @@ sdbus::IProxy *device_proxy(BluetoothState &state, const std::string &path) {
     auto it = state.device_proxies.find(path);
     if (it != state.device_proxies.end())
         return it->second.get();
-    auto proxy = sdbus::createProxy(state.root->getConnection(),
-                                    sdbus::ServiceName{kService},
-                                    sdbus::ObjectPath{path});
+    auto proxy = sdbus::createProxy(state.root->getConnection(), sdbus::ServiceName{kService}, sdbus::ObjectPath{path});
     sdbus::IProxy *raw = proxy.get();
     state.device_proxies.emplace(path, std::move(proxy));
     return raw;
@@ -383,19 +368,16 @@ sdbus::IProxy *device_proxy(BluetoothState &state, const std::string &path) {
 bool bluetooth_init(BluetoothState &state, sdbus::IConnection &bus) {
     using namespace bluetooth_detail;
     try {
-        state.root = sdbus::createProxy(bus, sdbus::ServiceName{kService},
-                                        sdbus::ObjectPath{kRootPath});
+        state.root = sdbus::createProxy(bus, sdbus::ServiceName{kService}, sdbus::ObjectPath{kRootPath});
 
         state.root->uponSignal("InterfacesAdded")
             .onInterface(kObjectManagerIface)
-            .call(
-                [&state](const sdbus::ObjectPath &, const ObjectInterfaces &) {
+            .call([&state](const sdbus::ObjectPath &, const ObjectInterfaces &) {
                     state.next_refresh_at = std::chrono::steady_clock::now();
                 });
         state.root->uponSignal("InterfacesRemoved")
             .onInterface(kObjectManagerIface)
-            .call([&state](const sdbus::ObjectPath &path,
-                           const std::vector<std::string> &) {
+            .call([&state](const sdbus::ObjectPath &path, const std::vector<std::string> &) {
                 state.device_proxies.erase(path);
                 state.next_refresh_at = std::chrono::steady_clock::now();
             });
@@ -408,13 +390,10 @@ bool bluetooth_init(BluetoothState &state, sdbus::IConnection &bus) {
         state.dirty = false;
         state.init_done = true;
 
-        klog("bluetooth: connected, adapter_present=%d powered=%d",
-             state.adapter_present, state.powered);
+        klog("bluetooth: connected, adapter_present=%d powered=%d", state.adapter_present, state.powered);
         return true;
     } catch (const sdbus::Error &e) {
-        klog("bluetooth: connection failed (%s): %s - no bluetooth info "
-             "available",
-             e.getName().c_str(), e.getMessage().c_str());
+        klog("bluetooth: connection failed (%s): %s - no bluetooth info " "available", e.getName().c_str(), e.getMessage().c_str());
         state.root.reset();
         return false;
     }
@@ -439,8 +418,7 @@ void bluetooth_set_powered(BluetoothState &state, bool enabled) {
             .toValue(enabled, sdbus::dont_expect_reply);
         state.next_refresh_at = std::chrono::steady_clock::now();
     } catch (const sdbus::Error &e) {
-        klog("bluetooth: setPowered failed (%s): %s", e.getName().c_str(),
-             e.getMessage().c_str());
+        klog("bluetooth: setPowered failed (%s): %s", e.getName().c_str(), e.getMessage().c_str());
     }
 }
 
@@ -453,12 +431,10 @@ void bluetooth_start_discovery(BluetoothState &state) {
             .onInterface(bluetooth_detail::kAdapterIface)
             .uponReplyInvoke([](std::optional<sdbus::Error> err) {
                 if (err)
-                    klog("bluetooth: StartDiscovery failed: %s",
-                         err->getMessage().c_str());
+                    klog("bluetooth: StartDiscovery failed: %s", err->getMessage().c_str());
             });
     } catch (const sdbus::Error &e) {
-        klog("bluetooth: StartDiscovery dispatch failed: %s",
-             e.getMessage().c_str());
+        klog("bluetooth: StartDiscovery dispatch failed: %s", e.getMessage().c_str());
     }
 }
 
@@ -471,18 +447,15 @@ void bluetooth_stop_discovery(BluetoothState &state) {
             .onInterface(bluetooth_detail::kAdapterIface)
             .uponReplyInvoke([](std::optional<sdbus::Error> err) {
                 if (err)
-                    klog("bluetooth: StopDiscovery failed: %s",
-                         err->getMessage().c_str());
+                    klog("bluetooth: StopDiscovery failed: %s", err->getMessage().c_str());
             });
     } catch (const sdbus::Error &e) {
-        klog("bluetooth: StopDiscovery dispatch failed: %s",
-             e.getMessage().c_str());
+        klog("bluetooth: StopDiscovery dispatch failed: %s", e.getMessage().c_str());
     }
 }
 
 void bluetooth_connect(BluetoothState &state, const std::string &device_path) {
-    if (BluetoothDeviceInfo *d =
-            bluetooth_detail::find_device(state, device_path))
+    if (BluetoothDeviceInfo *d = bluetooth_detail::find_device(state, device_path))
         d->connecting = true;
     try {
         bluetooth_detail::device_proxy(state, device_path)
@@ -490,34 +463,29 @@ void bluetooth_connect(BluetoothState &state, const std::string &device_path) {
             .onInterface(bluetooth_detail::kDeviceIface)
             .uponReplyInvoke([](std::optional<sdbus::Error> err) {
                 if (err)
-                    klog("bluetooth: Connect failed: %s",
-                         err->getMessage().c_str());
+                    klog("bluetooth: Connect failed: %s", err->getMessage().c_str());
             });
     } catch (const sdbus::Error &e) {
         klog("bluetooth: Connect dispatch failed: %s", e.getMessage().c_str());
     }
 }
 
-void bluetooth_disconnect(BluetoothState &state,
-                          const std::string &device_path) {
+void bluetooth_disconnect(BluetoothState &state, const std::string &device_path) {
     try {
         bluetooth_detail::device_proxy(state, device_path)
             ->callMethodAsync("Disconnect")
             .onInterface(bluetooth_detail::kDeviceIface)
             .uponReplyInvoke([](std::optional<sdbus::Error> err) {
                 if (err)
-                    klog("bluetooth: Disconnect failed: %s",
-                         err->getMessage().c_str());
+                    klog("bluetooth: Disconnect failed: %s", err->getMessage().c_str());
             });
     } catch (const sdbus::Error &e) {
-        klog("bluetooth: Disconnect dispatch failed: %s",
-             e.getMessage().c_str());
+        klog("bluetooth: Disconnect dispatch failed: %s", e.getMessage().c_str());
     }
 }
 
 void bluetooth_pair(BluetoothState &state, const std::string &device_path) {
-    if (BluetoothDeviceInfo *d =
-            bluetooth_detail::find_device(state, device_path))
+    if (BluetoothDeviceInfo *d = bluetooth_detail::find_device(state, device_path))
         d->connecting = true;
     try {
         bluetooth_detail::device_proxy(state, device_path)
@@ -525,8 +493,7 @@ void bluetooth_pair(BluetoothState &state, const std::string &device_path) {
             .onInterface(bluetooth_detail::kDeviceIface)
             .uponReplyInvoke([](std::optional<sdbus::Error> err) {
                 if (err)
-                    klog("bluetooth: Pair failed: %s",
-                         err->getMessage().c_str());
+                    klog("bluetooth: Pair failed: %s", err->getMessage().c_str());
             });
     } catch (const sdbus::Error &e) {
         klog("bluetooth: Pair dispatch failed: %s", e.getMessage().c_str());
@@ -543,30 +510,23 @@ void bluetooth_forget(BluetoothState &state, const std::string &device_path) {
             .withArguments(sdbus::ObjectPath{device_path})
             .uponReplyInvoke([](std::optional<sdbus::Error> err) {
                 if (err)
-                    klog("bluetooth: RemoveDevice failed: %s",
-                         err->getMessage().c_str());
+                    klog("bluetooth: RemoveDevice failed: %s", err->getMessage().c_str());
             });
     } catch (const sdbus::Error &e) {
-        klog("bluetooth: RemoveDevice dispatch failed: %s",
-             e.getMessage().c_str());
+        klog("bluetooth: RemoveDevice dispatch failed: %s", e.getMessage().c_str());
     }
 }
 
-void bluetooth_tick(BluetoothState &state, const BluetoothNotifyFn &notify,
-                    std::chrono::steady_clock::time_point now,
-                    std::function<void()> on_changed) {
+void bluetooth_tick(BluetoothState &state, const BluetoothNotifyFn &notify, std::chrono::steady_clock::time_point now, std::function<void()> on_changed) {
     if (!state.root || now < state.next_refresh_at)
         return;
     state.next_refresh_at = now + std::chrono::seconds(1);
 
     state.root->callMethodAsync("GetManagedObjects")
         .onInterface(bluetooth_detail::kObjectManagerIface)
-        .uponReplyInvoke([&state, notify, on_changed](
-                             std::optional<sdbus::Error> err,
-                             bluetooth_detail::ManagedObjects objects) {
+        .uponReplyInvoke([&state, notify, on_changed](std::optional<sdbus::Error> err, bluetooth_detail::ManagedObjects objects) {
             if (err) {
-                klog("bluetooth: GetManagedObjects failed: %s",
-                     err->getMessage().c_str());
+                klog("bluetooth: GetManagedObjects failed: %s", err->getMessage().c_str());
                 return;
             }
             bluetooth_detail::apply_managed_objects(state, objects, notify);

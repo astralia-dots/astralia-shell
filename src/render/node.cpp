@@ -47,8 +47,7 @@ void node_clear_dirty(Node &n) {
         node_clear_dirty(*n.children[i]);
 }
 
-Node *node_add_rect(Node *parent, float x, float y, float w, float h,
-                    const float fill[4]) {
+Node *node_add_rect(Node *parent, float x, float y, float w, float h, const float fill[4]) {
     Node *n = parent->claim_child();
     n->kind = NodeKind::Rect;
     n->x = x;
@@ -59,9 +58,7 @@ Node *node_add_rect(Node *parent, float x, float y, float w, float h,
     return n;
 }
 
-Node *node_add_rrect(Node *parent, float x, float y, float w, float h,
-                     float radius, float border_width, const float fill[4],
-                     const float border[4]) {
+Node *node_add_rrect(Node *parent, float x, float y, float w, float h, float radius, float border_width, const float fill[4], const float border[4]) {
     Node *n = parent->claim_child();
     n->kind = NodeKind::RoundedRect;
     n->x = x;
@@ -75,8 +72,7 @@ Node *node_add_rrect(Node *parent, float x, float y, float w, float h,
     return n;
 }
 
-Node *node_add_texture_rect(Node *parent, float x, float y, float w, float h,
-                            const Texture &tex, const float tint[4]) {
+Node *node_add_texture_rect(Node *parent, float x, float y, float w, float h, const Texture &tex, const float tint[4]) {
     Node *n = parent->claim_child();
     n->kind = NodeKind::Texture;
     n->x = x;
@@ -88,9 +84,7 @@ Node *node_add_texture_rect(Node *parent, float x, float y, float w, float h,
     return n;
 }
 
-Node *node_add_texture_rect_rounded(Node *parent, float x, float y, float w,
-                                    float h, float radius, const Texture &tex,
-                                    const float tint[4]) {
+Node *node_add_texture_rect_rounded(Node *parent, float x, float y, float w, float h, float radius, const Texture &tex, const float tint[4]) {
     Node *n = parent->claim_child();
     n->kind = NodeKind::RoundedTexture;
     n->x = x;
@@ -103,16 +97,12 @@ Node *node_add_texture_rect_rounded(Node *parent, float x, float y, float w,
     return n;
 }
 
-Node *node_add_texture(Node *parent, float x, float y, const Texture &tex,
-                       const float tint[4]) {
+Node *node_add_texture(Node *parent, float x, float y, const Texture &tex, const float tint[4]) {
     float inv_scale = 1.0f / static_cast<float>(tex.scale > 0 ? tex.scale : 1);
-    return node_add_texture_rect(
-        parent, x, y, static_cast<float>(tex.width) * inv_scale,
-        static_cast<float>(tex.height) * inv_scale, tex, tint);
+    return node_add_texture_rect(parent, x, y, static_cast<float>(tex.width) * inv_scale, static_cast<float>(tex.height) * inv_scale, tex, tint);
 }
 
-Node *node_add_group(Node *parent, float x, float y, float w, float h,
-                     bool clip_children) {
+Node *node_add_group(Node *parent, float x, float y, float w, float h, bool clip_children) {
     Node *n = parent->claim_child();
     n->kind = NodeKind::Group;
     n->x = x;
@@ -123,17 +113,13 @@ Node *node_add_group(Node *parent, float x, float y, float w, float h,
     return n;
 }
 
-void node_draw(const Node &n, Renderer &renderer, float parent_x,
-               float parent_y) {
+void node_draw(const Node &n, Renderer &renderer, float parent_x, float parent_y) {
     float x = parent_x + n.x, y = parent_y + n.y;
 
     bool transformed = n.rotation != 0.0f || n.scale != 1.0f;
     if (transformed) {
         float cx = x + n.w * 0.5f, cy = y + n.h * 0.5f;
-        Affine2D local = Affine2D::translation(cx, cy)
-                             .compose(Affine2D::scaling(n.scale))
-                             .compose(Affine2D::rotation_deg(n.rotation))
-                             .compose(Affine2D::translation(-cx, -cy));
+        Affine2D local = Affine2D::translation(cx, cy).compose(Affine2D::scaling(n.scale)).compose(Affine2D::rotation_deg(n.rotation)).compose(Affine2D::translation(-cx, -cy));
         renderer.push_model(local);
     }
 
@@ -142,8 +128,7 @@ void node_draw(const Node &n, Renderer &renderer, float parent_x,
         renderer.draw_rect(x, y, n.w, n.h, n.fill);
         break;
     case NodeKind::RoundedRect:
-        renderer.draw_rounded_rect(x, y, n.w, n.h, n.radius, n.border_width,
-                                   n.fill, n.border);
+        renderer.draw_rounded_rect(x, y, n.w, n.h, n.radius, n.border_width, n.fill, n.border);
         break;
     case NodeKind::Texture:
         if (n.tex && n.tex->id)
@@ -151,8 +136,7 @@ void node_draw(const Node &n, Renderer &renderer, float parent_x,
         break;
     case NodeKind::RoundedTexture:
         if (n.tex && n.tex->id)
-            renderer.draw_texture_rect_rounded(x, y, n.w, n.h, n.radius, *n.tex,
-                                               n.tint);
+            renderer.draw_texture_rect_rounded(x, y, n.w, n.h, n.radius, *n.tex, n.tint);
         break;
     case NodeKind::VideoTexture:
         if (n.video_tex && n.video_tex->tex)

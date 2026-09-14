@@ -25,15 +25,10 @@ constexpr float kWorkspacePillSpacing = 5.0f;
 constexpr float kWorkspaceActiveWidthScale = 2.0f;
 constexpr float kWorkspacePillAnimMs = 100.0f;
 constexpr uint64_t kWorkspacePillOwnerBase = 200;
-float draw_workspace_row(Node *root, WorkspaceWidgetState &wstate,
-                         AnimationManager &animations, float x, float height,
-                         const std::vector<Workspace> &ws_list, int active_id,
-                         const float pill_bg[4], const Texture &overview_icon);
+float draw_workspace_row(Node *root, WorkspaceWidgetState &wstate, AnimationManager &animations, float x, float height, const std::vector<Workspace> &ws_list, int active_id, const float pill_bg[4], const Texture &overview_icon);
 
-int workspace_row_hit_workspace(const WorkspaceWidgetState &wstate, float x,
-                                float y);
+int workspace_row_hit_workspace(const WorkspaceWidgetState &wstate, float x, float y);
 
-bool workspace_row_hit_overview(const WorkspaceWidgetState &wstate, float x,
-                             float y);
+bool workspace_row_hit_overview(const WorkspaceWidgetState &wstate, float x, float y);
 
 } // namespace bar_detail

@@ -17,14 +17,12 @@ static void test_marquee_overflow_cycles() {
     MarqueeTextState state;
     auto now = std::chrono::steady_clock::now();
 
-    marquee_scroll_update(anim, state, "a very long scrolling label", 300.0f,
-                          100.0f);
+    marquee_scroll_update(anim, state, "a very long scrolling label", 300.0f, 100.0f);
     assert(state.marqueeing);
     assert(anim.hasActive());
     assert(state.scroll_offset == 0.0f);
 
-    marquee_scroll_update(anim, state, "a very long scrolling label", 300.0f,
-                          100.0f);
+    marquee_scroll_update(anim, state, "a very long scrolling label", 300.0f, 100.0f);
     assert(state.marqueeing);
 
     now += std::chrono::milliseconds(1300);
@@ -45,15 +43,13 @@ static void test_marquee_text_change_resets() {
     MarqueeTextState state;
     auto now = std::chrono::steady_clock::now();
 
-    marquee_scroll_update(anim, state, "first long label text here", 300.0f,
-                          100.0f);
+    marquee_scroll_update(anim, state, "first long label text here", 300.0f, 100.0f);
     now += std::chrono::milliseconds(1300);
     anim.tick(now);
     anim.tick(now);
     assert(state.scroll_offset > 0.0f);
 
-    marquee_scroll_update(anim, state, "second, different label text", 320.0f,
-                          100.0f);
+    marquee_scroll_update(anim, state, "second, different label text", 320.0f, 100.0f);
     assert(state.scroll_offset == 0.0f);
     assert(state.last_text == "second, different label text");
 }
@@ -63,14 +59,12 @@ static void test_marquee_shrink_to_fit_stops() {
     MarqueeTextState state;
     auto now = std::chrono::steady_clock::now();
 
-    marquee_scroll_update(anim, state, "long enough to overflow the box",
-                          300.0f, 100.0f);
+    marquee_scroll_update(anim, state, "long enough to overflow the box", 300.0f, 100.0f);
     now += std::chrono::milliseconds(1300);
     anim.tick(now);
     assert(state.marqueeing);
 
-    marquee_scroll_update(anim, state, "long enough to overflow the box", 90.0f,
-                          100.0f);
+    marquee_scroll_update(anim, state, "long enough to overflow the box", 90.0f, 100.0f);
     assert(!state.marqueeing);
     assert(state.scroll_offset == 0.0f);
     assert(!anim.hasActive());

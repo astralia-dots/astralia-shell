@@ -94,8 +94,7 @@ struct LockState {
 
     AnimatedImage avatar;
 
-    std::function<void(const std::string &output_name, Node &root, int32_t w,
-                       int32_t h)>
+    std::function<void(const std::string &output_name, Node &root, int32_t w, int32_t h)>
         draw_wallpaper;
     std::function<bool(const std::string &output_name)> panel_gated_for;
 };
@@ -104,8 +103,7 @@ bool lock_request(LockState &st, WaylandState &app);
 void lock_teardown(LockState &st);
 void lock_begin_unlock(LockState &st);
 void lock_handle_key(LockState &st, const KeyEvent &ev);
-void lock_handle_click(LockState &st, wl_surface *surf, double x,
-                          double y);
+void lock_handle_click(LockState &st, wl_surface *surf, double x, double y);
 void lock_timer_tick(LockState &st);
 void lock_hotplug_add(LockState &st, wl_output *output, const char *name);
 void lock_hotplug_remove(LockState &st, wl_output *output);

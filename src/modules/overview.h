@@ -67,38 +67,26 @@ struct OverviewState {
     int poll_tick = 0;
 };
 
-bool overview_create_surface(OverviewState &state, wl_compositor *compositor,
-                          zwlr_layer_shell_v1 *layer_shell,
-                          wl_output *output = nullptr);
+bool overview_create_surface(OverviewState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output = nullptr);
 
-bool overview_init_egl(OverviewState &state, Renderer &renderer, EGLDisplay display,
-                    EGLConfig config, EGLContext context);
+bool overview_init_egl(OverviewState &state, Renderer &renderer, EGLDisplay display, EGLConfig config, EGLContext context);
 
-void overview_retarget(OverviewState &state, wl_compositor *compositor,
-                    zwlr_layer_shell_v1 *layer_shell, wl_display *display,
-                    Renderer &renderer, EGLDisplay egl_display,
-                    EGLConfig egl_config, EGLContext egl_context,
-                    wl_output *target_output, const char *target_name);
+void overview_retarget(OverviewState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_display *display, Renderer &renderer, EGLDisplay egl_display, EGLConfig egl_config, EGLContext egl_context, wl_output *target_output, const char *target_name);
 
 void overview_request_frame(OverviewState &state);
 
 void overview_toggle(OverviewState &state, WaylandState &app, bool by_widget = false);
 
-std::vector<IpcHandler> overview_ipc_handlers(OverviewState &overview,
-                                           WaylandState &state);
+std::vector<IpcHandler> overview_ipc_handlers(OverviewState &overview, WaylandState &state);
 
-void overview_handle_click(OverviewState &state, WaylandState &app, double px,
-                        double py);
+void overview_handle_click(OverviewState &state, WaylandState &app, double px, double py);
 
-void overview_handle_pointer_move(OverviewState &state, WaylandState &app, double px,
-                               double py);
+void overview_handle_pointer_move(OverviewState &state, WaylandState &app, double px, double py);
 
-bool overview_point_is_clickable(OverviewState &state, WaylandState &app, double px,
-                              double py);
+bool overview_point_is_clickable(OverviewState &state, WaylandState &app, double px, double py);
 
 void overview_handle_pointer_release(OverviewState &state, WaylandState &app);
 
-void overview_handle_key_event(OverviewState &state, WaylandState &app,
-                            const KeyEvent &event);
+void overview_handle_key_event(OverviewState &state, WaylandState &app, const KeyEvent &event);
 
 void overview_paint(OverviewState &state, WaylandState &app);

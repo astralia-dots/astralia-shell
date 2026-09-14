@@ -8,13 +8,10 @@
 static bool near(float a, float b) { return std::fabs(a - b) < 0.01f; }
 
 void test_lock_layout() {
-    assert(near(lock_icon_box_size(),
-                kLockFontIcon + kLockIconBoxMargin * 4.0f));
+    assert(near(lock_icon_box_size(), kLockFontIcon + kLockIconBoxMargin * 4.0f));
 
-    assert(
-        near(lock_card_height(1440.0f), 1440.0f * kLockCardHeightMult));
-    assert(near(lock_card_width(1440.0f),
-                1440.0f * kLockCardHeightMult * kLockCardRatio));
+    assert(near(lock_card_height(1440.0f), 1440.0f * kLockCardHeightMult));
+    assert(near(lock_card_width(1440.0f), 1440.0f * kLockCardHeightMult * kLockCardRatio));
 
     assert(near(lock_center_scale(1440.0f), 1.0f));
     assert(near(lock_center_scale(720.0f), 0.5f));
@@ -36,10 +33,7 @@ void test_lock_layout() {
     assert(near(sc * 2.0f + kLockPanelGap, 600.0f));
 
     float h = lock_content_height(120.0f, 34.0f, 20.0f);
-    assert(near(h, 120.0f + kLockGapClockDate + 34.0f +
-                       kLockGapDateAvatar + kLockProfileSize +
-                       kLockGapAvatarInput + kLockInputHeight +
-                       kLockGapInputMessage + 20.0f));
+    assert(near(h, 120.0f + kLockGapClockDate + 34.0f + kLockGapDateAvatar + kLockProfileSize + kLockGapAvatarInput + kLockInputHeight + kLockGapInputMessage + 20.0f));
 
     assert(lock_fetch_colour_count(0.0f, 8) == 0);
     assert(lock_fetch_colour_count(kLockFetchColorBox, 8) == 1);

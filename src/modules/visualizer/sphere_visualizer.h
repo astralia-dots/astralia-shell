@@ -9,17 +9,13 @@ class SphereVisualizer {
     bool init();
     void destroy();
 
-    void render(int width, int height, int tick, float fade, GLuint audio_l_tex,
-                GLuint audio_r_tex, int audio_size,
-                const VisualizerParams &params);
+    void render(int width, int height, int tick, float fade, GLuint audio_l_tex, GLuint audio_r_tex, int audio_size, const VisualizerParams &params);
 
   private:
     void ensure_targets(int canvas);
     void draw_quad();
     void present(int width, int height, int canvas, float fade);
-    void set_audio_uniforms(GLuint prog, GLuint audio_l_tex, GLuint audio_r_tex,
-                            int audio_size, int tick, int canvas,
-                            const VisualizerParams &params);
+    void set_audio_uniforms(GLuint prog, GLuint audio_l_tex, GLuint audio_r_tex, int audio_size, int tick, int canvas, const VisualizerParams &params);
 
     GLuint sphere1_prog_ = 0;
     GLuint sphere2_prog_ = 0;

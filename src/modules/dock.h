@@ -55,11 +55,9 @@ struct DockState {
     DockAutoHideState autohide;
 };
 
-bool dock_create_surface(DockState &state, wl_compositor *compositor,
-                         zwlr_layer_shell_v1 *layer_shell, wl_output *output);
+bool dock_create_surface(DockState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output);
 
-bool dock_init_egl(DockState &state, Renderer &renderer, EGLDisplay display,
-                   EGLConfig config, EGLContext context);
+bool dock_init_egl(DockState &state, Renderer &renderer, EGLDisplay display, EGLConfig config, EGLContext context);
 
 void dock_request_frame(DockState &state);
 

@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <filesystem>
 #include <jpeglib.h>
 #include <librsvg/rsvg.h>
 #include <png.h>
@@ -16,8 +17,7 @@ unsigned char *decode_png(FILE *fp, int &width, int &height) {
     if (fread(header, 1, 8, fp) != 8 || png_sig_cmp(header, 0, 8))
         return nullptr;
 
-    png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr,
-                                             nullptr, nullptr);
+    png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
     if (!png)
         return nullptr;
     png_infop info = png_create_info_struct(png);
@@ -47,11 +47,9 @@ unsigned char *decode_png(FILE *fp, int &width, int &height) {
         png_set_expand_gray_1_2_4_to_8(png);
     if (png_get_valid(png, info, PNG_INFO_tRNS))
         png_set_tRNS_to_alpha(png);
-    if (color_type == PNG_COLOR_TYPE_RGB || color_type == PNG_COLOR_TYPE_GRAY ||
-        color_type == PNG_COLOR_TYPE_PALETTE)
+    if (color_type == PNG_COLOR_TYPE_RGB || color_type == PNG_COLOR_TYPE_GRAY || color_type == PNG_COLOR_TYPE_PALETTE)
         png_set_filler(png, 0xFF, PNG_FILLER_AFTER);
-    if (color_type == PNG_COLOR_TYPE_GRAY ||
-        color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
+    if (color_type == PNG_COLOR_TYPE_GRAY || color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
         png_set_gray_to_rgb(png);
 
     png_read_update_info(png, info);
@@ -117,17 +115,14 @@ unsigned char *decode_jpeg(FILE *fp, int &width, int &height) {
 
 bool looks_like_svg(const unsigned char *sig, size_t n) {
     std::string_view head(reinterpret_cast<const char *>(sig), n);
-    return head.find("<svg") != std::string_view::npos ||
-           head.find("<?xml") != std::string_view::npos;
+    return head.find("<svg") != std::string_view::npos || head.find("<?xml") != std::string_view::npos;
 }
 
-unsigned char *decode_svg(const std::string &path, int target_px, int &width,
-                          int &height) {
+unsigned char *decode_svg(const std::string &path, int target_px, int &width, int &height) {
     GError *error = nullptr;
     RsvgHandle *handle = rsvg_handle_new_from_file(path.c_str(), &error);
     if (!handle) {
-        klog("svg: failed to open '%s': %s", path.c_str(),
-             error ? error->message : "unknown error");
+        klog("svg: failed to open '%s': %s", path.c_str(), error ? error->message : "unknown error");
         if (error)
             g_error_free(error);
         return nullptr;
@@ -136,8 +131,7 @@ unsigned char *decode_svg(const std::string &path, int target_px, int &width,
     cairo_surface_t *surface =
         cairo_image_surface_create(CAIRO_FORMAT_ARGB32, target_px, target_px);
     cairo_t *cr = cairo_create(surface);
-    RsvgRectangle viewport = {0.0, 0.0, static_cast<double>(target_px),
-                              static_cast<double>(target_px)};
+    RsvgRectangle viewport = {0.0, 0.0, static_cast<double>(target_px), static_cast<double>(target_px)};
     bool ok = rsvg_handle_render_document(handle, cr, &viewport, &error);
     cairo_surface_flush(surface);
 
@@ -170,8 +164,7 @@ unsigned char *decode_svg(const std::string &path, int target_px, int &width,
         }
         width = height = target_px;
     } else {
-        klog("svg: failed to render '%s': %s", path.c_str(),
-             error ? error->message : "unknown error");
+        klog("svg: failed to render '%s': %s", path.c_str(), error ? error->message : "unknown error");
         if (error)
             g_error_free(error);
     }
@@ -184,8 +177,7 @@ unsigned char *decode_svg(const std::string &path, int target_px, int &width,
 
 } // namespace
 
-unsigned char *load_image_decode(const std::string &path, int &width,
-                                 int &height, int svg_target_px) {
+unsigned char *load_image_decode(const std::string &path, int &width, int &height, int svg_target_px) {
     FILE *fp = fopen(path.c_str(), "rb");
     if (!fp) {
         klog("image: failed to open '%s'", path.c_str());
@@ -204,8 +196,7 @@ unsigned char *load_image_decode(const std::string &path, int &width,
     } else if (looks_like_svg(sig, n)) {
         fclose(fp);
         if (svg_target_px <= 0) {
-            klog("image: '%s' is an SVG but no target size was given",
-                 path.c_str());
+            klog("image: '%s' is an SVG but no target size was given", path.c_str());
             return nullptr;
         }
         data = decode_svg(path, svg_target_px, width, height);
@@ -228,4 +219,11 @@ Texture load_image_texture(const std::string &path, int svg_target_px) {
     Texture tex = make_texture_rgba(width, height, data, true);
     delete[] data;
     return tex;
+}
+
+Texture load_image_texture_first_existing(std::initializer_list<const char *> candidates, int svg_target_px) {
+    for (const char *candidate : candidates)
+        if (std::filesystem::exists(candidate))
+            return load_image_texture(candidate, svg_target_px);
+    return Texture{};
 }

@@ -36,8 +36,7 @@ std::string extract_json_name(const char *value) {
     return std::string(sv.substr(start + 1, end - start - 1));
 }
 
-void node_param_cb(void *data, int, uint32_t id, uint32_t index, uint32_t,
-                   const spa_pod *param) {
+void node_param_cb(void *data, int, uint32_t id, uint32_t index, uint32_t, const spa_pod *param) {
     if (id != SPA_PARAM_Props || index != 0)
         return;
     auto *entry = static_cast<PwNodeEntry *>(data);
@@ -93,11 +92,8 @@ void node_info_cb(void *data, const pw_node_info *info) {
         return;
     for (uint32_t i = 0; i < info->n_params; ++i) {
         const auto &param = info->params[i];
-        if (param.id == SPA_PARAM_Props &&
-            (param.flags & SPA_PARAM_INFO_READWRITE) ==
-                SPA_PARAM_INFO_READWRITE) {
-            pw_node_enum_params(reinterpret_cast<pw_node *>(entry->proxy), 0,
-                                SPA_PARAM_Props, 0, UINT32_MAX, nullptr);
+        if (param.id == SPA_PARAM_Props && (param.flags & SPA_PARAM_INFO_READWRITE) == SPA_PARAM_INFO_READWRITE) {
+            pw_node_enum_params(reinterpret_cast<pw_node *>(entry->proxy), 0, SPA_PARAM_Props, 0, UINT32_MAX, nullptr);
         }
     }
 }
@@ -108,8 +104,7 @@ constexpr pw_node_events kNodeEvents = {
     .param = node_param_cb,
 };
 
-void device_param_cb(void *data, int, uint32_t id, uint32_t, uint32_t,
-                     const spa_pod *param) {
+void device_param_cb(void *data, int, uint32_t id, uint32_t, uint32_t, const spa_pod *param) {
     if (id != SPA_PARAM_Route)
         return;
     auto *entry = static_cast<PwDeviceEntry *>(data);
@@ -119,10 +114,7 @@ void device_param_cb(void *data, int, uint32_t id, uint32_t, uint32_t,
     int32_t device = 0;
     int32_t index = 0;
     uint32_t route_id = SPA_PARAM_Route;
-    if (spa_pod_parser_get_object(&parser, SPA_TYPE_OBJECT_ParamRoute,
-                                  &route_id, SPA_PARAM_ROUTE_device,
-                                  SPA_POD_Int(&device), SPA_PARAM_ROUTE_index,
-                                  SPA_POD_Int(&index)) < 0)
+    if (spa_pod_parser_get_object(&parser, SPA_TYPE_OBJECT_ParamRoute, &route_id, SPA_PARAM_ROUTE_device, SPA_POD_Int(&device), SPA_PARAM_ROUTE_index, SPA_POD_Int(&index)) < 0)
         return;
     entry->route_index[device] = index;
 }
@@ -133,11 +125,8 @@ void device_info_cb(void *data, const pw_device_info *info) {
         return;
     for (uint32_t i = 0; i < info->n_params; ++i) {
         const auto &param = info->params[i];
-        if (param.id == SPA_PARAM_Route &&
-            (param.flags & SPA_PARAM_INFO_READWRITE) ==
-                SPA_PARAM_INFO_READWRITE) {
-            pw_device_enum_params(reinterpret_cast<pw_device *>(entry->proxy),
-                                  0, SPA_PARAM_Route, 0, UINT32_MAX, nullptr);
+        if (param.id == SPA_PARAM_Route && (param.flags & SPA_PARAM_INFO_READWRITE) == SPA_PARAM_INFO_READWRITE) {
+            pw_device_enum_params(reinterpret_cast<pw_device *>(entry->proxy), 0, SPA_PARAM_Route, 0, UINT32_MAX, nullptr);
         }
     }
 }
@@ -148,8 +137,7 @@ constexpr pw_device_events kDeviceEvents = {
     .param = device_param_cb,
 };
 
-int metadata_property_cb(void *data, uint32_t, const char *key, const char *,
-                         const char *value) {
+int metadata_property_cb(void *data, uint32_t, const char *key, const char *, const char *value) {
     auto *state = static_cast<PipewireState *>(data);
     if (!key)
         return 0;
@@ -183,8 +171,7 @@ constexpr pw_metadata_events kMetadataEvents = {
     .property = metadata_property_cb,
 };
 
-void registry_global_cb(void *data, uint32_t id, uint32_t, const char *type,
-                        uint32_t, const spa_dict *props) {
+void registry_global_cb(void *data, uint32_t id, uint32_t, const char *type, uint32_t, const spa_dict *props) {
     auto *state = static_cast<PipewireState *>(data);
 
     if (strcmp(type, PW_TYPE_INTERFACE_Node) == 0) {
@@ -223,8 +210,7 @@ void registry_global_cb(void *data, uint32_t id, uint32_t, const char *type,
             const char *app_name =
                 props ? spa_dict_lookup(props, PW_KEY_APP_NAME) : nullptr;
             const char *node_desc =
-                props ? spa_dict_lookup(props, SPA_KEY_NODE_DESCRIPTION)
-                      : nullptr;
+                props ? spa_dict_lookup(props, SPA_KEY_NODE_DESCRIPTION) : nullptr;
             const char *node_nick =
                 props ? spa_dict_lookup(props, PW_KEY_NODE_NICK) : nullptr;
             entry.app_name = app_name ? app_name : "";
@@ -232,13 +218,10 @@ void registry_global_cb(void *data, uint32_t id, uint32_t, const char *type,
                                 : node_nick ? node_nick
                                             : entry.app_name;
         }
-        entry.proxy = static_cast<pw_proxy *>(pw_registry_bind(
-            state->registry, id, PW_TYPE_INTERFACE_Node, PW_VERSION_NODE, 0));
-        pw_node_add_listener(reinterpret_cast<pw_node *>(entry.proxy),
-                             &entry.listener, &kNodeEvents, &entry);
+        entry.proxy = static_cast<pw_proxy *>(pw_registry_bind(state->registry, id, PW_TYPE_INTERFACE_Node, PW_VERSION_NODE, 0));
+        pw_node_add_listener(reinterpret_cast<pw_node *>(entry.proxy), &entry.listener, &kNodeEvents, &entry);
         uint32_t subscribe_params[] = {SPA_PARAM_Props};
-        pw_node_subscribe_params(reinterpret_cast<pw_node *>(entry.proxy),
-                                 subscribe_params, 1);
+        pw_node_subscribe_params(reinterpret_cast<pw_node *>(entry.proxy), subscribe_params, 1);
 
         if (is_sink && entry.name == state->default_sink_name)
             state->default_sink_id = id;
@@ -246,22 +229,15 @@ void registry_global_cb(void *data, uint32_t id, uint32_t, const char *type,
             state->default_source_id = id;
     } else if (strcmp(type, PW_TYPE_INTERFACE_Device) == 0) {
         PwDeviceEntry &entry = state->devices[id];
-        entry.proxy = static_cast<pw_proxy *>(
-            pw_registry_bind(state->registry, id, PW_TYPE_INTERFACE_Device,
-                             PW_VERSION_DEVICE, 0));
-        pw_device_add_listener(reinterpret_cast<pw_device *>(entry.proxy),
-                               &entry.listener, &kDeviceEvents, &entry);
+        entry.proxy = static_cast<pw_proxy *>(pw_registry_bind(state->registry, id, PW_TYPE_INTERFACE_Device, PW_VERSION_DEVICE, 0));
+        pw_device_add_listener(reinterpret_cast<pw_device *>(entry.proxy), &entry.listener, &kDeviceEvents, &entry);
     } else if (strcmp(type, PW_TYPE_INTERFACE_Metadata) == 0) {
         const char *meta_name =
             props ? spa_dict_lookup(props, PW_KEY_METADATA_NAME) : nullptr;
         if (!meta_name || strcmp(meta_name, "default") != 0)
             return;
-        state->default_metadata = static_cast<pw_proxy *>(
-            pw_registry_bind(state->registry, id, PW_TYPE_INTERFACE_Metadata,
-                             PW_VERSION_METADATA, 0));
-        pw_metadata_add_listener(
-            reinterpret_cast<pw_metadata *>(state->default_metadata),
-            &state->metadata_listener, &kMetadataEvents, state);
+        state->default_metadata = static_cast<pw_proxy *>(pw_registry_bind(state->registry, id, PW_TYPE_INTERFACE_Metadata, PW_VERSION_METADATA, 0));
+        pw_metadata_add_listener(reinterpret_cast<pw_metadata *>(state->default_metadata), &state->metadata_listener, &kMetadataEvents, state);
     }
 }
 
@@ -299,11 +275,9 @@ void set_node_volume(PwNodeEntry &entry, float level) {
     spa_pod_frame f;
     spa_pod_builder_push_object(&b, &f, SPA_TYPE_OBJECT_Props, SPA_PARAM_Props);
     spa_pod_builder_prop(&b, SPA_PROP_channelVolumes, 0);
-    spa_pod_builder_array(&b, sizeof(float), SPA_TYPE_Float, volumes.size(),
-                          volumes.data());
+    spa_pod_builder_array(&b, sizeof(float), SPA_TYPE_Float, volumes.size(), volumes.data());
     spa_pod *pod = static_cast<spa_pod *>(spa_pod_builder_pop(&b, &f));
-    pw_node_set_param(reinterpret_cast<pw_node *>(entry.proxy), SPA_PARAM_Props,
-                      0, pod);
+    pw_node_set_param(reinterpret_cast<pw_node *>(entry.proxy), SPA_PARAM_Props, 0, pod);
 }
 
 void set_node_muted(PwNodeEntry &entry, bool muted) {
@@ -314,12 +288,10 @@ void set_node_muted(PwNodeEntry &entry, bool muted) {
     spa_pod_builder_prop(&b, SPA_PROP_mute, 0);
     spa_pod_builder_bool(&b, muted);
     spa_pod *pod = static_cast<spa_pod *>(spa_pod_builder_pop(&b, &f));
-    pw_node_set_param(reinterpret_cast<pw_node *>(entry.proxy), SPA_PARAM_Props,
-                      0, pod);
+    pw_node_set_param(reinterpret_cast<pw_node *>(entry.proxy), SPA_PARAM_Props, 0, pod);
 }
 
-bool resolve_device_route(PipewireState &state, const PwNodeEntry &entry,
-                          pw_device *&device_proxy, int32_t &route_index) {
+bool resolve_device_route(PipewireState &state, const PwNodeEntry &entry, pw_device *&device_proxy, int32_t &route_index) {
     if (entry.card_profile_device < 0)
         return false;
     auto dit = state.devices.find(entry.device_id);
@@ -333,36 +305,20 @@ bool resolve_device_route(PipewireState &state, const PwNodeEntry &entry,
     return true;
 }
 
-void set_device_route_volume(pw_device *device_proxy, int32_t route_device,
-                             int32_t route_index, uint32_t channels,
-                             float level) {
+void set_device_route_volume(pw_device *device_proxy, int32_t route_device, int32_t route_index, uint32_t channels, float level) {
     std::vector<float> volumes(channels, level * level * level);
     uint8_t buffer[1024];
     spa_pod_builder b = SPA_POD_BUILDER_INIT(buffer, sizeof(buffer));
-    auto *props = static_cast<spa_pod *>(spa_pod_builder_add_object(
-        &b, SPA_TYPE_OBJECT_Props, SPA_PARAM_Props, SPA_PROP_channelVolumes,
-        SPA_POD_Array(sizeof(float), SPA_TYPE_Float, volumes.size(),
-                      volumes.data())));
-    auto *route = static_cast<spa_pod *>(spa_pod_builder_add_object(
-        &b, SPA_TYPE_OBJECT_ParamRoute, SPA_PARAM_Route, SPA_PARAM_ROUTE_device,
-        SPA_POD_Int(route_device), SPA_PARAM_ROUTE_index,
-        SPA_POD_Int(route_index), SPA_PARAM_ROUTE_props,
-        SPA_POD_PodObject(props), SPA_PARAM_ROUTE_save, SPA_POD_Bool(true)));
+    auto *props = static_cast<spa_pod *>(spa_pod_builder_add_object(&b, SPA_TYPE_OBJECT_Props, SPA_PARAM_Props, SPA_PROP_channelVolumes, SPA_POD_Array(sizeof(float), SPA_TYPE_Float, volumes.size(), volumes.data())));
+    auto *route = static_cast<spa_pod *>(spa_pod_builder_add_object(&b, SPA_TYPE_OBJECT_ParamRoute, SPA_PARAM_Route, SPA_PARAM_ROUTE_device, SPA_POD_Int(route_device), SPA_PARAM_ROUTE_index, SPA_POD_Int(route_index), SPA_PARAM_ROUTE_props, SPA_POD_PodObject(props), SPA_PARAM_ROUTE_save, SPA_POD_Bool(true)));
     pw_device_set_param(device_proxy, SPA_PARAM_Route, 0, route);
 }
 
-void set_device_route_muted(pw_device *device_proxy, int32_t route_device,
-                            int32_t route_index, bool muted) {
+void set_device_route_muted(pw_device *device_proxy, int32_t route_device, int32_t route_index, bool muted) {
     uint8_t buffer[1024];
     spa_pod_builder b = SPA_POD_BUILDER_INIT(buffer, sizeof(buffer));
-    auto *props = static_cast<spa_pod *>(
-        spa_pod_builder_add_object(&b, SPA_TYPE_OBJECT_Props, SPA_PARAM_Props,
-                                   SPA_PROP_mute, SPA_POD_Bool(muted)));
-    auto *route = static_cast<spa_pod *>(spa_pod_builder_add_object(
-        &b, SPA_TYPE_OBJECT_ParamRoute, SPA_PARAM_Route, SPA_PARAM_ROUTE_device,
-        SPA_POD_Int(route_device), SPA_PARAM_ROUTE_index,
-        SPA_POD_Int(route_index), SPA_PARAM_ROUTE_props,
-        SPA_POD_PodObject(props), SPA_PARAM_ROUTE_save, SPA_POD_Bool(true)));
+    auto *props = static_cast<spa_pod *>(spa_pod_builder_add_object(&b, SPA_TYPE_OBJECT_Props, SPA_PARAM_Props, SPA_PROP_mute, SPA_POD_Bool(muted)));
+    auto *route = static_cast<spa_pod *>(spa_pod_builder_add_object(&b, SPA_TYPE_OBJECT_ParamRoute, SPA_PARAM_Route, SPA_PARAM_ROUTE_device, SPA_POD_Int(route_device), SPA_PARAM_ROUTE_index, SPA_POD_Int(route_index), SPA_PARAM_ROUTE_props, SPA_POD_PodObject(props), SPA_PARAM_ROUTE_save, SPA_POD_Bool(true)));
     pw_device_set_param(device_proxy, SPA_PARAM_Route, 0, route);
 }
 
@@ -386,8 +342,7 @@ bool pipewire_init(PipewireState &state) {
         return false;
     }
     state.registry = pw_core_get_registry(state.core, PW_VERSION_REGISTRY, 0);
-    pw_registry_add_listener(state.registry, &state.registry_listener,
-                             &kRegistryEvents, &state);
+    pw_registry_add_listener(state.registry, &state.registry_listener, &kRegistryEvents, &state);
 
     return true;
 }
@@ -434,8 +389,7 @@ void pipewire_set_node_volume(PipewireState &state, uint32_t id, float level) {
     pw_device *device_proxy = nullptr;
     int32_t route_index = 0;
     if (resolve_device_route(state, entry, device_proxy, route_index))
-        set_device_route_volume(device_proxy, entry.card_profile_device,
-                                route_index, entry.channels, level);
+        set_device_route_volume(device_proxy, entry.card_profile_device, route_index, entry.channels, level);
     else
         set_node_volume(entry, level);
     if (id == state.default_sink_id)
@@ -453,8 +407,7 @@ void pipewire_set_node_muted(PipewireState &state, uint32_t id, bool muted) {
     pw_device *device_proxy = nullptr;
     int32_t route_index = 0;
     if (resolve_device_route(state, entry, device_proxy, route_index))
-        set_device_route_muted(device_proxy, entry.card_profile_device,
-                               route_index, muted);
+        set_device_route_muted(device_proxy, entry.card_profile_device, route_index, muted);
     else
         set_node_muted(entry, muted);
     if (id == state.default_sink_id)
@@ -470,9 +423,7 @@ void pipewire_set_default(PipewireState &state, uint32_t node_id) {
     const char *key =
         it->second.is_sink ? "default.audio.sink" : "default.audio.source";
     std::string json = "{ \"name\": \"" + it->second.name + "\" }";
-    pw_metadata_set_property(
-        reinterpret_cast<pw_metadata *>(state.default_metadata), PW_ID_CORE,
-        key, "Spa:String:JSON", json.c_str());
+    pw_metadata_set_property(reinterpret_cast<pw_metadata *>(state.default_metadata), PW_ID_CORE, key, "Spa:String:JSON", json.c_str());
 }
 
 std::vector<const PwNodeEntry *> pipewire_sinks(const PipewireState &state) {
@@ -491,8 +442,7 @@ std::vector<const PwNodeEntry *> pipewire_sources(const PipewireState &state) {
     return result;
 }
 
-std::vector<const PwNodeEntry *> pipewire_streams(const PipewireState &state,
-                                                  bool playback) {
+std::vector<const PwNodeEntry *> pipewire_streams(const PipewireState &state, bool playback) {
     std::vector<const PwNodeEntry *> result;
     for (const auto &[id, entry] : state.nodes)
         if (entry.is_stream && entry.is_playback == playback)
@@ -500,8 +450,7 @@ std::vector<const PwNodeEntry *> pipewire_streams(const PipewireState &state,
     return result;
 }
 
-uint32_t volume_slider_resolve_tag_id(const PipewireState &pw,
-                                      const std::string &tag) {
+uint32_t volume_slider_resolve_tag_id(const PipewireState &pw, const std::string &tag) {
     if (tag == "sink")
         return pw.default_sink_id;
     if (tag == "source")
@@ -511,12 +460,10 @@ uint32_t volume_slider_resolve_tag_id(const PipewireState &pw,
     return 0;
 }
 
-void volume_slider_apply_drag(PipewireState &pw, const DraggedSlider &drag,
-                              double px) {
+void volume_slider_apply_drag(PipewireState &pw, const DraggedSlider &drag, double px) {
     float value01 =
         drag.rect.w > 0.0f
-            ? std::clamp(static_cast<float>(px - drag.rect.x) / drag.rect.w,
-                         0.0f, 1.0f)
+            ? std::clamp(static_cast<float>(px - drag.rect.x) / drag.rect.w, 0.0f, 1.0f)
             : 0.0f;
     uint32_t id = volume_slider_resolve_tag_id(pw, drag.tag);
     if (id != 0)

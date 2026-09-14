@@ -46,25 +46,17 @@ class Renderer {
 
     void draw_rect(float x, float y, float w, float h, const float color[4]);
 
-    void draw_rounded_rect(float x, float y, float w, float h, float radius,
-                           float border_width, const float fill[4],
-                           const float border[4]);
+    void draw_rounded_rect(float x, float y, float w, float h, float radius, float border_width, const float fill[4], const float border[4]);
 
-    void draw_texture(float x, float y, const Texture &tex,
-                      const float tint[4]);
+    void draw_texture(float x, float y, const Texture &tex, const float tint[4]);
 
-    void draw_texture_rect(float x, float y, float w, float h,
-                           const Texture &tex, const float tint[4]);
+    void draw_texture_rect(float x, float y, float w, float h, const Texture &tex, const float tint[4]);
 
-    void draw_texture_rect_rounded(float x, float y, float w, float h,
-                                   float radius, const Texture &tex,
-                                   const float tint[4]);
+    void draw_texture_rect_rounded(float x, float y, float w, float h, float radius, const Texture &tex, const float tint[4]);
 
-    void draw_video_texture_rect(float x, float y, float w, float h,
-                                 const VideoTexture &tex);
+    void draw_video_texture_rect(float x, float y, float w, float h, const VideoTexture &tex);
 
-    void draw_custom(GLuint program, float x, float y, float w, float h,
-                     const std::function<void(GLuint)> &set_uniforms);
+    void draw_custom(GLuint program, float x, float y, float w, float h, const std::function<void(GLuint)> &set_uniforms);
 
   private:
     struct ClipRect {
@@ -73,8 +65,7 @@ class Renderer {
 
     void apply_clip(const ClipRect &r);
 
-    void set_common_uniforms(GLuint program, float x, float y, float w,
-                             float h);
+    void set_common_uniforms(GLuint program, float x, float y, float w, float h);
 
     void draw_quad(GLuint program);
 

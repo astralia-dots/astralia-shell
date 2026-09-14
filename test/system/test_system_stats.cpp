@@ -4,8 +4,7 @@
 
 void test_system_stats() {
     {
-        std::string text = "cpu  100 0 100 800 0 0 0 0 0 0\n"
-                           "cpu0 100 0 100 800 0 0 0 0 0 0\n";
+        std::string text = "cpu  100 0 100 800 0 0 0 0 0 0\n" "cpu0 100 0 100 800 0 0 0 0 0 0\n";
         auto j = system_stats_detail_parse_proc_stat(text);
         assert(j.has_value());
         assert(j->total == 1000);
@@ -23,9 +22,7 @@ void test_system_stats() {
     assert(system_stats_detail_cpu_usage({800, 1000}, {800, 1000}) < 0.0f);
 
     {
-        std::string text = "MemTotal:       16384000 kB\n"
-                           "MemFree:         2000000 kB\n"
-                           "MemAvailable:    8192000 kB\n";
+        std::string text = "MemTotal:       16384000 kB\n" "MemFree:         2000000 kB\n" "MemAvailable:    8192000 kB\n";
         auto m = system_stats_detail_parse_proc_meminfo(text);
         assert(m.has_value());
         assert(m->total_kb == 16384000);
@@ -36,14 +33,12 @@ void test_system_stats() {
     assert(!system_stats_detail_parse_proc_meminfo("garbage\n").has_value());
 
     {
-        std::string text = "processor : 0\ncpu MHz : 2400.000\n"
-                           "processor : 1\ncpu MHz : 2600.000\n";
+        std::string text = "processor : 0\ncpu MHz : 2400.000\n" "processor : 1\ncpu MHz : 2600.000\n";
         auto freq = system_stats_detail_parse_cpu_freq_avg_mhz(text);
         assert(freq.has_value());
         assert(*freq > 2499.0f && *freq < 2501.0f);
     }
-    assert(!system_stats_detail_parse_cpu_freq_avg_mhz("no such line\n")
-                .has_value());
+    assert(!system_stats_detail_parse_cpu_freq_avg_mhz("no such line\n").has_value());
 
     {
         std::string text =

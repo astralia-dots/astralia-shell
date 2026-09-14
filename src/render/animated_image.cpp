@@ -3,8 +3,7 @@
 #include "render/animated_image.h"
 #include "render/texture.h"
 
-void animated_image_set_source(AnimatedImage &img, std::string source_path,
-                               const AnimatedImageStyle &style) {
+void animated_image_set_source(AnimatedImage &img, std::string source_path, const AnimatedImageStyle &style) {
     img.source = std::move(source_path);
     img.style = style;
 }
@@ -14,8 +13,7 @@ void animated_image_show(AnimatedImage &img, std::function<void()> on_ready) {
         return;
     img.shown = true;
     img.started = std::chrono::steady_clock::now();
-    animate_job_start(img.job, img.source, img.style.decode,
-                      std::move(on_ready));
+    animate_job_start(img.job, img.source, img.style.decode, std::move(on_ready));
 }
 
 void animated_image_hide(AnimatedImage &img) {
@@ -26,8 +24,7 @@ void animated_image_hide(AnimatedImage &img) {
     img.cur_frame = 0;
 }
 
-void animated_image_tick(AnimatedImage &img,
-                         std::chrono::steady_clock::time_point now) {
+void animated_image_tick(AnimatedImage &img, std::chrono::steady_clock::time_point now) {
     if (!img.shown || !img.job.ready || img.job.frame_count <= 0)
         return;
     if (static_cast<int>(img.frames.size()) < img.job.frame_count) {
@@ -42,12 +39,10 @@ void animated_image_tick(AnimatedImage &img,
         img.frames.push_back(std::move(t));
     }
     float elapsed = std::chrono::duration<float>(now - img.started).count();
-    img.cur_frame = animate_frame_index(elapsed, img.style.decode.fps,
-                                        static_cast<int>(img.frames.size()));
+    img.cur_frame = animate_frame_index(elapsed, img.style.decode.fps, static_cast<int>(img.frames.size()));
 }
 
-void animated_image_draw(AnimatedImage &img, Node *parent, float x, float y,
-                         float w, float h, float alpha) {
+void animated_image_draw(AnimatedImage &img, Node *parent, float x, float y, float w, float h, float alpha) {
     const AnimatedImageStyle &s = img.style;
     float radius = s.circular ? w * 0.5f : 0.0f;
     if (s.ring_fill || s.border_color) {
@@ -60,8 +55,7 @@ void animated_image_draw(AnimatedImage &img, Node *parent, float x, float y,
         }
         img.ring_tint[3] = ring[3] * alpha;
         img.border_tint[3] = border[3] * alpha;
-        node_add_rrect(parent, x, y, w, h, radius, s.border_width,
-                       img.ring_tint, img.border_tint);
+        node_add_rrect(parent, x, y, w, h, radius, s.border_width, img.ring_tint, img.border_tint);
     }
 
     if (img.frames.empty())
@@ -77,13 +71,11 @@ void animated_image_draw(AnimatedImage &img, Node *parent, float x, float y,
     float ix = x + inset, iy = y + inset;
     float iw = w - 2 * inset, ih = h - 2 * inset;
     if (s.circular)
-        node_add_texture_rect_rounded(parent, ix, iy, iw, ih, iw * 0.5f, ft,
-                                      img.draw_tint);
+        node_add_texture_rect_rounded(parent, ix, iy, iw, ih, iw * 0.5f, ft, img.draw_tint);
     else
         node_add_texture_rect(parent, ix, iy, iw, ih, ft, img.draw_tint);
 }
 
 bool animated_image_animating(const AnimatedImage &img) {
-    return img.shown && !img.frames.empty() && img.job.frame_count > 1 &&
-           img.style.decode.fps > 0;
+    return img.shown && !img.frames.empty() && img.job.frame_count > 1 && img.style.decode.fps > 0;
 }

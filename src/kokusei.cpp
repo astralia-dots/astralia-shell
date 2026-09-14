@@ -35,8 +35,7 @@ inline void daemonize() {
     freopen("/dev/null", "w", stderr);
 }
 
-inline Module *find_overlay_for_surface(WaylandState &app,
-                                        wl_surface *surface) {
+inline Module *find_overlay_for_surface(WaylandState &app, wl_surface *surface) {
     if (!surface)
         return nullptr;
     for (auto &m : app.overlays)
@@ -79,8 +78,7 @@ int main(int argc, char **argv) {
     wl_display_roundtrip(app.display);
 
     if (!app.compositor || !app.layer_shell || !app.wm_base) {
-        klog("compositor is missing wl_compositor, zwlr_layer_shell_v1, or "
-             "xdg_wm_base");
+        klog("compositor is missing wl_compositor, zwlr_layer_shell_v1, or " "xdg_wm_base");
         return 1;
     }
     if (app.outputs.empty()) {
@@ -127,8 +125,7 @@ int main(int argc, char **argv) {
             klog("overlay: EGL surface init failed");
             continue;
         }
-        eglMakeCurrent(app.egl_display, first.egl_surface, first.egl_surface,
-                       app.egl_context);
+        eglMakeCurrent(app.egl_display, first.egl_surface, first.egl_surface, app.egl_context);
     }
 
     for (size_t i = 1; i < app.outputs.size(); ++i)
@@ -157,8 +154,7 @@ int main(int argc, char **argv) {
         klog("timerfd_create: %s", strerror(errno));
     }
 
-    klog("started: %zu monitor(s), ipc_fd=%d, timer_fd=%d", app.outputs.size(),
-         ipc_fd, timer_fd);
+    klog("started: %zu monitor(s), ipc_fd=%d, timer_fd=%d", app.outputs.size(), ipc_fd, timer_fd);
     for (auto &mon : app.outputs)
         request_all_frames(*mon);
 
@@ -168,9 +164,7 @@ int main(int argc, char **argv) {
         ++poll_iter;
         {
             auto now = std::chrono::steady_clock::now();
-            if (std::chrono::duration_cast<std::chrono::milliseconds>(
-                    now - poll_heartbeat)
-                    .count() >= 1000) {
+            if (std::chrono::duration_cast<std::chrono::milliseconds>(now - poll_heartbeat).count() >= 1000) {
                 poll_heartbeat = now;
                 klog("poll: iter=%ld locked=%d", poll_iter, app.session_locked);
             }
@@ -216,9 +210,13 @@ int main(int argc, char **argv) {
             for (auto &src : s->poll_sources(app))
                 fn_sources.push_back(std::move(src));
 
+        std::vector<PollSource *> raw_sources;
+        for (auto &s : app.services)
+            for (PollSource *src : s->raw_poll_sources(app))
+                raw_sources.push_back(src);
+
         if (DeferredCall::poll_fd() >= 0) {
-            fn_sources.emplace_back(DeferredCall::poll_fd(), POLLIN,
-                                    [] { DeferredCall::drain(); });
+            fn_sources.emplace_back(DeferredCall::poll_fd(), POLLIN, [] { DeferredCall::drain(); });
         }
 
         if (app.config_watch_fd >= 0) {
@@ -249,9 +247,7 @@ int main(int argc, char **argv) {
         }
 
         std::vector<pollfd> fds;
-        fds.push_back({.fd = wl_display_get_fd(app.display),
-                       .events = POLLIN,
-                       .revents = 0});
+        fds.push_back({.fd = wl_display_get_fd(app.display),.events = POLLIN,.revents = 0});
         struct SourceRange {
             PollSource *src;
             std::size_t start;
@@ -261,6 +257,11 @@ int main(int argc, char **argv) {
             std::size_t start = fds.size();
             if (src.add_poll_fds(fds) > 0)
                 ranges.push_back({&src, start});
+        }
+        for (PollSource *src : raw_sources) {
+            std::size_t start = fds.size();
+            if (src->add_poll_fds(fds) > 0)
+                ranges.push_back({src, start});
         }
 
         int poll_timeout_ms = -1;
@@ -280,17 +281,14 @@ int main(int argc, char **argv) {
                 for (auto &mon : app.outputs)
                     request_all_frames(*mon);
                 for (auto &m : app.overlays)
-                    m->handle_pointer_move(app, app.pointer.focused_surface,
-                                           app.pointer.x, app.pointer.y);
+                    m->handle_pointer_move(app, app.pointer.focused_surface, app.pointer.x, app.pointer.y);
                 if (app.pointer.focused_surface) {
-                    if (MonitorOutput *m = find_monitor_for_surface(
-                            app, app.pointer.focused_surface))
+                    if (MonitorOutput *m = find_monitor_for_surface(app, app.pointer.focused_surface))
                         app.last_pointer_monitor = m;
                 }
                 for (auto &mon : app.outputs)
                     for (auto &pm : mon->modules)
-                        pm->handle_pointer_move(app, *mon, app.pointer.x,
-                                                app.pointer.y);
+                        pm->handle_pointer_move(app, *mon, app.pointer.x, app.pointer.y);
 
                 Module *hovered =
                     find_overlay_for_surface(app, app.pointer.focused_surface);
@@ -298,13 +296,9 @@ int main(int argc, char **argv) {
                 if (!hand && app.pointer.focused_surface)
                     for (auto &mon : app.outputs)
                         for (auto &pm : mon->modules)
-                            if (pm->owns_surface(app.pointer.focused_surface) &&
-                                pm->wants_pointing_hand_cursor())
+                            if (pm->owns_surface(app.pointer.focused_surface) && pm->wants_pointing_hand_cursor())
                                 hand = true;
-                pointer_set_cursor_shape(
-                    app.pointer, hand
-                                     ? WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_POINTER
-                                     : WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT);
+                pointer_set_cursor_shape(app.pointer, hand ? WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_POINTER : WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT);
             }
         }
         for (SourceRange &r : ranges)
@@ -341,8 +335,7 @@ int main(int argc, char **argv) {
                 continue;
             for (auto &pm : mon->modules) {
                 if (pm->owns_surface(click.surface)) {
-                    pm->handle_click(app, *mon, click.surface, click.button,
-                                     click.x, click.y, click.serial);
+                    pm->handle_click(app, *mon, click.surface, click.button, click.x, click.y, click.serial);
                     break;
                 }
             }

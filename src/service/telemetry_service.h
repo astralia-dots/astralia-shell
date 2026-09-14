@@ -34,8 +34,7 @@ bool cpu_temp_available(const CpuTempState &state);
 
 bool gpu_temp_detail_is_gpu_hwmon_name(const std::string &name);
 
-std::optional<float>
-gpu_temp_detail_parse_nvidia_smi_output(const std::string &text);
+std::optional<float> gpu_temp_detail_parse_nvidia_smi_output(const std::string &text);
 
 struct GpuTempState {
     std::string sensor_path;
@@ -60,24 +59,20 @@ struct CpuJiffies {
     uint64_t total = 0;
 };
 
-std::optional<CpuJiffies>
-system_stats_detail_parse_proc_stat(const std::string &text);
+std::optional<CpuJiffies> system_stats_detail_parse_proc_stat(const std::string &text);
 
-float system_stats_detail_cpu_usage(const CpuJiffies &prev,
-                                    const CpuJiffies &cur);
+float system_stats_detail_cpu_usage(const CpuJiffies &prev, const CpuJiffies &cur);
 
 struct MemInfo {
     uint64_t total_kb = 0;
     uint64_t available_kb = 0;
 };
 
-std::optional<MemInfo>
-system_stats_detail_parse_proc_meminfo(const std::string &text);
+std::optional<MemInfo> system_stats_detail_parse_proc_meminfo(const std::string &text);
 
 float system_stats_detail_mem_usage(const MemInfo &info);
 
-std::optional<float>
-system_stats_detail_parse_cpu_freq_avg_mhz(const std::string &cpuinfo_text);
+std::optional<float> system_stats_detail_parse_cpu_freq_avg_mhz(const std::string &cpuinfo_text);
 
 struct DiskUsage {
     uint64_t used_bytes = 0;
@@ -91,8 +86,7 @@ struct NetBytes {
     uint64_t tx_bytes = 0;
 };
 
-std::optional<NetBytes>
-system_stats_detail_parse_proc_net_dev(const std::string &text);
+std::optional<NetBytes> system_stats_detail_parse_proc_net_dev(const std::string &text);
 
 std::string system_stats_detail_format_speed(double bytes_per_sec);
 

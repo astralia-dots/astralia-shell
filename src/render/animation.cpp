@@ -40,8 +40,7 @@ float applyEasing(Easing easing, float t) {
 void AnimationManager::cancelForOwner(uint64_t owner) {
     if (owner == 0)
         return;
-    std::erase_if(entries_,
-                  [owner](const Entry &e) { return e.owner == owner; });
+    std::erase_if(entries_, [owner](const Entry &e) { return e.owner == owner; });
 }
 
 void AnimationManager::tick(std::chrono::steady_clock::time_point now) {
@@ -60,8 +59,7 @@ void AnimationManager::tick(std::chrono::steady_clock::time_point now) {
         }
         float eased = applyEasing(e.anim.easing, t);
         if (e.anim.setter)
-            e.anim.setter(e.anim.start_value +
-                          (e.anim.end_value - e.anim.start_value) * eased);
+            e.anim.setter(e.anim.start_value + (e.anim.end_value - e.anim.start_value) * eased);
         if (e.anim.finished && e.anim.on_complete)
             completed.push_back(std::move(e.anim.on_complete));
     }
@@ -70,10 +68,7 @@ void AnimationManager::tick(std::chrono::steady_clock::time_point now) {
         cb();
 }
 
-AnimationManager::Id AnimationManager::animate_internal(
-    float from, float to, float duration_ms, Easing easing,
-    std::function<void(float)> setter, std::function<void()> on_complete,
-    uint64_t owner) {
+AnimationManager::Id AnimationManager::animate_internal(float from, float to, float duration_ms, Easing easing, std::function<void(float)> setter, std::function<void()> on_complete, uint64_t owner) {
     cancelForOwner(owner);
     if (duration_ms <= 0.0f) {
         if (setter)

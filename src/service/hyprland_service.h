@@ -70,20 +70,14 @@ HyprEventResult hypr_poll_events(HyprlandState &state);
 
 void hypr_dispatch(HyprlandState &state, const std::string &command);
 
-void hypr_tile_focus_workspace(HyprlandState &state, int id,
-                               bool global = false);
+void hypr_tile_focus_workspace(HyprlandState &state, int id, bool global = false);
 
-void hypr_tile_move_window(HyprlandState &state, int id, bool follow = true,
-                           const std::string &address = {},
-                           bool global = false);
+void hypr_tile_move_window(HyprlandState &state, int id, bool follow = true, const std::string &address = {}, bool global = false);
 
 enum class HyprCloseScope { Workspace, Monitor, All };
 
-void hypr_tile_close_workspace(HyprlandState &state, HyprCloseScope scope,
-                               int id = -1);
+void hypr_tile_close_workspace(HyprlandState &state, HyprCloseScope scope, int id = -1);
 
-void hypr_tile_move_workspace_in(HyprlandState &state, int id,
-                                 bool global = false);
+void hypr_tile_move_workspace_in(HyprlandState &state, int id, bool global = false);
 
-void hypr_tile_swap_workspace(HyprlandState &state, int id,
-                              bool global = false);
+void hypr_tile_swap_workspace(HyprlandState &state, int id, bool global = false);

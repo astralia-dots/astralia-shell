@@ -43,25 +43,16 @@ struct Node {
 bool node_tree_dirty(const Node &n);
 void node_clear_dirty(Node &n);
 
-Node *node_add_rect(Node *parent, float x, float y, float w, float h,
-                    const float fill[4]);
+Node *node_add_rect(Node *parent, float x, float y, float w, float h, const float fill[4]);
 
-Node *node_add_rrect(Node *parent, float x, float y, float w, float h,
-                     float radius, float border_width, const float fill[4],
-                     const float border[4]);
+Node *node_add_rrect(Node *parent, float x, float y, float w, float h, float radius, float border_width, const float fill[4], const float border[4]);
 
-Node *node_add_texture_rect(Node *parent, float x, float y, float w, float h,
-                            const Texture &tex, const float tint[4]);
+Node *node_add_texture_rect(Node *parent, float x, float y, float w, float h, const Texture &tex, const float tint[4]);
 
-Node *node_add_texture_rect_rounded(Node *parent, float x, float y, float w,
-                                    float h, float radius, const Texture &tex,
-                                    const float tint[4]);
+Node *node_add_texture_rect_rounded(Node *parent, float x, float y, float w, float h, float radius, const Texture &tex, const float tint[4]);
 
-Node *node_add_texture(Node *parent, float x, float y, const Texture &tex,
-                       const float tint[4]);
+Node *node_add_texture(Node *parent, float x, float y, const Texture &tex, const float tint[4]);
 
-Node *node_add_group(Node *parent, float x, float y, float w, float h,
-                     bool clip_children = false);
+Node *node_add_group(Node *parent, float x, float y, float w, float h, bool clip_children = false);
 
-void node_draw(const Node &n, Renderer &renderer, float parent_x = 0,
-               float parent_y = 0);
+void node_draw(const Node &n, Renderer &renderer, float parent_x = 0, float parent_y = 0);

@@ -31,7 +31,6 @@ void test_palette() {
     assert(opaque.a == 1.0f);
 
     Color translucent = color("#9B57F41F");
-    assert(translucent.r == opaque.r && translucent.g == opaque.g &&
-           translucent.b == opaque.b);
+    assert(translucent.r == opaque.r && translucent.g == opaque.g && translucent.b == opaque.b);
     assert(std::fabs(translucent.a - 31.0f / 255.0f) < 1e-6f);
 }
