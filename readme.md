@@ -26,11 +26,11 @@ cd adastria-shell
 
 **Regular mode**
 ```bash
-adastria-shell
+adastria
 ```
 
 **Debug mode**
 ```bash
-adastria-shell debug
+adastria debug
 ```
 Or run adastria-shell in regular mode and read the logs at `~/.local/state/adastria-shell/adastria-shell.log`

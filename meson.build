@@ -335,7 +335,7 @@ media_plugin = shared_module(
 )
 
 executable(
-  'adastria-shell',
+  'adastria',
   'src/adastria-shell.cpp',
   adastria_shell_split_sources,
   proto_gen_all,
