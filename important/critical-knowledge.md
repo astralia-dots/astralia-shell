@@ -300,7 +300,7 @@ Drop an entry once newer knowledge fully supersedes it.
 - **Modules are named after their function; IPC verbs and code identifiers match.** See `index.md`'s `src/modules` and `naming.md` for the retired Keqing-lore code names; `rain` is the only non-functional name kept.
 - **`config.cpp` reads functional JSON keys with a Keqing-era legacy fallback.** `section()`/`pick()` try functional names (`bar`/`wallpaper`/`idle`/`logout`/`visualizer`/...) then the retired ones (`qixing`/`expanse`/`blink`/`starward`/`resonance`/...); the next save rewrites keys.
 - **A project rename can't reuse one identifier style everywhere.** `kokusei` became `astralia-shell`: kebab-case for the binary/paths/PAM service, `ASTRALIA_SHELL_` for macros, `astralia_shell_` for meson variables and C symbols, and `/org/astralia_shell/...` for the polkit D-Bus object path, since D-Bus object path segments only allow `[A-Za-z0-9_]`, no hyphen.
-- **`config_path()`'s actual convention has no `-shell` suffix, unlike the state/log dir.** It resolves to `~/.config/astralia/config.json`; only `test_config.cpp` had drifted to expect `astralia-shell`, caught only by a full rebuild.
+- **`config_path()` and `klog_open_file()` both use the bare `astralia` dir, not `astralia-shell`.** `~/.config/astralia/config.json` and `~/.local/state/astralia/astralia.log`; only the PAM service and D-Bus object path keep the `-shell`/`_shell_` form.
 - **A later commit changing a hardcoded path can silently outpace its own test.** `config.cpp` dropped its `-shell` suffix with no matching edit to `test_config.cpp`; the mismatch stayed invisible until the next `./build.sh test`.
 
 ## 6. Hyprland IPC

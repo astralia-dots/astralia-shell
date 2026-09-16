@@ -4,7 +4,7 @@
 
 - Supported Display Server: Wayland
 - Supported Compositors: ShojiWM, Hyprland
-- Requires an OpenGL ES 3.2 driver
+- Requires OpenGL ES 3.2
 
 ## Prerequisite
 
@@ -33,4 +33,4 @@ astralia
 ```bash
 astralia debug
 ```
-Or run astralia-shell in regular mode and read the logs at `~/.local/state/astralia-shell/astralia-shell.log`
+Or run astralia-shell in regular mode and read the logs at `~/.local/state/astralia/astralia.log`
