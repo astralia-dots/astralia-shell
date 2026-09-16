@@ -10,7 +10,7 @@
 #include "app/config.h"
 
 void test_config() {
-    char tmp_template[] = "/tmp/adastria_shell_test_config_XXXXXX";
+    char tmp_template[] = "/tmp/astralia_shell_test_config_XXXXXX";
     char *tmp_dir = mkdtemp(tmp_template);
     assert(tmp_dir != nullptr);
 
@@ -18,7 +18,7 @@ void test_config() {
     std::string old_home_str = old_home ? old_home : "";
     setenv("HOME", tmp_dir, 1);
 
-    std::string config_dir = std::string(tmp_dir) + "/.config/adastria-shell";
+    std::string config_dir = std::string(tmp_dir) + "/.config/astralia";
     mkdir((std::string(tmp_dir) + "/.config").c_str(), 0755);
 
     std::string path = config_path();
@@ -46,8 +46,7 @@ void test_config() {
 }
 
 void test_config_watch() {
-    std::string path =
-        "/tmp/adastria_shell_test_config_watch_" + std::to_string(getpid()) + ".json";
+    std::string path = "/tmp/astralia_shell_test_config_watch_" + std::to_string(getpid()) + ".json";
     {
         std::ofstream f(path);
         f << "{\"idle\":{\"timeoutSeconds\":300}}";
@@ -80,11 +79,7 @@ void test_monitor_overrides() {
     assert(autohide_effective_enabled(cfg, "DP-1") == cfg.autohide);
     assert(dock_autohide_effective_enabled(cfg, "DP-1") == cfg.dock_autohide);
 
-    cfg.monitor_overrides["DP-1"] = MonitorOverride{.enabled = false,
-                                                    .osd = false,
-                                                    .notifications = false,
-                                                    .autohide = true,
-                                                    .dock_autohide = true};
+    cfg.monitor_overrides["DP-1"] = MonitorOverride{.enabled = false, .osd = false, .notifications = false, .autohide = true, .dock_autohide = true};
     assert(osd_effective_enabled(cfg, "DP-1") == cfg.default_osd_enabled);
 
     cfg.monitor_overrides["DP-1"].enabled = true;

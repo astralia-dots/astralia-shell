@@ -25,9 +25,9 @@ namespace fs = std::filesystem;
 
 namespace {
 
-using StreamFn = decltype(&adastria_shell_media_plugin_stream);
-using FramesFn = decltype(&adastria_shell_media_plugin_frames);
-using ReleaseDrmFrameFn = decltype(&adastria_shell_media_plugin_release_drm_frame);
+using StreamFn = decltype(&astralia_shell_media_plugin_stream);
+using FramesFn = decltype(&astralia_shell_media_plugin_frames);
+using ReleaseDrmFrameFn = decltype(&astralia_shell_media_plugin_release_drm_frame);
 
 struct Plugin {
     StreamFn stream = nullptr;
@@ -39,8 +39,8 @@ const Plugin &plugin() {
     static const Plugin loaded = [] {
         Plugin p;
         const char *candidates[] = {
-            ADASTRIA_SHELL_MEDIA_PLUGIN,
-            "build/libadastria-shell-media.so",
+            ASTRALIA_SHELL_MEDIA_PLUGIN,
+            "build/libastralia-shell-media.so",
         };
         void *lib = nullptr;
         for (const char *path : candidates) {
@@ -49,14 +49,18 @@ const Plugin &plugin() {
                 break;
         }
         if (!lib) {
-            klog("media_decode: plugin not available (%s); animated content " "disabled", dlerror());
+            klog("media_decode: plugin not available (%s); animated content "
+                 "disabled",
+                 dlerror());
             return p;
         }
-        p.stream = reinterpret_cast<StreamFn>(dlsym(lib, "adastria_shell_media_plugin_stream"));
-        p.frames = reinterpret_cast<FramesFn>(dlsym(lib, "adastria_shell_media_plugin_frames"));
-        p.release_drm_frame = reinterpret_cast<ReleaseDrmFrameFn>(dlsym(lib, "adastria_shell_media_plugin_release_drm_frame"));
+        p.stream = reinterpret_cast<StreamFn>(dlsym(lib, "astralia_shell_media_plugin_stream"));
+        p.frames = reinterpret_cast<FramesFn>(dlsym(lib, "astralia_shell_media_plugin_frames"));
+        p.release_drm_frame = reinterpret_cast<ReleaseDrmFrameFn>(dlsym(lib, "astralia_shell_media_plugin_release_drm_frame"));
         if (!p.stream || !p.frames || !p.release_drm_frame) {
-            klog("media_decode: plugin missing expected symbols (%s); animated " "content disabled", dlerror());
+            klog("media_decode: plugin missing expected symbols (%s); animated "
+                 "content disabled",
+                 dlerror());
             p = {};
         }
         return p;
@@ -70,7 +74,7 @@ std::string rgba_cache_dir() {
         if (pos == base.size() || base[pos] == '/')
             mkdir(base.substr(0, pos).c_str(), 0755);
     }
-    std::string dir = base + "/adastria-shell";
+    std::string dir = base + "/astralia-shell";
     mkdir(dir.c_str(), 0755);
     dir += "/wallpaper";
     mkdir(dir.c_str(), 0755);
@@ -339,7 +343,7 @@ void animate_job_start(AnimateJob &job, const std::string &source_path, const An
     }
 
     std::string key = animate_cache_key(source_path, st.st_mtime);
-    std::string dir = animate_cache_home_dir() + "/adastria-shell/animated/" + key;
+    std::string dir = animate_cache_home_dir() + "/astralia-shell/animated/" + key;
     int px = std::max(1, params.square_px);
     int fps = std::max(1, params.fps);
     bool still = is_still_image(source_path);

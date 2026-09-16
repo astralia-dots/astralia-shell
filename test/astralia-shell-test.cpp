@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <iterator>
 
-#include "adastria-shell-test.hpp"
+#include "astralia-shell-test.hpp"
 
 int main() {
     struct Case {

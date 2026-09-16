@@ -1,4 +1,4 @@
-# `adastria-shell` index
+# `astralia-shell` index
 
 ## Rule
 
@@ -12,8 +12,8 @@
 
 - `config.h`+`.cpp`: JSON config loader/saver with atomic write and inotify hot-reload.
 - `single_instance_lock.h`+`.cpp`: `flock()`-based single-instance lock.
-- `ipc.h`+`.cpp`: Adastria Shell's own control socket, client/server request handling; verb table from each module.
-- `key_dispatch.h`+`.cpp`: Routes key events to whichever module owns the surface `KeyboardState::focused_surface` currently names, so `adastria-shell.cpp` never names a module's key handler.
+- `ipc.h`+`.cpp`: Astralia Shell's own control socket, client/server request handling; verb table from each module.
+- `key_dispatch.h`+`.cpp`: Routes key events to whichever module owns the surface `KeyboardState::focused_surface` currently names, so `astralia-shell.cpp` never names a module's key handler.
 - `monitor_output.h`+`.cpp`: `MonitorOutput` per-output state, monitor create/activate/destroy lifecycle, config-apply orchestration, settings retarget.
 - `module.h`: `Module` interface: per-surface overlay boundary, default no-op virtuals, plus `apply_config` and `on_output_removed` hooks.
 - `per_monitor_module.h`: `PerMonitorModule` interface, the per-surface per-monitor boundary; default no-op virtuals, unnamed params.
@@ -133,12 +133,12 @@
 - `audio_stages.h`+`.cpp`: Render-thread GLava GPU transform chain (peak-hold, decay, ring-averaged, frequency-smoothed) over `GL_R16` textures, for the left and right channels.
 - `sphere_visualizer.h`+`.cpp`: `SphereVisualizer`: a multi-pass particle-accumulation/blob/glow GPU pipeline on a square canvas, rebuilt on resize, presented over a black backdrop.
 - `bar_visualizer.h`+`.cpp`: `BarVisualizer`: a single-pass fragment shader drawing accent-tinted, bottom-anchored bars from `audio_stages`' smoothed spectrum textures.
-- `visualizer_shaders.h`+`.cpp`: Concatenates the `assets/shaders/visualizer/sphere/*.glsl` fragments into the flattened sphere/glow shaders at runtime, since adastria-shell has no shader preprocessor.
+- `visualizer_shaders.h`+`.cpp`: Concatenates the `assets/shaders/visualizer/sphere/*.glsl` fragments into the flattened sphere/glow shaders at runtime, since astralia-shell has no shader preprocessor.
 
 ## src/modules/lock
 
 - `layout.h`+`.cpp`: Pure lock-panel geometry math: card size, three-column split, content-stack height, and dot row; test-linked, no `EGL`.
-- `pam_authenticator.h`+`.cpp`: `pam_start_confdir`-based password check against the shipped `adastria-shell` `PAM` service, with a `login` fallback; runs off the poll thread.
+- `pam_authenticator.h`+`.cpp`: `pam_start_confdir`-based password check against the shipped `astralia-shell` `PAM` service, with a `login` fallback; runs off the poll thread.
 
 ## src/modules/rain
 
@@ -189,14 +189,14 @@
 
 ## src
 
-- `adastria-shell.cpp`: Orchestration, Wayland/EGL bootstrap, poll loop, CLI entry point, daemonize/debug/`start-lock`/IPC-client dispatch.
+- `astralia-shell.cpp`: Orchestration, Wayland/EGL bootstrap, poll loop, CLI entry point, daemonize/debug/`start-lock`/IPC-client dispatch.
 
 ## test
 
-`test/`: One test file per pure-logic header, grouped by module, run through one `adastria-shell-test` binary via meson.
+`test/`: One test file per pure-logic header, grouped by module, run through one `astralia-shell-test` binary via meson.
 
-- adastria-shell-test.cpp
-- adastria-shell-test.hpp
+- astralia-shell-test.cpp
+- astralia-shell-test.hpp
 - app/test_config.cpp
 - app/test_wallpaper_resolve.cpp
 - core/test_async_process.cpp
@@ -230,22 +230,22 @@
 
 ## dist
 
-- `build.sh`: Shared configure+compile step (RAM-capped job count via `ADASTRIA_SHELL_BUILD_JOBS`), called by `test.sh` and `install.sh`.
-- `{run,install,test}`: Convenience scripts to build+test, build+install, or kill+install+launch adastria-shell.
+- `build.sh`: Shared configure+compile step (RAM-capped job count via `ASTRALIA_SHELL_BUILD_JOBS`), called by `test.sh` and `install.sh`.
+- `{run,install,test}`: Convenience scripts to build+test, build+install, or kill+install+launch astralia-shell.
 
 ## assets
 
 - `fonts/*`, `constellation/C*.png`: Installed fonts, launcher constellation bullet icons.
 - `shaders/**`: Every `#version 320 es` GLES shader the shell compiles, grouped by consumer directory; installed as a subdir by meson.
 - `NOTICE`: Third-party attribution for the `lygia`/`GLava`/`noctalia`-derived shader and asset parts.
-- `stellar-restoration.png`: Default wallpaper wallpaper, the `ADASTRIA_SHELL_DEFAULT_WALLPAPER` fallback when a column has no configured path.
+- `stellar-restoration.png`: Default wallpaper wallpaper, the `ASTRALIA_SHELL_DEFAULT_WALLPAPER` fallback when a column has no configured path.
 - `stellar-restoration.svg`: Idle screensaver bouncing-logo source (placeholder).
 - `stiletto.svg`: `stiletto_rain` comet head, rasterized once aspect-correct and scaled to the comet-row head height.
 - `electro.png`: Password-field echo glyph, ported from `keqing-shell`'s `Input.qml`, drawn per character.
 - `gifs/profile.gif`: Lock avatar, settings and dashboard profile-picture source, decoded to cached frames via `ffmpeg`.
 - `logout/logo.gif`: Logout animated centre-logo source, decoded to cached frames via `ffmpeg`.
 - `logout/logo.png`: Logout static centre-logo source, used when the animated-logo toggle is off.
-- `pam/adastria-shell`: `PAM` service file for the lock screen, loaded via `pam_start_confdir`.
+- `pam/astralia-shell`: `PAM` service file for the lock screen, loaded via `pam_start_confdir`.
 
 ## protocols
 

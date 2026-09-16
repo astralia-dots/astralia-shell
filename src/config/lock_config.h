@@ -3,7 +3,7 @@
 #include <cstdint>
 
 // layer namespace
-inline constexpr const char *kLockLayerNamespace = "adastria-shell-lock";
+inline constexpr const char *kLockLayerNamespace = "astralia-shell-lock";
 
 // background & dot
 inline constexpr float kLockBgBorderWidth = 5.0f;

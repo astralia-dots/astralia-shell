@@ -76,8 +76,7 @@ void dock_update_autohide(DockState &state) {
             if (state.autohide.hidden && !state.autohide.collapsed) {
                 state.autohide.collapsed = true;
                 dock_apply_geometry(state);
-            }
-        }, kDockAutoHideAnimOwner);
+            } }, kDockAutoHideAnimOwner);
 }
 
 void dock_paint(DockState &state) {
@@ -117,7 +116,7 @@ bool dock_create_surface(DockState &state, wl_compositor *compositor, zwlr_layer
     state.compositor = compositor;
     LayerSurfaceConfig cfg{
         .layer = ZWLR_LAYER_SHELL_V1_LAYER_TOP,
-        .name_space = "adastria-shell-dock",
+        .name_space = "astralia-shell-dock",
         .anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT,
         .height = kDockCapsuleHeight,
         .margin_bottom = kDockMarginBottom,

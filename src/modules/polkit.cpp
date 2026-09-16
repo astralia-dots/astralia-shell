@@ -16,7 +16,7 @@
 
 namespace {
 
-constexpr const char *kPolkitNamespace = "adastria-shell-polkit";
+constexpr const char *kPolkitNamespace = "astralia-shell-polkit";
 
 constexpr float kPolkitAnimMs = 350.0f;
 constexpr float kPolkitScaleHidden = 0.0f;
@@ -108,7 +108,7 @@ bool polkit_init_egl(PolkitState &state, Renderer &renderer, WaylandState &app, 
     if (!overlay_panel_init_egl(state.base, display, config, context))
         return false;
     state.base.frame_clock.draw = [&state, &app] { polkit_paint(state, app); };
-    state.echo_glyph = load_image_texture_first_existing({ADASTRIA_SHELL_INPUT_ECHO, "assets/electro.png"});
+    state.echo_glyph = load_image_texture_first_existing({ASTRALIA_SHELL_INPUT_ECHO, "assets/electro.png"});
     return true;
 }
 

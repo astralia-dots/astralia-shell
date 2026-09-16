@@ -1,5 +1,5 @@
 project(
-  'adastria-shell',
+  'astralia-shell',
   'c',
   'cpp',
   version: '0.1.0',
@@ -35,25 +35,25 @@ gobject_dep        = dependency('gobject-2.0')
 polkit_gobject_dep = dependency('polkit-gobject-1')
 polkit_agent_dep   = dependency('polkit-agent-1')
 
-adastria_shell_inc = include_directories('src')
+astralia_shell_inc = include_directories('src')
 
-adastria_shell_data_dir   = get_option('prefix') / get_option('datadir') / 'adastria-shell'
-adastria_shell_font_dir   = adastria_shell_data_dir / 'fonts'
-adastria_shell_bullet_dir = adastria_shell_data_dir / 'constellation'
+astralia_shell_data_dir   = get_option('prefix') / get_option('datadir') / 'astralia-shell'
+astralia_shell_font_dir   = astralia_shell_data_dir / 'fonts'
+astralia_shell_bullet_dir = astralia_shell_data_dir / 'constellation'
 
-install_data('assets/fonts/tabler-icons.ttf', install_dir: adastria_shell_font_dir) # shell-wide icons
-install_data('assets/fonts/YujiMai.ttf', install_dir: adastria_shell_font_dir)      # logout module
-install_data('assets/stellar-restoration.png', install_dir: adastria_shell_data_dir)            # default wallpaper
-install_data('assets/stellar-restoration.svg', install_dir: adastria_shell_data_dir)         # idle screensaver logo (placeholder)
-install_data('assets/stiletto.svg', install_dir: adastria_shell_data_dir)
-install_data('assets/electro.png', install_dir: adastria_shell_data_dir)            # password echo glyph
-install_data('assets/gifs/profile.gif', install_dir: adastria_shell_data_dir / 'gifs') # lock avatar + settings pfp
-install_data('assets/logout/logo.gif', install_dir: adastria_shell_data_dir / 'logout') # logout centre logo (animated)
-install_data('assets/logout/logo.png', install_dir: adastria_shell_data_dir / 'logout') # logout centre logo (static)
-install_data('assets/pam/adastria-shell', install_dir: adastria_shell_data_dir / 'pam')    # lock PAM service
-install_subdir('assets/shaders', install_dir: adastria_shell_data_dir)              # all GLES shader sources
+install_data('assets/fonts/tabler-icons.ttf', install_dir: astralia_shell_font_dir) # shell-wide icons
+install_data('assets/fonts/YujiMai.ttf', install_dir: astralia_shell_font_dir)      # logout module
+install_data('assets/stellar-restoration.png', install_dir: astralia_shell_data_dir)            # default wallpaper
+install_data('assets/stellar-restoration.svg', install_dir: astralia_shell_data_dir)         # idle screensaver logo (placeholder)
+install_data('assets/stiletto.svg', install_dir: astralia_shell_data_dir)
+install_data('assets/electro.png', install_dir: astralia_shell_data_dir)            # password echo glyph
+install_data('assets/gifs/profile.gif', install_dir: astralia_shell_data_dir / 'gifs') # lock avatar + settings pfp
+install_data('assets/logout/logo.gif', install_dir: astralia_shell_data_dir / 'logout') # logout centre logo (animated)
+install_data('assets/logout/logo.png', install_dir: astralia_shell_data_dir / 'logout') # logout centre logo (static)
+install_data('assets/pam/astralia-shell', install_dir: astralia_shell_data_dir / 'pam')    # lock PAM service
+install_subdir('assets/shaders', install_dir: astralia_shell_data_dir)              # all GLES shader sources
 foreach n : ['1', '2', '3', '4', '5', '6']                                   # keqing constellations
-  install_data('assets/constellation/C' + n + '.png', install_dir: adastria_shell_bullet_dir)
+  install_data('assets/constellation/C' + n + '.png', install_dir: astralia_shell_bullet_dir)
 endforeach
 
 wayland_scanner = find_program('wayland-scanner')
@@ -111,7 +111,7 @@ proto_gen_test = [
 # header-only .hpp modules need no entry. *_test_sources are exercised by
 # test/**; *_main_only_sources pull in EGL/GL/cairo/pango/pipewire or generated
 # protocol code and have no test coverage.
-adastria_shell_core_split_sources = [
+astralia_shell_core_split_sources = [
   'src/core/log.cpp',
   'src/core/poll_source.cpp',
   'src/core/deferred_call.cpp',
@@ -119,7 +119,7 @@ adastria_shell_core_split_sources = [
   'src/core/path_home.cpp',
 ]
 
-adastria_shell_render_test_sources = [
+astralia_shell_render_test_sources = [
   'src/render/animation.cpp',
   'src/render/marquee_scroll.cpp',
   'src/render/texture.cpp',
@@ -127,7 +127,7 @@ adastria_shell_render_test_sources = [
   'src/render/text_elide.cpp',
 ]
 
-adastria_shell_render_main_only_sources = [
+astralia_shell_render_main_only_sources = [
   'src/render/gl.cpp',
   'src/render/renderer.cpp',
   'src/render/node.cpp',
@@ -150,7 +150,7 @@ adastria_shell_render_main_only_sources = [
   'src/render/video_texture.cpp',
 ]
 
-adastria_shell_service_test_sources = [
+astralia_shell_service_test_sources = [
   'src/service/bluetooth_service.cpp',
   'src/service/brightness_service.cpp',
   'src/service/network_service.cpp',
@@ -167,7 +167,7 @@ adastria_shell_service_test_sources = [
   'src/service/dock_service.cpp',
 ]
 
-adastria_shell_service_main_only_sources = [
+astralia_shell_service_main_only_sources = [
   'src/service/pipewire_service.cpp',
   'src/service/frame_service.cpp',
   'src/service/hyprland_service.cpp',
@@ -177,11 +177,11 @@ adastria_shell_service_main_only_sources = [
   'src/service/polkit_service.cpp',
 ]
 
-adastria_shell_launcher_main_only_sources = [
+astralia_shell_launcher_main_only_sources = [
   'src/modules/launcher.cpp',
 ]
 
-adastria_shell_launcher_test_sources = [
+astralia_shell_launcher_test_sources = [
   'src/modules/launcher/apps_provider.cpp',
   'src/modules/launcher/desktop_entry.cpp',
   'src/modules/launcher/files_provider.cpp',
@@ -191,9 +191,9 @@ adastria_shell_launcher_test_sources = [
   'src/modules/launcher/visit_store.cpp',
 ]
 
-adastria_shell_bar_test_sources = []
+astralia_shell_bar_test_sources = []
 
-adastria_shell_bar_panels_main_only_sources = [
+astralia_shell_bar_panels_main_only_sources = [
   'src/modules/bar/panel/tray_panel.cpp',
   'src/modules/bar/panel/network_panel.cpp',
   'src/modules/bar/panel/bluetooth_panel.cpp',
@@ -203,7 +203,7 @@ adastria_shell_bar_panels_main_only_sources = [
   'src/modules/bar/panel/clock_panel.cpp',
 ]
 
-adastria_shell_bar_main_only_sources = [
+astralia_shell_bar_main_only_sources = [
   'src/modules/bar.cpp',
   'src/modules/bar/widget/widget_capsule.cpp',
   'src/modules/bar/widget/clock_widget.cpp',
@@ -219,20 +219,20 @@ adastria_shell_bar_main_only_sources = [
   'src/modules/bar/widget/volume_widget.cpp',
 ]
 
-adastria_shell_idle_main_only_sources = [
+astralia_shell_idle_main_only_sources = [
   'src/modules/idle.cpp',
 ]
 
-adastria_shell_lock_test_sources = [
+astralia_shell_lock_test_sources = [
   'src/modules/lock/layout.cpp',
 ]
 
-adastria_shell_lock_main_only_sources = [
+astralia_shell_lock_main_only_sources = [
   'src/modules/lock.cpp',
   'src/modules/lock/pam_authenticator.cpp',
 ]
 
-adastria_shell_overlay_main_only_sources = [
+astralia_shell_overlay_main_only_sources = [
   'src/modules/dock.cpp',
   'src/modules/osd.cpp',
   'src/modules/wallpaper.cpp',
@@ -252,15 +252,15 @@ adastria_shell_overlay_main_only_sources = [
   'src/modules/polkit.cpp',
 ]
 
-adastria_shell_visualizer_test_sources = [
+astralia_shell_visualizer_test_sources = [
   'src/modules/visualizer/fft.cpp',
 ]
 
-adastria_shell_app_test_sources = [
+astralia_shell_app_test_sources = [
   'src/app/config.cpp',
 ]
 
-adastria_shell_app_main_only_sources = [
+astralia_shell_app_main_only_sources = [
   'src/app/single_instance_lock.cpp',
   'src/app/ipc.cpp',
   'src/app/key_dispatch.cpp',
@@ -271,7 +271,7 @@ adastria_shell_app_main_only_sources = [
   'src/app/wayland_registry.cpp',
 ]
 
-adastria_shell_settings_main_only_sources = [
+astralia_shell_settings_main_only_sources = [
   'src/modules/settings.cpp',
   'src/modules/settings/wallpaper_tab.cpp',
   'src/modules/settings/displays_tab.cpp',
@@ -282,36 +282,36 @@ adastria_shell_settings_main_only_sources = [
   'src/modules/settings/animation_tab.cpp',
 ]
 
-adastria_shell_split_sources = [
-  adastria_shell_core_split_sources,
-  adastria_shell_render_test_sources,
-  adastria_shell_render_main_only_sources,
-  adastria_shell_service_test_sources,
-  adastria_shell_service_main_only_sources,
-  adastria_shell_launcher_test_sources,
-  adastria_shell_launcher_main_only_sources,
-  adastria_shell_idle_main_only_sources,
-  adastria_shell_lock_test_sources,
-  adastria_shell_lock_main_only_sources,
-  adastria_shell_overlay_main_only_sources,
-  adastria_shell_visualizer_test_sources,
-  adastria_shell_app_test_sources,
-  adastria_shell_app_main_only_sources,
-  adastria_shell_settings_main_only_sources,
-  adastria_shell_bar_test_sources,
-  adastria_shell_bar_panels_main_only_sources,
-  adastria_shell_bar_main_only_sources,
+astralia_shell_split_sources = [
+  astralia_shell_core_split_sources,
+  astralia_shell_render_test_sources,
+  astralia_shell_render_main_only_sources,
+  astralia_shell_service_test_sources,
+  astralia_shell_service_main_only_sources,
+  astralia_shell_launcher_test_sources,
+  astralia_shell_launcher_main_only_sources,
+  astralia_shell_idle_main_only_sources,
+  astralia_shell_lock_test_sources,
+  astralia_shell_lock_main_only_sources,
+  astralia_shell_overlay_main_only_sources,
+  astralia_shell_visualizer_test_sources,
+  astralia_shell_app_test_sources,
+  astralia_shell_app_main_only_sources,
+  astralia_shell_settings_main_only_sources,
+  astralia_shell_bar_test_sources,
+  astralia_shell_bar_panels_main_only_sources,
+  astralia_shell_bar_main_only_sources,
 ]
 
-adastria_shell_test_split_sources = [
-  adastria_shell_core_split_sources,
-  adastria_shell_render_test_sources,
-  adastria_shell_service_test_sources,
-  adastria_shell_launcher_test_sources,
-  adastria_shell_lock_test_sources,
-  adastria_shell_bar_test_sources,
-  adastria_shell_visualizer_test_sources,
-  adastria_shell_app_test_sources,
+astralia_shell_test_split_sources = [
+  astralia_shell_core_split_sources,
+  astralia_shell_render_test_sources,
+  astralia_shell_service_test_sources,
+  astralia_shell_launcher_test_sources,
+  astralia_shell_lock_test_sources,
+  astralia_shell_bar_test_sources,
+  astralia_shell_visualizer_test_sources,
+  astralia_shell_app_test_sources,
 ]
 
 # ffmpeg's SONAME isn't stable across releases (see readme.md), so the only
@@ -319,10 +319,10 @@ adastria_shell_test_split_sources = [
 # only disables animated content (loader falls back gracefully) instead of
 # blocking startup.
 media_plugin = shared_module(
-  'adastria-shell-media',
+  'astralia-shell-media',
   'src/service/media_plugin.cpp',
   'src/core/log.cpp', # klog() isn't exported by the host (no -rdynamic); the plugin needs its own copy
-  include_directories: adastria_shell_inc,
+  include_directories: astralia_shell_inc,
   dependencies: [
     libavformat_dep,
     libavcodec_dep,
@@ -331,15 +331,15 @@ media_plugin = shared_module(
     libdrm_dep,
   ],
   install: true,
-  install_dir: adastria_shell_data_dir / 'plugins',
+  install_dir: astralia_shell_data_dir / 'plugins',
 )
 
 executable(
-  'adastria',
-  'src/adastria-shell.cpp',
-  adastria_shell_split_sources,
+  'astralia',
+  'src/astralia-shell.cpp',
+  astralia_shell_split_sources,
   proto_gen_all,
-  include_directories: adastria_shell_inc,
+  include_directories: astralia_shell_inc,
   dependencies: [
     wayland_client_dep,
     wayland_egl_dep,
@@ -365,28 +365,28 @@ executable(
     polkit_agent_dep,
   ],
   cpp_args: [
-    '-DADASTRIA_SHELL_FONT_DIR="' + adastria_shell_font_dir + '"',
-    '-DADASTRIA_SHELL_SHADER_DIR="' + adastria_shell_data_dir / 'shaders' + '"',
-    '-DADASTRIA_SHELL_DEFAULT_WALLPAPER="' + adastria_shell_data_dir / 'stellar-restoration.png' + '"',
-    '-DADASTRIA_SHELL_BULLET_DIR="' + adastria_shell_bullet_dir + '"',
-    '-DADASTRIA_SHELL_YUJIMAI_FONT="' + adastria_shell_font_dir / 'YujiMai.ttf' + '"',
-    '-DADASTRIA_SHELL_LOGOUT_LOGO="' + adastria_shell_data_dir / 'logout/logo.gif' + '"',
-    '-DADASTRIA_SHELL_LOGOUT_LOGO_STATIC="' + adastria_shell_data_dir / 'logout/logo.png' + '"',
-    '-DADASTRIA_SHELL_IDLE_LOGO="' + adastria_shell_data_dir / 'stellar-restoration.svg' + '"',
-    '-DADASTRIA_SHELL_STILETTO_SPRITE="' + adastria_shell_data_dir / 'stiletto.svg' + '"',
-    '-DADASTRIA_SHELL_INPUT_ECHO="' + adastria_shell_data_dir / 'electro.png' + '"',
-    '-DADASTRIA_SHELL_PAM_DIR="' + adastria_shell_data_dir / 'pam' + '"',
-    '-DADASTRIA_SHELL_PROFILE_MEDIA="' + adastria_shell_data_dir / 'gifs/profile.gif' + '"',
-    '-DADASTRIA_SHELL_MEDIA_PLUGIN="' + adastria_shell_data_dir / 'plugins/libadastria-shell-media.so' + '"',
+    '-DASTRALIA_SHELL_FONT_DIR="' + astralia_shell_font_dir + '"',
+    '-DASTRALIA_SHELL_SHADER_DIR="' + astralia_shell_data_dir / 'shaders' + '"',
+    '-DASTRALIA_SHELL_DEFAULT_WALLPAPER="' + astralia_shell_data_dir / 'stellar-restoration.png' + '"',
+    '-DASTRALIA_SHELL_BULLET_DIR="' + astralia_shell_bullet_dir + '"',
+    '-DASTRALIA_SHELL_YUJIMAI_FONT="' + astralia_shell_font_dir / 'YujiMai.ttf' + '"',
+    '-DASTRALIA_SHELL_LOGOUT_LOGO="' + astralia_shell_data_dir / 'logout/logo.gif' + '"',
+    '-DASTRALIA_SHELL_LOGOUT_LOGO_STATIC="' + astralia_shell_data_dir / 'logout/logo.png' + '"',
+    '-DASTRALIA_SHELL_IDLE_LOGO="' + astralia_shell_data_dir / 'stellar-restoration.svg' + '"',
+    '-DASTRALIA_SHELL_STILETTO_SPRITE="' + astralia_shell_data_dir / 'stiletto.svg' + '"',
+    '-DASTRALIA_SHELL_INPUT_ECHO="' + astralia_shell_data_dir / 'electro.png' + '"',
+    '-DASTRALIA_SHELL_PAM_DIR="' + astralia_shell_data_dir / 'pam' + '"',
+    '-DASTRALIA_SHELL_PROFILE_MEDIA="' + astralia_shell_data_dir / 'gifs/profile.gif' + '"',
+    '-DASTRALIA_SHELL_MEDIA_PLUGIN="' + astralia_shell_data_dir / 'plugins/libastralia-shell-media.so' + '"',
   ],
   install: true,
   install_dir: 'bin',
 )
 
-adastria_shell_test = executable(
-  'adastria-shell-test',
-  'test/adastria-shell-test.cpp',
-  adastria_shell_test_split_sources,
+astralia_shell_test = executable(
+  'astralia-shell-test',
+  'test/astralia-shell-test.cpp',
+  astralia_shell_test_split_sources,
   proto_gen_test,
   'test/app/test_config.cpp',
   'test/app/test_wallpaper_resolve.cpp',
@@ -413,7 +413,7 @@ adastria_shell_test = executable(
   'test/render/test_text_elide.cpp',
   'test/lock/test_layout.cpp',
   'test/visualizer/test_fft.cpp',
-  include_directories: adastria_shell_inc,
+  include_directories: astralia_shell_inc,
   dependencies: [
     threads_dep,
     xkbcommon_dep,
@@ -432,11 +432,11 @@ adastria_shell_test = executable(
   ],
   cpp_args: [
     # Source asset, not the install dir, so the test runs uninstalled.
-    '-DADASTRIA_SHELL_DEFAULT_WALLPAPER="' + meson.current_source_dir() / 'assets/stellar-restoration.png' + '"',
-    '-DADASTRIA_SHELL_BULLET_DIR="' + adastria_shell_bullet_dir + '"',
-    '-DADASTRIA_SHELL_FONT_DIR="' + adastria_shell_font_dir + '"',
-    '-DADASTRIA_SHELL_MEDIA_PLUGIN="' + adastria_shell_data_dir / 'plugins/libadastria-shell-media.so' + '"',
+    '-DASTRALIA_SHELL_DEFAULT_WALLPAPER="' + meson.current_source_dir() / 'assets/stellar-restoration.png' + '"',
+    '-DASTRALIA_SHELL_BULLET_DIR="' + astralia_shell_bullet_dir + '"',
+    '-DASTRALIA_SHELL_FONT_DIR="' + astralia_shell_font_dir + '"',
+    '-DASTRALIA_SHELL_MEDIA_PLUGIN="' + astralia_shell_data_dir / 'plugins/libastralia-shell-media.so' + '"',
   ],
 )
 
-test('adastria-shell', adastria_shell_test)
+test('astralia-shell', astralia_shell_test)

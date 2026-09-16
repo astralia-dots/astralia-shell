@@ -132,7 +132,7 @@ YujiMaiFont &yujimai_font() {
             return f;
         }
         const char *candidates[] = {
-            ADASTRIA_SHELL_YUJIMAI_FONT,
+            ASTRALIA_SHELL_YUJIMAI_FONT,
             "assets/fonts/YujiMai.ttf",
         };
         for (const char *path : candidates) {
@@ -344,7 +344,7 @@ RasterizedText rasterize_yujimai_glyph(const std::string &codepoint_utf8) {
     cairo_matrix_init_scale(&font_matrix, kLogoutGlyphPx, kLogoutGlyphPx);
     cairo_matrix_t ctm;
     cairo_matrix_init_identity(&ctm);
-    cairo_scaled_font_t *scaled_font = cairo_scaled_font_create(font.cairo_face, &font_matrix, &ctm, adastria_shell_font_options());
+    cairo_scaled_font_t *scaled_font = cairo_scaled_font_create(font.cairo_face, &font_matrix, &ctm, astralia_shell_font_options());
 
     cairo_glyph_t measure_glyph = {glyph_index, 0, 0};
     cairo_text_extents_t extents;
@@ -376,7 +376,7 @@ RasterizedText rasterize_yujimai_glyph(const std::string &codepoint_utf8) {
 }
 
 bool logout_create_surface(LogoutState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
-    return overlay_panel_create_surface(state.base, compositor, layer_shell, "adastria-shell-logout", output);
+    return overlay_panel_create_surface(state.base, compositor, layer_shell, "astralia-shell-logout", output);
 }
 
 bool logout_init_egl(LogoutState &state, Renderer &renderer, EGLDisplay display, EGLConfig config, EGLContext context) {
@@ -403,10 +403,10 @@ void logout_apply_logo_config(LogoutState &state, bool animated) {
 
     const char *candidates[2];
     if (animated) {
-        candidates[0] = ADASTRIA_SHELL_LOGOUT_LOGO;
+        candidates[0] = ASTRALIA_SHELL_LOGOUT_LOGO;
         candidates[1] = "assets/logout/logo.gif";
     } else {
-        candidates[0] = ADASTRIA_SHELL_LOGOUT_LOGO_STATIC;
+        candidates[0] = ASTRALIA_SHELL_LOGOUT_LOGO_STATIC;
         candidates[1] = "assets/logout/logo.png";
     }
     std::string path = candidates[1];

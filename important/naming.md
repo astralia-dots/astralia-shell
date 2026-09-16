@@ -1,10 +1,10 @@
-# adastria-shell module names
+# astralia-shell module names
 
 Modules are named after their function. Every module directory, source pair, config header, symbol prefix, IPC verb, and `Module::name()` string uses the functional name. `rain` is the one non-functional name kept, because its two sims (`matrix_rain`, `stiletto_rain`) have no single functional label.
 
 `config.cpp` keeps a legacy-key fallback so `config.json` files written under the earlier Keqing-lore names still load; the next save rewrites the keys to the functional names.
 
-Description column is the verb's help text as printed by `adastria-shell help`.
+Description column is the verb's help text as printed by `astralia-shell help`.
 
 | Module | Retired code name | IPC verb | Description |
 |--------|-------------------|----------|-------------|
@@ -24,7 +24,7 @@ Description column is the verb's help text as printed by `adastria-shell help`.
 | `notification` | `herald` | — | no IPC verb (per-monitor module) |
 | `polkit` | — | — | no IPC verb (reactive overlay, driven by polkit requests) |
 
-Non-module verb: `kill` — gracefully quit adastria-shell.
+Non-module verb: `kill` — gracefully quit astralia-shell.
 
 ## Config legacy keys
 

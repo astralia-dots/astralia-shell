@@ -5,13 +5,13 @@
 
 #include "render/gl.h"
 
-#ifndef ADASTRIA_SHELL_SHADER_DIR
-#define ADASTRIA_SHELL_SHADER_DIR ""
+#ifndef ASTRALIA_SHELL_SHADER_DIR
+#define ASTRALIA_SHELL_SHADER_DIR ""
 #endif
 
 std::string gl_load_shader(const char *rel) {
     const std::string candidates[] = {
-        std::string(ADASTRIA_SHELL_SHADER_DIR) + "/" + rel,
+        std::string(ASTRALIA_SHELL_SHADER_DIR) + "/" + rel,
         std::string("assets/shaders/") + rel,
     };
     for (const std::string &path : candidates) {

@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-inline constexpr const char *kWallpaperLayerNamespace = "adastria-shell-wallpaper";
+inline constexpr const char *kWallpaperLayerNamespace = "astralia-shell-wallpaper";
 
 enum class WallpaperTransition : uint8_t {
     None,

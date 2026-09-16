@@ -93,7 +93,7 @@ float panel_height(const std::vector<PanelRow> &rows) {
 } // namespace battery_panel_detail
 
 bool battery_panel_create_surface(BatteryPanelState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
-    return overlay_panel_create_surface(state.base, compositor, layer_shell, "adastria-shell-battery-panel", output);
+    return overlay_panel_create_surface(state.base, compositor, layer_shell, "astralia-shell-battery-panel", output);
 }
 
 bool battery_panel_init_egl(BatteryPanelState &state, Renderer &renderer, UpowerState &u, EGLDisplay display, EGLConfig config, EGLContext context) {
@@ -116,8 +116,7 @@ void battery_panel_request_frame(BatteryPanelState &state, float pill_center_x, 
 void battery_panel_toggle(BatteryPanelState &state, float pill_center_x) {
     panel_lock_toggle(state.base, state.locked_center_x, pill_center_x, [&state] { panel_reveal_open(state.reveal); }, [&state] {
             state.scroll_offset = 0.0f;
-            panel_reveal_close(state.reveal, state.base, [&state] { state.locked_center_x = -1.0f; });
-        });
+            panel_reveal_close(state.reveal, state.base, [&state] { state.locked_center_x = -1.0f; }); });
 }
 
 void battery_panel_handle_scroll(BatteryPanelState &state, const UpowerState &u, double dy) {
@@ -250,7 +249,8 @@ void battery_panel_paint(BatteryPanelState &state, const UpowerState &u, float p
                 d.native_path.empty() ? "Battery" : d.native_path;
             const char *state_str = charging  ? "Charging"
                                     : full    ? "Full"
-                                    : pending ? "Pending" : "Discharging";
+                                    : pending ? "Pending"
+                                              : "Discharging";
             std::string time_str =
                 format_time(charging ? d.time_to_full_s : d.time_to_empty_s);
 

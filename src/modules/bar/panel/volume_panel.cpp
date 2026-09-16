@@ -57,7 +57,7 @@ float panel_height(const std::vector<PanelRow> &rows) {
 } // namespace volume_panel_detail
 
 bool volume_panel_create_surface(VolumePanelState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
-    return overlay_panel_create_surface(state.base, compositor, layer_shell, "adastria-shell-volume-panel", output);
+    return overlay_panel_create_surface(state.base, compositor, layer_shell, "astralia-shell-volume-panel", output);
 }
 
 bool volume_panel_init_egl(VolumePanelState &state, Renderer &renderer, PipewireState &pw, EGLDisplay display, EGLConfig config, EGLContext context) {
@@ -82,8 +82,7 @@ void volume_panel_toggle(VolumePanelState &state, float pill_center_x) {
             state.scroll_offset = 0.0f;
             state.dragging.reset();
             state.selected_slider_tag.clear();
-            panel_reveal_close(state.reveal, state.base, [&state] { state.locked_center_x = -1.0f; });
-        });
+            panel_reveal_close(state.reveal, state.base, [&state] { state.locked_center_x = -1.0f; }); });
 }
 
 void volume_panel_handle_scroll(VolumePanelState &state, const PipewireState &pw, double dy) {
@@ -317,8 +316,8 @@ void volume_panel_paint(VolumePanelState &state, PipewireState &pw, float pill_c
         }
         case RowKind::AppRow: {
             const PwNodeEntry &entry = *row.entry;
-            std::string name = !entry.app_name.empty()      ? entry.app_name : !entry.description.empty() ? entry.description
-                                                            : entry.name;
+            std::string name = !entry.app_name.empty() ? entry.app_name : !entry.description.empty() ? entry.description
+                                                                                                     : entry.name;
             if (name.empty())
                 name = "Unknown";
 
@@ -332,8 +331,7 @@ void volume_panel_paint(VolumePanelState &state, PipewireState &pw, float pill_c
             state.click_regions.push_back({PanelClickKind::MuteToggle, mute_rect, tag});
 
             float pct_x = mute_rect.x - kPanelRowGap - kVolumePercentLabelWidth;
-            std::string pct_str = entry.muted ? "muted" : std::to_string(static_cast<int>(std::lround(entry.level * 100))) +
-                                            "%";
+            std::string pct_str = entry.muted ? "muted" : std::to_string(static_cast<int>(std::lround(entry.level * 100))) + "%";
             const Texture *pct_tex = cached_text(state.tcache, pct_str, scale);
             if (pct_tex)
                 node_add_texture(clip, rx(pct_x + kVolumePercentLabelWidth - pct_tex->width), ry(y), *pct_tex, dim);

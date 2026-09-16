@@ -84,7 +84,7 @@ float panel_height(const std::vector<PanelRow> &rows) {
 } // namespace bluetooth_panel_detail
 
 bool bluetooth_panel_create_surface(BluetoothPanelState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
-    return overlay_panel_create_surface(state.base, compositor, layer_shell, "adastria-shell-bluetooth-panel", output);
+    return overlay_panel_create_surface(state.base, compositor, layer_shell, "astralia-shell-bluetooth-panel", output);
 }
 
 bool bluetooth_panel_init_egl(BluetoothPanelState &state, Renderer &renderer, BluetoothState &bt, EGLDisplay display, EGLConfig config, EGLContext context) {
@@ -109,12 +109,10 @@ void bluetooth_panel_toggle(BluetoothPanelState &state, BluetoothState &bt, floa
     state.sub_device_path.clear();
     panel_lock_toggle(state.base, state.locked_center_x, pill_center_x, [&state, &bt] {
             panel_reveal_open(state.reveal);
-            bluetooth_start_discovery(bt);
-        }, [&state, &bt] {
+            bluetooth_start_discovery(bt); }, [&state, &bt] {
             bluetooth_stop_discovery(bt);
             state.scroll_offset = 0.0f;
-            panel_reveal_close(state.reveal, state.base, [&state] { state.locked_center_x = -1.0f; });
-        });
+            panel_reveal_close(state.reveal, state.base, [&state] { state.locked_center_x = -1.0f; }); });
 }
 
 void bluetooth_panel_handle_scroll(BluetoothPanelState &state, BluetoothState &bt, double dy) {
@@ -299,7 +297,8 @@ void bluetooth_panel_paint(BluetoothPanelState &state, BluetoothState &bt, float
         case RowKind::SectionNearby: {
             const char *label = row.kind == RowKind::SectionConnected
                                     ? "Connected"
-                                : row.kind == RowKind::SectionPaired ? "Paired" : "Nearby";
+                                : row.kind == RowKind::SectionPaired ? "Paired"
+                                                                     : "Nearby";
             const Texture *t = cached_text(state.tcache, label, scale);
             if (t)
                 node_add_texture(clip, rx(content_x), ry(y + row_h - t->height), *t, dim);
@@ -312,7 +311,8 @@ void bluetooth_panel_paint(BluetoothPanelState &state, BluetoothState &bt, float
             bool is_paired_or_connected =
                 info.paired || info.trusted || info.connected;
 
-            const float *row_bg = is_connected ? rgba(palette::accent_alpha25) : is_busy    ? rgba(palette::accent_alpha12) : rgba(palette::overlay);
+            const float *row_bg = is_connected ? rgba(palette::accent_alpha25) : is_busy ? rgba(palette::accent_alpha12)
+                                                                                         : rgba(palette::overlay);
             node_add_rrect(clip, rx(content_x), ry(y), content_w, row_h, 8.0f, 0.0f, row_bg, kPanelNoBorder);
 
             const float *fg = is_connected ? rgba(palette::accent) : dim;

@@ -285,7 +285,7 @@ const Texture *tray_panel_detail_item_icon_texture(TrayPanelState &state, const 
 }
 
 bool tray_panel_create_surface(TrayPanelState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
-    return overlay_panel_create_surface(state.base, compositor, layer_shell, "adastria-shell-tray-panel", output);
+    return overlay_panel_create_surface(state.base, compositor, layer_shell, "astralia-shell-tray-panel", output);
 }
 
 bool tray_panel_init_egl(TrayPanelState &state, Renderer &renderer, TrayState &tray, EGLDisplay display, EGLConfig config, EGLContext context) {
@@ -306,9 +306,7 @@ void tray_panel_request_frame(TrayPanelState &state, float pill_center_x, float 
 }
 
 void tray_panel_toggle(TrayPanelState &state, float pill_center_x) {
-    panel_lock_toggle(state.base, state.locked_center_x, pill_center_x, [&state] { panel_reveal_open(state.reveal); }, [&state] {
-            panel_reveal_close(state.reveal, state.base, [&state] { state.locked_center_x = -1.0f; });
-        });
+    panel_lock_toggle(state.base, state.locked_center_x, pill_center_x, [&state] { panel_reveal_open(state.reveal); }, [&state] { panel_reveal_close(state.reveal, state.base, [&state] { state.locked_center_x = -1.0f; }); });
 }
 
 namespace {

@@ -19,7 +19,8 @@
 
 float notification_detail_texture_height(const Texture &tex) {
     return tex.id ? static_cast<float>(tex.height) /
-                        static_cast<float>(tex.scale > 0 ? tex.scale : 1) : 0.0f;
+                        static_cast<float>(tex.scale > 0 ? tex.scale : 1)
+                  : 0.0f;
 }
 
 const Color &notification_detail_urgency_color(uint8_t urgency) {
@@ -142,20 +143,16 @@ void notification_start_exit(NotificationRenderModel &service, uint32_t id) {
     service.animations.animate(it->opacity, 0.0f, kNotificationAnimNormal, Easing::EaseOutCubic, [&service, id](float v) {
             auto e = std::find_if(service.entries.begin(), service.entries.end(), [id](const NotificationEntry &en) { return en.id == id; });
             if (e != service.entries.end())
-                e->opacity = v;
-        }, {}, opacity_owner(id));
+                e->opacity = v; }, {}, opacity_owner(id));
 
-    service.animations.animate(0.0f, 1.0f, kNotificationAnimNormal + kNotificationAnimExitBuffer, Easing::Linear, [](float) {}, [&service, id] {
-            std::erase_if(service.entries, [id](const NotificationEntry &e) { return e.id == id; });
-        }, exit_owner(id));
+    service.animations.animate(0.0f, 1.0f, kNotificationAnimNormal + kNotificationAnimExitBuffer, Easing::Linear, [](float) {}, [&service, id] { std::erase_if(service.entries, [id](const NotificationEntry &e) { return e.id == id; }); }, exit_owner(id));
 }
 
 void notification_start_progress(NotificationRenderModel &service, uint32_t id, int32_t timeout_ms) {
     service.animations.animate(1.0f, 0.0f, static_cast<float>(timeout_ms), Easing::Linear, [&service, id](float v) {
             auto e = std::find_if(service.entries.begin(), service.entries.end(), [id](const NotificationEntry &en) { return en.id == id; });
             if (e != service.entries.end())
-                e->progress = v;
-        }, [&service, id] { notification_start_exit(service, id); }, progress_owner(id));
+                e->progress = v; }, [&service, id] { notification_start_exit(service, id); }, progress_owner(id));
 }
 
 } // namespace
@@ -163,7 +160,7 @@ void notification_start_progress(NotificationRenderModel &service, uint32_t id, 
 bool notification_view_create_surface(NotificationView &view, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
     LayerSurfaceConfig cfg{
         .layer = ZWLR_LAYER_SHELL_V1_LAYER_TOP,
-        .name_space = "adastria-shell-notification",
+        .name_space = "astralia-shell-notification",
         .anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT,
         .width = kNotificationSurfaceWidth,
         .height = kNotificationSurfaceHeight,
@@ -222,13 +219,11 @@ void notification_add_entry(NotificationRenderModel &service, const Notification
     service.animations.animate(0.0f, 1.0f, kNotificationAnimNormal, Easing::EaseOutCubic, [&service, id](float v) {
             auto e = std::find_if(service.entries.begin(), service.entries.end(), [id](const NotificationEntry &en) { return en.id == id; });
             if (e != service.entries.end())
-                e->opacity = v;
-        }, {}, opacity_owner(id));
+                e->opacity = v; }, {}, opacity_owner(id));
     service.animations.animate(kNotificationSlideOffset, 0.0f, kNotificationAnimNormal, Easing::EaseOutCubic, [&service, id](float v) {
             auto e = std::find_if(service.entries.begin(), service.entries.end(), [id](const NotificationEntry &en) { return en.id == id; });
             if (e != service.entries.end())
-                e->slide_offset = v;
-        }, {}, slide_owner(id));
+                e->slide_offset = v; }, {}, slide_owner(id));
     notification_start_progress(service, id, record.timeout_ms);
 }
 
@@ -344,7 +339,7 @@ void notification_paint(NotificationView &view, NotificationRenderModel &service
         float close_x = kNotificationSurfaceWidth - kNotificationCloseHitAreaSize;
         if (!fading_out)
             hitboxes.push_back({entry.id, Rect{close_x, card_y, kNotificationCloseHitAreaSize,
-                                kNotificationCloseHitAreaSize}});
+                                               kNotificationCloseHitAreaSize}});
 
         const Texture &glyph = close_glyph_texture();
         if (glyph.id) {
@@ -397,11 +392,9 @@ bool notification_view_handle_close_click(NotificationView &view, double x, doub
     view.local_exit[id] = 1.0f;
     view.local_animations.animate(1.0f, 0.0f, kNotificationAnimNormal, Easing::EaseOutCubic, [&view, id](float v) {
             if (auto it = view.local_exit.find(id); it != view.local_exit.end())
-                it->second = v;
-        }, [&view, id] {
+                it->second = v; }, [&view, id] {
             if (auto it = view.local_exit.find(id); it != view.local_exit.end())
-                it->second = 0.0f;
-        }, id);
+                it->second = 0.0f; }, id);
     return true;
 }
 

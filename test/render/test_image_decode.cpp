@@ -14,7 +14,7 @@ static bool has_nonzero_byte(const unsigned char *data, size_t count) {
 static void test_decode_png() {
     int width = 0, height = 0;
     unsigned char *data =
-        load_image_decode(ADASTRIA_SHELL_DEFAULT_WALLPAPER, width, height);
+        load_image_decode(ASTRALIA_SHELL_DEFAULT_WALLPAPER, width, height);
     assert(data);
     assert(width == 1920);
     assert(height == 1080);
@@ -24,10 +24,12 @@ static void test_decode_png() {
 
 static void test_decode_svg() {
     std::filesystem::path path =
-        std::filesystem::temp_directory_path() / "adastria-shell-test-icon.svg";
+        std::filesystem::temp_directory_path() / "astralia-shell-test-icon.svg";
     std::FILE *f = std::fopen(path.c_str(), "w");
     assert(f);
-    std::fputs("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'>" "<rect width='24' height='24' fill='red'/></svg>", f);
+    std::fputs("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'>"
+               "<rect width='24' height='24' fill='red'/></svg>",
+               f);
     std::fclose(f);
 
     int width = 0, height = 0;

@@ -46,7 +46,7 @@ float panel_height(const std::vector<PanelRow> &rows) {
 } // namespace system_monitor_panel_detail
 
 bool system_monitor_panel_create_surface(SystemMonitorPanelState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
-    return overlay_panel_create_surface(state.base, compositor, layer_shell, "adastria-shell-system-monitor-panel", output);
+    return overlay_panel_create_surface(state.base, compositor, layer_shell, "astralia-shell-system-monitor-panel", output);
 }
 
 bool system_monitor_panel_init_egl(SystemMonitorPanelState &state, Renderer &renderer, const CpuTempState &cpu_temp, const GpuTempState &gpu_temp, const SystemStatsState &stats, EGLDisplay display, EGLConfig config, EGLContext context) {
@@ -69,8 +69,7 @@ void system_monitor_panel_request_frame(SystemMonitorPanelState &state, float pi
 void system_monitor_panel_toggle(SystemMonitorPanelState &state, float pill_center_x) {
     panel_lock_toggle(state.base, state.locked_center_x, pill_center_x, [&state] { panel_reveal_open(state.reveal); }, [&state] {
             state.scroll_offset = 0.0f;
-            panel_reveal_close(state.reveal, state.base, [&state] { state.locked_center_x = -1.0f; });
-        });
+            panel_reveal_close(state.reveal, state.base, [&state] { state.locked_center_x = -1.0f; }); });
 }
 
 void system_monitor_panel_handle_scroll(SystemMonitorPanelState &state, const GpuTempState &gpu, double dy) {
@@ -203,7 +202,9 @@ void system_monitor_panel_paint(SystemMonitorPanelState &state, const CpuTempSta
         switch (row.kind) {
         case RowKind::Cpu: {
             std::string extra =
-                (cpu_temp_available(cpu_temp) ? std::to_string(static_cast<int>(cpu_temp.celsius)) + "\xC2\xB0" "C \xE2\x80\x94 " : std::string()) +
+                (cpu_temp_available(cpu_temp) ? std::to_string(static_cast<int>(cpu_temp.celsius)) + "\xC2\xB0"
+                                                                                                     "C \xE2\x80\x94 "
+                                              : std::string()) +
                 (stats.cpu_freq_ghz > 0.0f ? std::to_string(stats.cpu_freq_ghz).substr(0, 3) + "GHz" : std::string());
             int pct = stats.cpu_usage >= 0.0f ? static_cast<int>(std::lround(stats.cpu_usage * 100)) : 0;
             draw_stat_row(clip, y, "CPU", extra, std::to_string(pct) + "%", std::max(0.0f, stats.cpu_usage));
@@ -212,7 +213,8 @@ void system_monitor_panel_paint(SystemMonitorPanelState &state, const CpuTempSta
         case RowKind::Gpu: {
             std::string extra =
                 gpu_temp_available(gpu_temp)
-                    ? std::to_string(static_cast<int>(gpu_temp.celsius)) + "\xC2\xB0" "C"
+                    ? std::to_string(static_cast<int>(gpu_temp.celsius)) + "\xC2\xB0"
+                                                                           "C"
                     : std::string();
             int pct = static_cast<int>(std::max(0.0f, gpu_temp.usage_percent));
             draw_stat_row(clip, y, "GPU", extra, std::to_string(pct) + "%", gpu_temp.usage_percent / 100.0f);

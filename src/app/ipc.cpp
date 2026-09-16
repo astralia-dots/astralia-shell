@@ -21,7 +21,7 @@ std::string ipc_socket_path() {
     const char *runtime_dir = getenv("XDG_RUNTIME_DIR");
     if (!runtime_dir)
         runtime_dir = "/tmp";
-    return std::string(runtime_dir) + "/adastria-shell.sock";
+    return std::string(runtime_dir) + "/astralia-shell.sock";
 }
 
 std::vector<IpcHandler> ipc_handlers(WaylandState &state) {
@@ -36,7 +36,7 @@ std::vector<IpcHandler> ipc_handlers(WaylandState &state) {
         for (auto &m : state.outputs.front()->modules)
             append(m->ipc_handlers(state));
     handlers.push_back({"kill", [&state] { state.running = false; },
-                        "gracefully quit adastria-shell"});
+                        "gracefully quit astralia-shell"});
     return handlers;
 }
 
@@ -88,7 +88,7 @@ void handle_ipc_accept(int listen_fd, WaylandState &state) {
             size_t width = 0;
             for (const IpcHandler &h : handlers)
                 width = std::max(width, std::strlen(h.verb));
-            std::string help = "adastria-shell <verb>:\n";
+            std::string help = "astralia-shell <verb>:\n";
             for (const IpcHandler &h : handlers) {
                 std::string verb(h.verb);
                 help += "  " + verb +
@@ -126,7 +126,7 @@ int run_ipc_client(int argc, char **argv) {
 
     int fd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (fd < 0) {
-        fprintf(stderr, "adastria-shell: socket: %s\n", strerror(errno));
+        fprintf(stderr, "astralia-shell: socket: %s\n", strerror(errno));
         return 1;
     }
 
@@ -140,7 +140,7 @@ int run_ipc_client(int argc, char **argv) {
     strncpy(addr.sun_path, path.c_str(), sizeof(addr.sun_path) - 1);
 
     if (connect(fd, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) < 0) {
-        fprintf(stderr, "adastria-shell: no running instance (%s: %s)\n", path.c_str(), strerror(errno));
+        fprintf(stderr, "astralia-shell: no running instance (%s: %s)\n", path.c_str(), strerror(errno));
         close(fd);
         return 1;
     }
@@ -155,7 +155,7 @@ int run_ipc_client(int argc, char **argv) {
     close(fd);
 
     if (response.starts_with("error: ")) {
-        fprintf(stderr, "adastria-shell: %s", response.c_str() + 7);
+        fprintf(stderr, "astralia-shell: %s", response.c_str() + 7);
         return 1;
     }
     fwrite(response.data(), 1, response.size(), stdout);

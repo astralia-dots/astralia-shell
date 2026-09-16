@@ -44,7 +44,7 @@ void rain_toggle(RainState &state, WaylandState &app) {
     bool opening = !state.base.open;
     if (opening) {
         if (state.base.egl_surface == EGL_NO_SURFACE) {
-            if (!toplevel_window_create_surface(state.base, app.compositor, app.wm_base, "Rain", "adastria-shell-rain", kRainDefaultWindowWidth, kRainDefaultWindowHeight))
+            if (!toplevel_window_create_surface(state.base, app.compositor, app.wm_base, "Rain", "astralia-shell-rain", kRainDefaultWindowWidth, kRainDefaultWindowHeight))
                 return;
             while (!state.base.configured)
                 wl_display_dispatch(app.display);

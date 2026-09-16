@@ -51,7 +51,7 @@ void osd_paint(OsdState &state) {
         bg->fill = rgba(palette::overlay);
         bg->border = rgba(palette::electro);
 
-        float icon_y = (kOsdSurfaceHeight - ADASTRIA_SHELL_ICON_PX) / 2.0f;
+        float icon_y = (kOsdSurfaceHeight - ASTRALIA_SHELL_ICON_PX) / 2.0f;
         if (state.icon_texture.id) {
             icon_color = lerp_color(palette::text, palette::text_muted, state.icon_color_t);
             Node *icon = state.scene.root.claim_child();
@@ -65,7 +65,7 @@ void osd_paint(OsdState &state) {
         }
 
         float bar_x =
-            kOsdContentMargin + (state.icon_texture.id ? ADASTRIA_SHELL_ICON_PX + kOsdBarMargin : 0.0f);
+            kOsdContentMargin + (state.icon_texture.id ? ASTRALIA_SHELL_ICON_PX + kOsdBarMargin : 0.0f);
         float bar_w = kOsdSurfaceWidth - bar_x - kOsdBarMargin - kOsdLabelWidth - kOsdContentMargin;
         float bar_y = kOsdSurfaceHeight / 2.0f - 3;
 
@@ -109,7 +109,7 @@ PangoFontDescription *osd_label_font() {
 bool osd_create_surface(OsdState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
     LayerSurfaceConfig cfg{
         .layer = ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY,
-        .name_space = "adastria-shell-osd",
+        .name_space = "astralia-shell-osd",
 
         .anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM,
         .width = kOsdSurfaceWidth,

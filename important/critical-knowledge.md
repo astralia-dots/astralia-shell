@@ -1,8 +1,8 @@
-# `adastria-shell` development critical knowledge
+# `astralia-shell` development critical knowledge
 
 ## Description
 
-Hard-won rules from adastria-shell's development.
+Hard-won rules from astralia-shell's development.
 Can be updated if found new knowledge that supersedes old ones, or genuinely new ones.
 
 ## Rule
@@ -15,7 +15,7 @@ Drop an entry once newer knowledge fully supersedes it.
 - **The poll loop must never block, even briefly.** One poll() loop drives every surface; a single blocking call freezes the whole shell.
 - **No code path on the shared poll thread may make a synchronous blocking D-Bus call, in any callback.** A blocking Bluetooth `getProperty()` chain froze the shell 18s; a polkit `setProperty` froze it 24s.
 - **Building GPU textures or rasterizing text from a D-Bus callback blocks the poll loop, not just network I/O.** `notification_apply_content`'s eager Pango/Cairo/GL work on every Bluetooth connect stuttered the shell; build lazily in the paint path.
-- **adastria-shell is multithreaded even though it spawned no threads itself.** Mesa, pipewire, and Pango each start their own background threads automatically.
+- **astralia-shell is multithreaded even though it spawned no threads itself.** Mesa, pipewire, and Pango each start their own background threads automatically.
 - **The mpris player scan was the last synchronous D-Bus path on the shared poll thread.** A Bluetooth connect's `NameOwnerChanged` burst ran its blocking `ListNames`/`Get` chain, freezing the shell.
 - **Never allocate memory in a forked child before exec().** fork() can copy a lock held by another thread, deadlocking the child forever.
 - **Ignoring SIGCHLD and calling waitpid() cannot coexist.** Ignoring SIGCHLD is process-wide and lets the kernel auto-reap, breaking waitpid() everywhere.
@@ -25,8 +25,8 @@ Drop an entry once newer knowledge fully supersedes it.
 - **SIGKILL stops future CPU use but doesn't guarantee immediate process death.** Confirm actual death before forking a replacement, or the two processes compete.
 - **Reusing a handle across restarts needs a generation counter.** A cancelled worker can still wake later with a stale result unless generations are checked.
 - **`async_process`'s worker thread resets `pid` to `-1` the instant it sets `done` and fills `buffer`.** Track "request in flight" with your own bool flag, not by reading `pid` back later.
-- **Stopping N worker threads on shutdown must signal every stop flag before joining any.** Signal-then-join one at a time made `adastria-shell kill` block on each column's thread serially.
-- **A module's owned background thread must be torn down in its destructor, not only its explicit-close path.** `adastria-shell kill` skipped the visualizer's shutdown; the joinable thread's destruction called `std::terminate()` mid-`eglSwapBuffers`.
+- **Stopping N worker threads on shutdown must signal every stop flag before joining any.** Signal-then-join one at a time made `astralia-shell kill` block on each column's thread serially.
+- **A module's owned background thread must be torn down in its destructor, not only its explicit-close path.** `astralia-shell kill` skipped the visualizer's shutdown; the joinable thread's destruction called `std::terminate()` mid-`eglSwapBuffers`.
 - **`fork()` on the poll thread can stall it even with an async-signal-safe child.** glibc `fork()` blocks acquiring allocator locks held by decode/Mesa/Pango threads; `async_process` uses `posix_spawn`.
 - **`request_frame` defers a mapped surface's repaint to `frame_done`, never paints inline.** Inline `eglSwapBuffers` from a D-Bus handler froze the shell; only the first unmapped paint stays synchronous.
 - **The deferred `request_frame` commit needs a 1px `wl_surface_damage_buffer` to guarantee a `frame_done`.** Hyprland skips scheduling a frame for a bufferless, undamaged commit, so the callback never fires.
@@ -37,13 +37,13 @@ Drop an entry once newer knowledge fully supersedes it.
 ## 2. Rendering
 
 - **Don't render the Tabler icon font via fontconfig plus Pango.** Late-registered app fonts aren't reliably picked up by Pango's font map; use FreeType+Cairo directly.
-- **adastria-shell clips using scissor rects plus a corner inset, not a stencil buffer.** Correct as long as nothing needs to visually touch a rounded edge.
+- **astralia-shell clips using scissor rects plus a corner inset, not a stencil buffer.** Correct as long as nothing needs to visually touch a rounded edge.
 - **A scissor clip helper needs a stack, not one slot, once clips nest.** An unconditional glDisable on destruction wiped the outer clip when clips nested.
 - **A container animating its own size must clip children to the current size.** Fading opacity alone doesn't stop oversized content rendering outside the container mid-tween.
 - **Gate that reveal clip on the height tween, not `animations.hasActive()`.** A looping marquee kept `hasActive()` true forever, clipping the network panel's sub-dialog off-screen permanently.
 - **A cached geometry value must derive from the same variable used for drawing.** Using the animation's target width instead of the current frame stored a wrong position.
 - **Scissor rects should floor/ceil each edge independently, not truncate uniformly.** Flooring the origin then rounding the size can drop the last row or column.
-- **A narrower anti-aliasing band makes rounded-rect edges look crisper.** adastria-shell's 2px smoothstep band softened straight edges; matching noctalia's 1px band fixed it.
+- **A narrower anti-aliasing band makes rounded-rect edges look crisper.** astralia-shell's 2px smoothstep band softened straight edges; matching noctalia's 1px band fixed it.
 - **A filled widget drawn at the same origin as an earlier label silently paints over it.** Two settings-tab tiles once started at the label's own `(x,y)`, hiding it under the first tile.
 - **Drawing textures at fractional pixel positions blurs every glyph and icon.** GL_LINEAR sampling blends edge texels 50/50 at .5px offsets; round positions before drawing.
 - **`show_layout`'s current point is the top-left corner, not the baseline.** Adding ascent on top of that doubled the offset, rendering text clipped near the bottom.
@@ -55,7 +55,7 @@ Drop an entry once newer knowledge fully supersedes it.
 - **Size text/icon textures from fixed font metrics, not per-string ink extents.** Ink-based sizing made baseline position jitter as string content changed between renders.
 - **A per-glyph text-field draw must advance each cell by the font's fixed `Pango` advance, not ink width.** Summing ink widths drops side bearings, collapsing narrow glyphs so input reads shorter than normal.
 - **A text input's whole-run slide belongs on its origin `x`, `keqing-shell`-style `Behavior on x`, not every length change.** Left-aligned fields keep a fixed origin; only centered dot rows whose origin moves should animate.
-- **Cairo output is premultiplied alpha, but adastria-shell's blend convention is straight alpha.** Uploading one as the other silently squares alpha at edges, washing out antialiased pixels.
+- **Cairo output is premultiplied alpha, but astralia-shell's blend convention is straight alpha.** Uploading one as the other silently squares alpha at edges, washing out antialiased pixels.
 - **`draw_rounded_rect` always reads its border-color argument, even at zero border width.** Passing nullptr for "no border" is a null-pointer read, not a no-op.
 - **A rebuilt-every-frame node tree should pool and reuse nodes, not reallocate.** Reallocating at animation frame rate causes unbounded heap high-water-mark growth over time.
 - **A refactor changing a shared function's contract must migrate every call site.** Leaving old `add_child()` around let stragglers silently skip rendering after the pooling refactor.
@@ -131,7 +131,7 @@ Drop an entry once newer knowledge fully supersedes it.
 - **`ncs`'s blob bypasses `Node`/`Scene` entirely: an `r32ui` image texture is the real output, not the fragment colour.** `ncs-1` accumulates depth via `imageAtomicAdd`; `ncs-2` reads/clears via `imageAtomicExchange`. A `glMemoryBarrier` between is required on NVIDIA.
 - **`ncs`'s `sphere.radius` is an exclusion-disc radius, not the blob's size.** Particles inside it evacuate onto a shell; a too-small radius shows a rectangle around a punched hole.
 - **Every `ncs.glsl` default constant must stay verbatim; the shader is a tuned whole, and "roughly similar" tweaks read wrong.** Reverted divergences: `sphere.radius = 0.5 * min(...)` (rectangle-with-hole) and a `baseForm.scale` override that should stay `2.0`.
-- **The `accent`-hued blob/glow is a deliberate adastria-shell override, fed through the `u_accent` uniform, not a shader-literal edit.** This keeps every `ncs` shader-literal constant verbatim; the `0.7` black backdrop is painted host-side instead, not in-shader.
+- **The `accent`-hued blob/glow is a deliberate astralia-shell override, fed through the `u_accent` uniform, not a shader-literal edit.** This keeps every `ncs` shader-literal constant verbatim; the `0.7` black backdrop is painted host-side instead, not in-shader.
 - **Per-device `ncs` knobs (`particleThin`, `particle.size`, `fractalField.complexity`, `glow.directions/quality`, `fps`) are uniforms in `VisualizerParams`.** Their defaults equal the exact verbatim `ncs` constants; "keep verbatim" means the defaults match, not that they're fixed.
 - **`visualizer`'s blob canvas is a square `visualizer_canvas_size` (`0.75 * min(w,h)`), rebuilt on every surface resize.** Ports `ncs`'s `applyResize`, but `0.75` (not `ncs`'s `min/2`) keeps the oversized ring and thin backdrop margin closer to the edge.
 - **The canvas must stay square, or `sphereCoords()` yields an ellipsoid instead of a sphere.** Blob geometry (`sphere.radius`, `bassMultiplier`, `displacements`) is pixel-absolute against the canvas via the `resolution` uniform.
@@ -150,7 +150,7 @@ Drop an entry once newer knowledge fully supersedes it.
 - **Driving `visualizer` from the poll-thread `FrameClock` instead deadlocked the frame pump on Mesa.** `visualizer_toggle` clears `base.frame_clock.surface` so nothing arms a `wl_surface_frame` behind the render thread's back.
 - **Wallpaper cross-transitions run as a `Renderer::draw_custom` pass after `wp.scene.draw`, not as a `Node`, and only for static image columns.** The `Node`/`Scene` path has no shader hook, so callers reusing `wallpaper_draw_columns` (lock, idle ambient) snap instead of animating.
 - **Animated video columns keep the instant wallpaper swap, no cross-transition.** `samplerExternalOES` can't feed the two-`sampler2D` transition shader; `wallpaper_column_set_static` also skips re-decode when path/mode/size are unchanged.
-- **The six ported noctalia wallpaper transition shaders take a CPU-computed uv scale+offset (`vec4`), not noctalia's in-shader fill-mode block.** adastria-shell has two fill modes (Crop/Fit); `transition_uv` reproduces the centred-cover/contain placement, returning `u_fill` for out-of-`[0,1]` samples.
+- **The six ported noctalia wallpaper transition shaders take a CPU-computed uv scale+offset (`vec4`), not noctalia's in-shader fill-mode block.** astralia-shell has two fill modes (Crop/Fit); `transition_uv` reproduces the centred-cover/contain placement, returning `u_fill` for out-of-`[0,1]` samples.
 - **Fading one panel region independently of its chrome needs a second `Scene` drawn at a different `set_opacity`.** `set_opacity` is one global value per frame, so `settings` draws its tab into `state.tab_scene` at `opacity * tab_alpha`.
 - **A tab switch chains a fade-out, swaps `active_tab` in `on_complete`, then fades in.** This is one `Renderer`/`Scene` path invoked twice, not a divergent pipeline.
 - **A global "instant" switch inside `AnimationManager` can't safely reach a perpetually self-re-arming `on_complete` chain.** Forcing every step to `0 ms` recurses synchronously inside `tick()` forever; `marquee_scroll` checks the switch itself and skips starting instead.
@@ -180,7 +180,7 @@ Drop an entry once newer knowledge fully supersedes it.
 - **Destroy an `xdg_popup` from the next `tick()` after `popup_done`, never inside the callback.** The callback runs mid `wl_display_dispatch`; freeing there frees the surface being iterated.
 - **`tray_menu`'s close path must clear `PointerState::focused_surface` itself when it still points at the popup being destroyed.** `focused_surface` is only updated by `enter_cb`/`leave_cb`, so it can dangle onto the freed surface otherwise. Necessary but not sufficient.
 - **Dismissing a grabbed `xdg_popup` via an outside click delivers zero further pointer events until the cursor physically moves.** `xdg_popup_grab` gives the popup focus everywhere on screen; a click on the icon underneath still targets the popup, not it.
-- **Confirmed on Hyprland `v0.56.2`: this is an upstream wlroots/Hyprland bug, not a adastria-shell bug; no client-side fix exists.** The compositor never sends the event to route. See `hyprwm/Hyprland` discussion #13116 and `swaywm/wlroots` issue #233.
+- **Confirmed on Hyprland `v0.56.2`: this is an upstream wlroots/Hyprland bug, not a astralia-shell bug; no client-side fix exists.** The compositor never sends the event to route. See `hyprwm/Hyprland` discussion #13116 and `swaywm/wlroots` issue #233.
 - **`xdg_popup` submenu navigation reuses the single-surface `menu_path` model, resized via `xdg_popup_reposition`.** `popup_window_reposition` clears `configured`; paint skips a frame until the fresh `configure` arrives, then draws.
 - **`popup_window_reposition` must call `wl_surface_commit` itself, or the already-armed `wl_surface.frame` callback never fires.** A frame callback only fires after another commit; without one it hangs forever — tray's first-toggle-empty-menu bug.
 - **`wl_seat` lives on `WaylandState`, not `IdleState`.** `xdg_popup::grab` needs it plus `last_button_serial`/`PointerClick.serial` so a click-opened menu has its grab serial.
@@ -245,8 +245,8 @@ Drop an entry once newer knowledge fully supersedes it.
 - **A decode filter graph can't be built before the first frame decodes.** `CUDA`/`VAAPI` transfer format varies by driver; the graph builds from the first decoded frame.
 - **Looping in-process decoded video needs a seek-and-flush, not a process restart.** `av_seek_frame` plus `avcodec_flush_buffers` on EOF replaces the `ffmpeg` CLI's loop flag.
 - **A decoder can hold a frame back internally, released only by the next `send_packet` or a flush.** Flushing before draining drops it; send a nullptr flush packet and drain first.
-- **A glyph missing from the primary font shifts an entire line's baseline, not just that glyph.** `U+00B7` isn't in adastria-shell's font; Pango's fallback inflates line ascent. Use the em dash.
-- **noctalia's render architecture is one GL/scene thread, every style an ordinary `Node` on one opacity pipeline.** adastria-shell's earlier per-visual special-casing caused divergence; one shared Renderer/Scene path now matches it.
+- **A glyph missing from the primary font shifts an entire line's baseline, not just that glyph.** `U+00B7` isn't in astralia-shell's font; Pango's fallback inflates line ascent. Use the em dash.
+- **noctalia's render architecture is one GL/scene thread, every style an ordinary `Node` on one opacity pipeline.** astralia-shell's earlier per-visual special-casing caused divergence; one shared Renderer/Scene path now matches it.
 - **`~` in a path is a display convention, never a real path.** `std::filesystem` never expands it; `core/path_home.h` collapses `$HOME` at UI/JSON edges, and every path passes `path_expand_home` before use.
 - **A default-plus-override config value must be cached on the consumer's own per-monitor state.** Re-resolving the tier chain on every hot-path read would turn 15 reads into map lookups.
 - **A resolved-with-fallback accessor and a raw-override accessor answer different questions.** A "remove override" control needs the raw override only; the fallback resolver makes it no-op wrongly.
@@ -264,7 +264,7 @@ Drop an entry once newer knowledge fully supersedes it.
 - **One detached decode thread per wallpaper-picker tile permanently bloats the shell's RSS.** ~35 concurrent frame-threaded first-frame decodes made glibc spawn ~8 never-freed 64 MB arenas.
 - **A thumbnail decode must scale inside the filter graph, not decode native then downsample.** `decode_first_frame` takes a target box and emits `scale=W:H,format=rgba`, so `MediaFrame.rgba` is KB not MB.
 - **First-frame/frame-set decodes pin `avcodec` `thread_count = 1`; frame-threading buys nothing and explodes arenas.** Only `decode_loop` (streaming, VAAPI) stays frame-threaded.
-- **`main()` sets `mallopt(M_ARENA_MAX, 2)`.** adastria-shell's steady-state allocation is main-thread-dominated; capping arenas stops any decode burst permanently inflating RSS.
+- **`main()` sets `mallopt(M_ARENA_MAX, 2)`.** astralia-shell's steady-state allocation is main-thread-dominated; capping arenas stops any decode burst permanently inflating RSS.
 - **A backend two modules both need lives in `service/`, not one module's header.** The brightness backend moved to `service/brightness_service.*` so `dashboard` could set brightness without a module include.
 - **Brightness is set through `brightnessctl`, never a direct `sysfs` write.** `/sys/class/backlight/*/brightness` is root-only without a `uaccess` udev rule; `brightnessctl` routes through `logind`.
 - **The notification D-Bus server and `NotificationRecord` store moved to `service/notification_service` once `lock` became its second consumer.** `notification` keeps only its render model, rebuilt by `notification_sync` from the shared records by `id`.
@@ -281,14 +281,14 @@ Drop an entry once newer knowledge fully supersedes it.
 
 - **A file writer must create its own target directory, not assume something else did.** `write_file_atomic` silently failed `save_config()` on fresh installs; other writers already `mkdir()` first.
 - **Merging a module's pure logic and EGL/GL code into one file forces graphics deps onto the test binary.** Keep the `*_test_sources`/`*_main_only_sources` split so the test binary stays free of EGL/GL.
-- **adastria-shell has no runtime shader preprocessor; flatten ported multi-file shaders at authoring time.** `visualizer` inlines every `#include` and hand-expands `#expand` into `assets/shaders/visualizer/sphere/*.glsl` fragment files, concatenated at runtime by `visualizer_shaders.cpp`.
-- **Every shell shader is a file under `assets/shaders/`, loaded via `gl_load_shader`/`gl_compile_program_files` (`render/gl.cpp`), not a baked-in string literal.** `ADASTRIA_SHELL_SHADER_DIR` then a `assets/shaders/` dev-tree relative path, same fallback every bundled asset uses; meson ships the tree with `install_subdir`.
+- **astralia-shell has no runtime shader preprocessor; flatten ported multi-file shaders at authoring time.** `visualizer` inlines every `#include` and hand-expands `#expand` into `assets/shaders/visualizer/sphere/*.glsl` fragment files, concatenated at runtime by `visualizer_shaders.cpp`.
+- **Every shell shader is a file under `assets/shaders/`, loaded via `gl_load_shader`/`gl_compile_program_files` (`render/gl.cpp`), not a baked-in string literal.** `ASTRALIA_SHELL_SHADER_DIR` then a `assets/shaders/` dev-tree relative path, same fallback every bundled asset uses; meson ships the tree with `install_subdir`.
 - **Every bundled asset needs the installed-path-plus-dev-tree-fallback loading pattern.** A bare relative path resolves against the daemon's cwd, silently failing outside the source tree.
 - **A connect()-to-socket liveness probe is unreliable against a leftover socket file.** Prefer a flock()-guarded lock file, which the kernel releases automatically on process death.
 - **keqing-shell uses a separate `accentAlt` token for tile/chip selection borders, not `accent`.** `accent` is reserved for other UI like the nav rail and toggle track.
 - **A generically-named `constexpr` constant can collide with an identical name in an unrelated header.** Two modules that never include each other can still land in the same translation unit transitively.
 - **Launcher is split: `modules/launcher.cpp` is main-executable-only; pure logic in `src/modules/launcher/*` compiles into both binaries.** A `src/modules/launcher/*` file can't gain a `WaylandState`-typed function; the file boundary enforces it.
-- **A module can't include another module's header, and `adastria-shell.cpp` can't name a module's function directly.** Cross-module orchestration — IPC verb table, key-dispatch table — lives in `src/app/` instead.
+- **A module can't include another module's header, and `astralia-shell.cpp` can't name a module's function directly.** Cross-module orchestration — IPC verb table, key-dispatch table — lives in `src/app/` instead.
 - **One module can still trigger another by name through the generic `Module` interface.** Find it in `app.overlays` by `name()`, then call its `ipc_handlers()` and invoke the matching verb.
 - **A shared helper that drifted into one feature module's directory pulls every later caller across the boundary.** `spawn_detached`/`resolve_app_icon_path` had no launcher-specific logic; moving to `core/`/`service/` fixed every caller.
 - **A generic dispatcher needing another module's `open` flag should take a `bool`, not the full state struct.** `panel_pill()` took full state structs to read two fields; it now resolves bools itself.
@@ -299,7 +299,9 @@ Drop an entry once newer knowledge fully supersedes it.
 - **Removing a UI feature's draw code but leaving its click-kinds, state field, and handlers reads as live.** The settings dropdown kept `open_dropdown_id`, two `PanelClickKind`s, and handler cases after its last caller went.
 - **Modules are named after their function; IPC verbs and code identifiers match.** See `index.md`'s `src/modules` and `naming.md` for the retired Keqing-lore code names; `rain` is the only non-functional name kept.
 - **`config.cpp` reads functional JSON keys with a Keqing-era legacy fallback.** `section()`/`pick()` try functional names (`bar`/`wallpaper`/`idle`/`logout`/`visualizer`/...) then the retired ones (`qixing`/`expanse`/`blink`/`starward`/`resonance`/...); the next save rewrites keys.
-- **A project rename can't reuse one identifier style everywhere.** `kokusei` became `adastria-shell`: kebab-case for the binary/paths/PAM service, `ADASTRIA_SHELL_` for macros, `adastria_shell_` for meson variables and C symbols, and `/org/adastria_shell/...` for the polkit D-Bus object path, since D-Bus object path segments only allow `[A-Za-z0-9_]`, no hyphen.
+- **A project rename can't reuse one identifier style everywhere.** `kokusei` became `astralia-shell`: kebab-case for the binary/paths/PAM service, `ASTRALIA_SHELL_` for macros, `astralia_shell_` for meson variables and C symbols, and `/org/astralia_shell/...` for the polkit D-Bus object path, since D-Bus object path segments only allow `[A-Za-z0-9_]`, no hyphen.
+- **`config_path()`'s actual convention has no `-shell` suffix, unlike the state/log dir.** It resolves to `~/.config/astralia/config.json`; only `test_config.cpp` had drifted to expect `astralia-shell`, caught only by a full rebuild.
+- **A later commit changing a hardcoded path can silently outpace its own test.** `config.cpp` dropped its `-shell` suffix with no matching edit to `test_config.cpp`; the mismatch stayed invisible until the next `./build.sh test`.
 
 ## 6. Hyprland IPC
 

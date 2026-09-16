@@ -125,7 +125,7 @@ float sub_panel_height(const std::string &mode) {
 } // namespace network_panel_detail
 
 bool network_panel_create_surface(NetworkPanelState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
-    return overlay_panel_create_surface(state.base, compositor, layer_shell, "adastria-shell-network-panel", output);
+    return overlay_panel_create_surface(state.base, compositor, layer_shell, "astralia-shell-network-panel", output);
 }
 
 bool network_panel_init_egl(NetworkPanelState &state, Renderer &renderer, NetworkState &net, EGLDisplay display, EGLConfig config, EGLContext context) {
@@ -156,8 +156,7 @@ void network_panel_toggle(NetworkPanelState &state, float pill_center_x) {
     text_field_row_slide_reset(state.password_row_slide, state.base.animations, kNetworkPasswordRowSlideOwner);
     panel_lock_toggle(state.base, state.locked_center_x, pill_center_x, [&state] { panel_reveal_open(state.reveal); }, [&state] {
             state.scroll_offset = 0.0f;
-            panel_reveal_close(state.reveal, state.base, [&state] { state.locked_center_x = -1.0f; });
-        });
+            panel_reveal_close(state.reveal, state.base, [&state] { state.locked_center_x = -1.0f; }); });
 }
 
 void network_panel_handle_scroll(NetworkPanelState &state, NetworkState &net, double dy) {
@@ -418,7 +417,8 @@ void network_panel_paint(NetworkPanelState &state, NetworkState &net, float pill
         case RowKind::SectionAvailable: {
             const char *label =
                 row.kind == RowKind::SectionConnected ? "Connected"
-                : row.kind == RowKind::SectionKnown   ? "Known" : "Available";
+                : row.kind == RowKind::SectionKnown   ? "Known"
+                                                      : "Available";
             const Texture *t = cached_text(state.tcache, label, scale);
             if (t)
                 node_add_texture(clip, rx(content_x), ry(y + row_h - t->height), *t, dim);
@@ -431,11 +431,14 @@ void network_panel_paint(NetworkPanelState &state, NetworkState &net, float pill
             bool is_busy = net.connecting_to == info.ssid;
             bool is_secured = !info.security.empty() && info.security != "--";
 
-            const float *row_bg = is_captive     ? kNetworkCaptiveBg : is_connected ? rgba(palette::accent_alpha25) : is_busy      ? rgba(palette::accent_alpha12) : rgba(palette::overlay);
+            const float *row_bg = is_captive ? kNetworkCaptiveBg : is_connected ? rgba(palette::accent_alpha25)
+                                                               : is_busy        ? rgba(palette::accent_alpha12)
+                                                                                : rgba(palette::overlay);
             float row_rect_h = kPanelDeviceRowHeight;
             node_add_rrect(clip, rx(content_x), ry(y), content_w, row_rect_h, 8.0f, 0.0f, row_bg, kPanelNoBorder);
 
-            const float *fg = is_captive     ? kNetworkCaptiveFg : is_connected ? rgba(palette::accent) : rgba(palette::text_dim);
+            const float *fg = is_captive ? kNetworkCaptiveFg : is_connected ? rgba(palette::accent)
+                                                                            : rgba(palette::text_dim);
             const Texture *sig =
                 cached_icon(state.tcache, signal_icon(info.signal), scale);
             if (sig)
@@ -452,9 +455,10 @@ void network_panel_paint(NetworkPanelState &state, NetworkState &net, float pill
                 static_cast<int>(std::max(0.0f, text_right - text_left));
             Node *tclip =
                 node_add_group(clip, rx(text_left), ry(y), text_right - text_left, row_rect_h, true);
-            const float *ssid_fg = is_captive     ? kNetworkCaptiveFg : is_connected ? rgba(palette::accent) : white;
-            std::string subtitle = is_captive   ? "Sign in required" : is_secured ? info.security
-                                                : "Open";
+            const float *ssid_fg = is_captive ? kNetworkCaptiveFg : is_connected ? rgba(palette::accent)
+                                                                                 : white;
+            std::string subtitle = is_captive ? "Sign in required" : is_secured ? info.security
+                                                                                : "Open";
             const Texture *sub_tex =
                 cached_text_clipped(state.tcache, subtitle, scale, text_w_px);
             const Texture *ssid_probe =
@@ -501,7 +505,7 @@ void network_panel_paint(NetworkPanelState &state, NetworkState &net, float pill
             Rect field_rect = {inner_x, iy, inner_w, kPanelSubPanelRowHeight};
             node_add_rrect(root, field_rect.x, field_rect.y, field_rect.w, field_rect.h, 6.0f, 1.0f, rgba(palette::text_alpha08), rgba(palette::text_alpha15));
             if (state.password_dot_tex.id == 0) {
-                const char *dot_candidates[] = {ADASTRIA_SHELL_INPUT_ECHO,
+                const char *dot_candidates[] = {ASTRALIA_SHELL_INPUT_ECHO,
                                                 "assets/electro.png"};
                 std::string dot_path = dot_candidates[1];
                 for (const char *candidate : dot_candidates) {

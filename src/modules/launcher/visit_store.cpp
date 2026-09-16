@@ -23,7 +23,7 @@ std::string visit_store_default_path() {
         const char *home = getenv("HOME");
         dir = std::string(home ? home : "") + "/.local/state";
     }
-    dir += "/adastria-shell";
+    dir += "/astralia-shell";
     mkdir(dir.c_str(), 0755);
     return dir + "/launcher_visits";
 }

@@ -1,4 +1,4 @@
-# Adastria Shell
+# Astralia Shell
 
 ## Important
 
@@ -17,8 +17,8 @@ sudo pacman -Syu --needed base-devel meson ninja mesa wayland wayland-protocols 
 ## Installation
 
 ```bash
-git clone https://github.com/Hq9afk/adastria-shell.git
-cd adastria-shell
+git clone https://github.com/Hq9afk/astralia-shell.git
+cd astralia-shell
 ./build.sh install
 ```
 
@@ -26,11 +26,11 @@ cd adastria-shell
 
 **Regular mode**
 ```bash
-adastria
+astralia
 ```
 
 **Debug mode**
 ```bash
-adastria debug
+astralia debug
 ```
-Or run adastria-shell in regular mode and read the logs at `~/.local/state/adastria-shell/adastria-shell.log`
+Or run astralia-shell in regular mode and read the logs at `~/.local/state/astralia-shell/astralia-shell.log`

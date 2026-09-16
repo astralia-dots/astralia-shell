@@ -489,9 +489,7 @@ class SettingsModule final : public Module, public TextInputClient {
     }
 
     void handle_click(WaylandState &app, double x, double y) override {
-        settings_handle_click(state_, app.cfg, [&app](Config c) {
-                app_detail::save_and_apply_config_update(app, c);
-            }, x, y);
+        settings_handle_click(state_, app.cfg, [&app](Config c) { app_detail::save_and_apply_config_update(app, c); }, x, y);
     }
     void handle_pointer_move(WaylandState &, wl_surface *focused_surface, double x, double y) override {
         hovering_clickable_ = state_.base.open && focused_surface == state_.base.surface && settings_point_is_clickable(state_, x, y);
@@ -500,9 +498,7 @@ class SettingsModule final : public Module, public TextInputClient {
         return hovering_clickable_;
     }
     void handle_key_event(WaylandState &app, const KeyEvent &event) override {
-        settings_handle_key_event(state_, app.cfg, [&app](Config c) {
-                app_detail::save_and_apply_config_update(app, c);
-            }, event);
+        settings_handle_key_event(state_, app.cfg, [&app](Config c) { app_detail::save_and_apply_config_update(app, c); }, event);
     }
     void handle_scroll(WaylandState &, double dy) override {
         settings_handle_scroll(state_, dy);
@@ -601,7 +597,7 @@ class LockModule final : public Module {
         state_.panel_gated_for = [&app](const std::string &output_name) {
             return lock_effective_enabled(app.cfg, output_name);
         };
-        state_.echo_glyph = load_image_texture_first_existing({ADASTRIA_SHELL_INPUT_ECHO, "assets/electro.png"});
+        state_.echo_glyph = load_image_texture_first_existing({ASTRALIA_SHELL_INPUT_ECHO, "assets/electro.png"});
         return true;
     }
 

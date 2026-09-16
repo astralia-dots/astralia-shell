@@ -29,14 +29,16 @@ constexpr ext_idle_notification_v1_listener idle_recent_activity_listener = {
 
 bool idle_init(IdleState &state, wl_seat *seat) {
     if (!state.notifier || !seat) {
-        klog("idle: compositor is missing ext_idle_notifier_v1 or wl_seat, " "skipping");
+        klog("idle: compositor is missing ext_idle_notifier_v1 or wl_seat, "
+             "skipping");
         return false;
     }
     state.recent_activity_notification = ext_idle_notifier_v1_get_idle_notification(state.notifier, kIdleRecentActivityPulseSeconds * 1000, seat);
     if (state.recent_activity_notification)
         ext_idle_notification_v1_add_listener(state.recent_activity_notification, &idle_recent_activity_listener, &state);
     else
-        klog("idle: recent-activity notification failed, ambient/screensaver " "clock disabled");
+        klog("idle: recent-activity notification failed, ambient/screensaver "
+             "clock disabled");
     return state.recent_activity_notification != nullptr;
 }
 
@@ -188,7 +190,7 @@ bool idle_overlay_init_egl(IdleOverlayState &state, Renderer &renderer, EGLDispl
     state.frame_clock.surface = state.surface;
     state.frame_clock.draw = [&state] { idle_overlay_paint(state); };
 
-    const char *logo_candidates[] = {ADASTRIA_SHELL_IDLE_LOGO, "assets/stellar-restoration.svg"};
+    const char *logo_candidates[] = {ASTRALIA_SHELL_IDLE_LOGO, "assets/stellar-restoration.svg"};
     std::string logo_path = logo_candidates[1];
     for (const char *candidate : logo_candidates) {
         if (std::filesystem::exists(candidate)) {

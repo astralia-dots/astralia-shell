@@ -212,7 +212,9 @@ void decode_loop(std::string path, std::string filter_desc, int fps, bool suppor
         klog("media_decode: hw decode enabled for '%s'", path.c_str());
     }
     if (!on_drm_frame || hw_pix_fmt != AV_PIX_FMT_VAAPI) {
-        klog("media_decode: zero-copy unavailable for '%s' (drm_cb=%d " "hw_pix_fmt=%s), using CPU upload path", path.c_str(), on_drm_frame ? 1 : 0, hw_pix_fmt == AV_PIX_FMT_NONE ? "none" : av_get_pix_fmt_name(hw_pix_fmt));
+        klog("media_decode: zero-copy unavailable for '%s' (drm_cb=%d "
+             "hw_pix_fmt=%s), using CPU upload path",
+             path.c_str(), on_drm_frame ? 1 : 0, hw_pix_fmt == AV_PIX_FMT_NONE ? "none" : av_get_pix_fmt_name(hw_pix_fmt));
         status->store(MediaDecodeStatus::CpuFallback);
     }
 
@@ -274,7 +276,9 @@ void decode_loop(std::string path, std::string filter_desc, int fps, bool suppor
         if (map_ret < 0) {
             char errbuf[AV_ERROR_MAX_STRING_SIZE] = {};
             av_strerror(map_ret, errbuf, sizeof(errbuf));
-            klog("media_decode: av_hwframe_map to DRM_PRIME failed for '%s': %s " "(%d), disabling zero-copy for this playback", path.c_str(), errbuf, map_ret);
+            klog("media_decode: av_hwframe_map to DRM_PRIME failed for '%s': %s "
+                 "(%d), disabling zero-copy for this playback",
+                 path.c_str(), errbuf, map_ret);
             av_frame_free(&drm_frame);
             return false;
         }
@@ -282,9 +286,14 @@ void decode_loop(std::string path, std::string filter_desc, int fps, bool suppor
         if (!fill_drm_frame(out, drm_frame)) {
             const auto *desc = reinterpret_cast<const AVDRMFrameDescriptor *>(drm_frame->data[0]);
             if (desc && desc->nb_layers >= 1)
-                klog("media_decode: unsupported DRM layout for '%s': " "nb_layers=%d format=0x%x nb_planes=%d, disabling " "zero-copy for this playback", path.c_str(), desc->nb_layers, desc->layers[0].format, desc->layers[0].nb_planes);
+                klog("media_decode: unsupported DRM layout for '%s': "
+                     "nb_layers=%d format=0x%x nb_planes=%d, disabling "
+                     "zero-copy for this playback",
+                     path.c_str(), desc->nb_layers, desc->layers[0].format, desc->layers[0].nb_planes);
             else
-                klog("media_decode: DRM_PRIME frame for '%s' has no layers, " "disabling zero-copy for this playback", path.c_str());
+                klog("media_decode: DRM_PRIME frame for '%s' has no layers, "
+                     "disabling zero-copy for this playback",
+                     path.c_str());
             av_frame_free(&drm_frame);
             return false;
         }
@@ -353,7 +362,10 @@ void decode_loop(std::string path, std::string filter_desc, int fps, bool suppor
                 } else {
                     zero_copy_disabled = true;
                     status->store(MediaDecodeStatus::CpuFallback);
-                    klog("media_decode: zero-copy VAAPI import failed for '%s', " "falling back to CPU decode path for the rest of this " "playback", path.c_str());
+                    klog("media_decode: zero-copy VAAPI import failed for '%s', "
+                         "falling back to CPU decode path for the rest of this "
+                         "playback",
+                         path.c_str());
                 }
             }
             if (!zero_copy_delivered) {
@@ -514,7 +526,7 @@ std::vector<MediaFrame> decode_frames(std::string path, std::string filter_desc,
 
 } // namespace
 
-extern "C" MediaDecodePlayback adastria_shell_media_plugin_stream(const std::string &path, const std::string &filter_desc, int fps, bool supports_row_length, MediaDecodeFrameCallback on_frame, MediaDecodeDrmFrameCallback on_drm_frame) {
+extern "C" MediaDecodePlayback astralia_shell_media_plugin_stream(const std::string &path, const std::string &filter_desc, int fps, bool supports_row_length, MediaDecodeFrameCallback on_frame, MediaDecodeDrmFrameCallback on_drm_frame) {
     MediaDecodePlayback playback;
     playback.stop_flag = std::make_shared<std::atomic<bool>>(false);
     playback.pause_flag = std::make_shared<std::atomic<bool>>(false);
@@ -525,11 +537,11 @@ extern "C" MediaDecodePlayback adastria_shell_media_plugin_stream(const std::str
 }
 
 extern "C" std::vector<MediaFrame>
-adastria_shell_media_plugin_frames(const std::string &path, const std::string &filter_desc, int max_frames) {
+astralia_shell_media_plugin_frames(const std::string &path, const std::string &filter_desc, int max_frames) {
     return decode_frames(path, filter_desc, max_frames);
 }
 
-extern "C" void adastria_shell_media_plugin_release_drm_frame(void *avframe_handle) {
+extern "C" void astralia_shell_media_plugin_release_drm_frame(void *avframe_handle) {
     if (!avframe_handle)
         return;
     auto *frame = static_cast<AVFrame *>(avframe_handle);

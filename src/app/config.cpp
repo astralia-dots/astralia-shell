@@ -82,7 +82,7 @@ std::string config_path() {
     const char *home = getenv("HOME");
     if (!home)
         return "";
-    return std::string(home) + "/.config/adastria/config.json";
+    return std::string(home) + "/.config/astralia/config.json";
 }
 
 namespace {

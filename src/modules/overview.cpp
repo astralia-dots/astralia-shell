@@ -106,9 +106,7 @@ uint64_t tile_anim_owner(const std::string &address, int component) {
 
 void animate_tile_rect(OverviewState &state, const std::string &address, const Rect &from, const Rect &to) {
     auto anim = [&](int component, float from_v, float to_v, float Rect::*field) {
-        state.base.animations.animate(from_v, to_v, kOverviewAnimFastMs, Easing::EaseOutCubic, [&state, address, field](float v) {
-                state.tile_anim[address].current.*field = v;
-            }, {}, tile_anim_owner(address, component));
+        state.base.animations.animate(from_v, to_v, kOverviewAnimFastMs, Easing::EaseOutCubic, [&state, address, field](float v) { state.tile_anim[address].current.*field = v; }, {}, tile_anim_owner(address, component));
     };
     anim(0, from.x, to.x, &Rect::x);
     anim(1, from.y, to.y, &Rect::y);
@@ -199,7 +197,7 @@ bool point_in_rect(double px, double py, const Rect &r) {
 } // namespace
 
 bool overview_create_surface(OverviewState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
-    return overlay_panel_create_surface(state.base, compositor, layer_shell, "adastria-shell-overview", output);
+    return overlay_panel_create_surface(state.base, compositor, layer_shell, "astralia-shell-overview", output);
 }
 
 bool overview_init_egl(OverviewState &state, Renderer &renderer, EGLDisplay display, EGLConfig config, EGLContext context) {
@@ -213,11 +211,7 @@ bool overview_init_egl(OverviewState &state, Renderer &renderer, EGLDisplay disp
 }
 
 void overview_retarget(OverviewState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_display *display, Renderer &renderer, EGLDisplay egl_display, EGLConfig egl_config, EGLContext egl_context, wl_output *target_output, const char *target_name) {
-    wl_output *bound = overlay_panel_retarget(state.base, display, state.bound_output, target_output, target_name, [&](wl_output *out) {
-            return overview_create_surface(state, compositor, layer_shell, out);
-        }, [&] {
-            return overview_init_egl(state, renderer, egl_display, egl_config, egl_context);
-        });
+    wl_output *bound = overlay_panel_retarget(state.base, display, state.bound_output, target_output, target_name, [&](wl_output *out) { return overview_create_surface(state, compositor, layer_shell, out); }, [&] { return overview_init_egl(state, renderer, egl_display, egl_config, egl_context); });
     if (bound)
         state.bound_output = bound;
 }

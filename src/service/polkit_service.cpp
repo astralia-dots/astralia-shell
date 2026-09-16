@@ -27,7 +27,7 @@
 
 namespace {
 
-constexpr auto kAgentObjectPath = "/org/adastria_shell/PolkitAuthenticationAgent";
+constexpr auto kAgentObjectPath = "/org/astralia_shell/PolkitAuthenticationAgent";
 
 template <typename F>
 void guard_polkit_callback(const char *name, F &&body) noexcept {
@@ -154,7 +154,7 @@ using CancelCallback = void (*)(void *, InternalAuthRequest *);
 
 } // namespace
 
-using AdastriaShellPolkitListener = struct _AdastriaShellPolkitListener {
+using AstraliaShellPolkitListener = struct _AstraliaShellPolkitListener {
     PolkitAgentListener parent_instance;
     void *owner = nullptr;
     InitiateCallback initiate = nullptr;
@@ -162,34 +162,34 @@ using AdastriaShellPolkitListener = struct _AdastriaShellPolkitListener {
     gpointer registration_handle = nullptr;
 };
 
-using AdastriaShellPolkitListenerClass = struct _AdastriaShellPolkitListenerClass {
+using AstraliaShellPolkitListenerClass = struct _AstraliaShellPolkitListenerClass {
     PolkitAgentListenerClass parent_class;
 };
 
-static void adastria_shell_polkit_listener_initiate_authentication(PolkitAgentListener *listener, const gchar *action_id, const gchar *message, const gchar *icon_name, PolkitDetails * /*details*/, const gchar *cookie, GList *identities, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data) noexcept;
-static gboolean adastria_shell_polkit_listener_initiate_authentication_finish(PolkitAgentListener *listener, GAsyncResult *result, GError **error);
-static void adastria_shell_polkit_request_cancelled(GCancellable *cancellable, gpointer user_data) noexcept;
+static void astralia_shell_polkit_listener_initiate_authentication(PolkitAgentListener *listener, const gchar *action_id, const gchar *message, const gchar *icon_name, PolkitDetails * /*details*/, const gchar *cookie, GList *identities, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data) noexcept;
+static gboolean astralia_shell_polkit_listener_initiate_authentication_finish(PolkitAgentListener *listener, GAsyncResult *result, GError **error);
+static void astralia_shell_polkit_request_cancelled(GCancellable *cancellable, gpointer user_data) noexcept;
 
-G_DEFINE_TYPE(AdastriaShellPolkitListener, adastria_shell_polkit_listener, POLKIT_AGENT_TYPE_LISTENER)
+G_DEFINE_TYPE(AstraliaShellPolkitListener, astralia_shell_polkit_listener, POLKIT_AGENT_TYPE_LISTENER)
 
-static void adastria_shell_polkit_listener_init(AdastriaShellPolkitListener *self) {
+static void astralia_shell_polkit_listener_init(AstraliaShellPolkitListener *self) {
     self->owner = nullptr;
     self->initiate = nullptr;
     self->cancel = nullptr;
     self->registration_handle = nullptr;
 }
 
-static void adastria_shell_polkit_listener_class_init(AdastriaShellPolkitListenerClass *klass) {
+static void astralia_shell_polkit_listener_class_init(AstraliaShellPolkitListenerClass *klass) {
     auto *listener_class = POLKIT_AGENT_LISTENER_CLASS(klass);
     listener_class->initiate_authentication =
-        adastria_shell_polkit_listener_initiate_authentication;
+        astralia_shell_polkit_listener_initiate_authentication;
     listener_class->initiate_authentication_finish =
-        adastria_shell_polkit_listener_initiate_authentication_finish;
+        astralia_shell_polkit_listener_initiate_authentication_finish;
 }
 
-static void adastria_shell_polkit_listener_initiate_authentication(PolkitAgentListener *listener, const gchar *action_id, const gchar *message, const gchar *icon_name, PolkitDetails * /*details*/, const gchar *cookie, GList *identities, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data) noexcept {
+static void astralia_shell_polkit_listener_initiate_authentication(PolkitAgentListener *listener, const gchar *action_id, const gchar *message, const gchar *icon_name, PolkitDetails * /*details*/, const gchar *cookie, GList *identities, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer user_data) noexcept {
     guard_polkit_callback("initiate_authentication", [&]() {
-        auto *self = reinterpret_cast<AdastriaShellPolkitListener *>(listener);
+        auto *self = reinterpret_cast<AstraliaShellPolkitListener *>(listener);
         auto request = std::make_unique<InternalAuthRequest>();
         request->action_id = action_id != nullptr ? action_id : "";
         request->message = message != nullptr ? message : "";
@@ -207,14 +207,14 @@ static void adastria_shell_polkit_listener_initiate_authentication(PolkitAgentLi
             if (identity == nullptr)
                 continue;
             const auto duplicate = std::ranges::find_if(request->identities, [identity](const IdentityRef &existing) {
-                    return polkit_identity_equal(existing.get(), identity);
-                });
+                return polkit_identity_equal(existing.get(), identity);
+            });
             if (duplicate == request->identities.end())
                 request->identities.emplace_back(identity);
         }
 
         if (cancellable != nullptr)
-            request->cancel_handler_id = g_cancellable_connect(cancellable, G_CALLBACK(adastria_shell_polkit_request_cancelled), request.get(), nullptr);
+            request->cancel_handler_id = g_cancellable_connect(cancellable, G_CALLBACK(astralia_shell_polkit_request_cancelled), request.get(), nullptr);
 
         if (self->initiate == nullptr || self->owner == nullptr) {
             request->cancel("Polkit listener is not attached");
@@ -224,16 +224,16 @@ static void adastria_shell_polkit_listener_initiate_authentication(PolkitAgentLi
     });
 }
 
-static gboolean adastria_shell_polkit_listener_initiate_authentication_finish(PolkitAgentListener * /*listener*/, GAsyncResult *result, GError **error) {
+static gboolean astralia_shell_polkit_listener_initiate_authentication_finish(PolkitAgentListener * /*listener*/, GAsyncResult *result, GError **error) {
     return g_task_propagate_boolean(G_TASK(result), error);
 }
 
-static void adastria_shell_polkit_request_cancelled(GCancellable * /*cancellable*/, gpointer user_data) noexcept {
+static void astralia_shell_polkit_request_cancelled(GCancellable * /*cancellable*/, gpointer user_data) noexcept {
     guard_polkit_callback("request_cancelled", [&]() {
         auto *request = static_cast<InternalAuthRequest *>(user_data);
         request->cancel_handler_id = 0;
         auto *source = G_IS_TASK(request->task) ? g_task_get_source_object(request->task) : nullptr;
-        auto *listener = source != nullptr ? reinterpret_cast<AdastriaShellPolkitListener *>(source) : nullptr;
+        auto *listener = source != nullptr ? reinterpret_cast<AstraliaShellPolkitListener *>(source) : nullptr;
         if (listener != nullptr && listener->cancel != nullptr && listener->owner != nullptr)
             listener->cancel(listener->owner, request);
     });
@@ -242,7 +242,7 @@ static void adastria_shell_polkit_request_cancelled(GCancellable * /*cancellable
 struct PolkitAgent::Impl {
     StateCallback state_callback;
     ReadyCallback ready_callback;
-    AdastriaShellPolkitListener *listener = nullptr;
+    AstraliaShellPolkitListener *listener = nullptr;
     PolkitAgentSession *session = nullptr;
     GMainContext *context = nullptr;
     GCancellable *register_cancellable = nullptr;
@@ -263,7 +263,7 @@ struct PolkitAgent::Impl {
     mutable int glib_poll_timeout_ms = -1;
 
     Impl() : context(g_main_context_default()) {
-        listener = static_cast<AdastriaShellPolkitListener *>(g_object_new(adastria_shell_polkit_listener_get_type(), nullptr));
+        listener = static_cast<AstraliaShellPolkitListener *>(g_object_new(astralia_shell_polkit_listener_get_type(), nullptr));
         listener->owner = this;
         listener->initiate = &Impl::initiate_bridge;
         listener->cancel = &Impl::cancel_bridge;
@@ -332,7 +332,8 @@ struct PolkitAgent::Impl {
             }
             if (no_session) {
                 g_clear_error(&error);
-                klog("polkit: no logind session for pid; trying unix-user " "authentication agent");
+                klog("polkit: no logind session for pid; trying unix-user "
+                     "authentication agent");
                 PolkitSubject *user_subject = POLKIT_SUBJECT(polkit_unix_user_new(static_cast<gint>(::getuid())));
                 begin_register_subject(user_subject, nullptr);
                 return;
@@ -498,7 +499,9 @@ struct PolkitAgent::Impl {
             }
         }
         if (chosen == nullptr) {
-            klog("polkit: action \"%s\" has no unix-user identity (unix-group " "alone is unsupported)", pending->action_id.c_str());
+            klog("polkit: action \"%s\" has no unix-user identity (unix-group "
+                 "alone is unsupported)",
+                 pending->action_id.c_str());
             return false;
         }
 
@@ -613,7 +616,7 @@ struct PolkitAgent::Impl {
             g_main_context_query(context, glib_max_priority, &timeout, glib_poll_fds.data(), count);
             glib_poll_timeout_ms = ready ? 0 : timeout;
             for (const GPollFD &glib_fd : glib_poll_fds) {
-                fds.push_back({.fd = glib_fd.fd,.events = static_cast<short>(glib_fd.events),.revents = 0});
+                fds.push_back({.fd = glib_fd.fd, .events = static_cast<short>(glib_fd.events), .revents = 0});
                 ++added;
             }
         }

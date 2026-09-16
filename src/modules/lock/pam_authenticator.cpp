@@ -9,8 +9,8 @@
 
 #include "modules/lock/pam_authenticator.h"
 
-#ifndef ADASTRIA_SHELL_PAM_DIR
-#define ADASTRIA_SHELL_PAM_DIR ""
+#ifndef ASTRALIA_SHELL_PAM_DIR
+#define ASTRALIA_SHELL_PAM_DIR ""
 #endif
 
 namespace pam_auth {
@@ -62,7 +62,7 @@ int conversation(int num_msg, const pam_message **msg, pam_response **resp, void
 }
 
 bool pam_config_present() {
-    return ADASTRIA_SHELL_PAM_DIR[0] != '\0' &&::access(ADASTRIA_SHELL_PAM_DIR "/adastria-shell", R_OK) == 0;
+    return ASTRALIA_SHELL_PAM_DIR[0] != '\0' && ::access(ASTRALIA_SHELL_PAM_DIR "/astralia-shell", R_OK) == 0;
 }
 
 } // namespace
@@ -86,7 +86,7 @@ Result authenticate_current_user(std::string_view password) {
     pam_handle_t *pamh = nullptr;
     int rc;
     if (pam_config_present())
-        rc = pam_start_confdir("adastria-shell", user.c_str(), &conv, ADASTRIA_SHELL_PAM_DIR, &pamh);
+        rc = pam_start_confdir("astralia-shell", user.c_str(), &conv, ASTRALIA_SHELL_PAM_DIR, &pamh);
     else
         rc = pam_start("login", user.c_str(), &conv, &pamh);
 

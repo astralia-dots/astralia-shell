@@ -29,7 +29,7 @@ float random_range(float lo, float hi) { return lo + (hi - lo) * random01(); }
 
 cairo_surface_t *stiletto_sprite() {
     static cairo_surface_t *sprite = []() -> cairo_surface_t * {
-        const char *candidates[] = {ADASTRIA_SHELL_STILETTO_SPRITE,
+        const char *candidates[] = {ASTRALIA_SHELL_STILETTO_SPRITE,
                                     "assets/stiletto.svg"};
         const char *path = candidates[1];
         for (const char *c : candidates) {

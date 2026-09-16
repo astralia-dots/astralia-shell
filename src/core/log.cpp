@@ -20,10 +20,10 @@ FILE *klog_open_file() {
             mkdir(base.substr(0, pos).c_str(), 0755);
         }
     }
-    dir = base + "/adastria-shell";
+    dir = base + "/astralia-shell";
     mkdir(dir.c_str(), 0755);
 
-    return fopen((dir + "/adastria-shell.log").c_str(), "a");
+    return fopen((dir + "/astralia-shell.log").c_str(), "a");
 }
 
 } // namespace

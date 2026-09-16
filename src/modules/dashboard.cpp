@@ -34,7 +34,7 @@ constexpr Color kGaugeColorDisk = color(kGaugeColorDiskHex);
 constexpr Color kTempWarnColor = color(kTempWarnColorHex);
 
 bool dashboard_create_surface(DashboardState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
-    return overlay_panel_create_surface(state.base, compositor, layer_shell, "adastria-shell-dashboard", output);
+    return overlay_panel_create_surface(state.base, compositor, layer_shell, "astralia-shell-dashboard", output);
 }
 
 bool dashboard_init_egl(DashboardState &state, Renderer &renderer, WaylandState &app, EGLDisplay display, EGLConfig config, EGLContext context) {
@@ -53,11 +53,7 @@ bool dashboard_init_egl(DashboardState &state, Renderer &renderer, WaylandState 
 }
 
 void dashboard_retarget(DashboardState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_display *display, Renderer &renderer, WaylandState &app, EGLDisplay egl_display, EGLConfig egl_config, EGLContext egl_context, wl_output *target_output, const char *target_name) {
-    wl_output *bound = overlay_panel_retarget(state.base, display, state.bound_output, target_output, target_name, [&](wl_output *out) {
-            return dashboard_create_surface(state, compositor, layer_shell, out);
-        }, [&] {
-            return dashboard_init_egl(state, renderer, app, egl_display, egl_config, egl_context);
-        });
+    wl_output *bound = overlay_panel_retarget(state.base, display, state.bound_output, target_output, target_name, [&](wl_output *out) { return dashboard_create_surface(state, compositor, layer_shell, out); }, [&] { return dashboard_init_egl(state, renderer, app, egl_display, egl_config, egl_context); });
     if (bound)
         state.bound_output = bound;
 }
@@ -560,8 +556,7 @@ float draw_volume_row(Node *root, TextureCache &tcache, int32_t scale, float x, 
     draw_slider_track(root, regions, slider_rect, slider_rect, kVolumeCardSliderTrackHeight, muted ? 0.0f : level, muted, region_tag);
 
     std::string pct_label =
-        muted ? "muted" : std::to_string(static_cast<int>(std::round(level * 100.0f))) +
-                    "%";
+        muted ? "muted" : std::to_string(static_cast<int>(std::round(level * 100.0f))) + "%";
     const Texture *pct_tex = cached_text(tcache, pct_label, scale);
     if (pct_tex)
         node_add_texture(root, pct_x + kVolumePctTextWidth - pct_tex->width, slider_y + (kVolumeSliderRowHeight - pct_tex->height) / 2.0f, *pct_tex, rgba(palette::text_dim));

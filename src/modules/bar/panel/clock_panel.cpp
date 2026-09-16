@@ -57,7 +57,7 @@ void draw_nav_button(Node *root, TextureCache &cache, int32_t scale, std::vector
 } // namespace
 
 bool clock_panel_create_surface(ClockPanelState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
-    return overlay_panel_create_surface(state.base, compositor, layer_shell, "adastria-shell-clock-panel", output);
+    return overlay_panel_create_surface(state.base, compositor, layer_shell, "astralia-shell-clock-panel", output);
 }
 
 bool clock_panel_init_egl(ClockPanelState &state, Renderer &renderer, EGLDisplay display, EGLConfig config, EGLContext context) {
@@ -80,8 +80,7 @@ void clock_panel_request_frame(ClockPanelState &state, float pill_center_x, floa
 void clock_panel_toggle(ClockPanelState &state, float pill_center_x) {
     panel_lock_toggle(state.base, state.locked_center_x, pill_center_x, [&state] { panel_reveal_open(state.reveal); }, [&state] {
             state.month_offset = 0;
-            panel_reveal_close(state.reveal, state.base, [&state] { state.locked_center_x = -1.0f; });
-        });
+            panel_reveal_close(state.reveal, state.base, [&state] { state.locked_center_x = -1.0f; }); });
 }
 
 void clock_panel_handle_click(ClockPanelState &state, double px, double py) {
@@ -206,7 +205,8 @@ void clock_panel_paint(ClockPanelState &state, float pill_center_x, float bar_he
         if (!tex)
             continue;
         const float *text_col = is_today       ? kClockTodayText
-                                : day.in_month ? rgba(palette::text) : rgba(palette::text_dim);
+                                : day.in_month ? rgba(palette::text)
+                                               : rgba(palette::text_dim);
         node_add_texture(root, cx + (cell - tex->width) / 2.0f, cy + (cell - tex->height) / 2.0f, *tex, text_col);
     }
 

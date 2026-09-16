@@ -10,7 +10,7 @@
 void test_rfkill() {
     using namespace rfkill_detail;
 
-    std::string path = "/tmp/adastria_shell_test_rfkill_" + std::to_string(getpid());
+    std::string path = "/tmp/astralia_shell_test_rfkill_" + std::to_string(getpid());
 
     assert(!read_sysfs_uint(path).has_value());
     assert(!read_sysfs_string(path).has_value());

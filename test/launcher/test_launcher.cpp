@@ -21,7 +21,7 @@
 #include "service/icon_service.h"
 
 void test_spawn_helpers() {
-    std::string marker = "/tmp/adastria_shell_test_spawn_" + std::to_string(getpid());
+    std::string marker = "/tmp/astralia_shell_test_spawn_" + std::to_string(getpid());
     spawn_detached("touch " + marker);
 
     bool created = false;
@@ -54,7 +54,12 @@ void test_desktop_entry() {
     assert(strip_exec_field_codes("cmd %i %c %k end") == "cmd   end");
 
     {
-        std::istringstream in("[Desktop Entry]\n" "Type=Application\n" "Name=Firefox\n" "Exec=firefox %u\n" "Icon=firefox\n" "Terminal=false\n");
+        std::istringstream in("[Desktop Entry]\n"
+                              "Type=Application\n"
+                              "Name=Firefox\n"
+                              "Exec=firefox %u\n"
+                              "Icon=firefox\n"
+                              "Terminal=false\n");
         auto e = desktop_entry_detail::parse_stream(in, "firefox.desktop");
         assert(e.has_value());
         assert(e->name == "Firefox");
@@ -63,20 +68,27 @@ void test_desktop_entry() {
         assert(e->no_display == false);
     }
     {
-        std::istringstream in("[Desktop Entry]\n" "Type=Application\n" "Name=Hidden Thing\n" "Exec=thing\n" "NoDisplay=true\n");
+        std::istringstream in("[Desktop Entry]\n"
+                              "Type=Application\n"
+                              "Name=Hidden Thing\n"
+                              "Exec=thing\n"
+                              "NoDisplay=true\n");
         auto e = desktop_entry_detail::parse_stream(in, "thing.desktop");
         assert(e.has_value());
         assert(e->no_display == true);
     }
     {
-        std::istringstream in("[Desktop Entry]\n" "Type=Link\n" "Name=Some Link\n" "Exec=nothing\n");
+        std::istringstream in("[Desktop Entry]\n"
+                              "Type=Link\n"
+                              "Name=Some Link\n"
+                              "Exec=nothing\n");
         auto e = desktop_entry_detail::parse_stream(in, "link.desktop");
         assert(!e.has_value());
     }
 }
 
 void test_visit_store() {
-    std::string path = "/tmp/adastria_shell_test_visits_" + std::to_string(getpid());
+    std::string path = "/tmp/astralia_shell_test_visits_" + std::to_string(getpid());
 
     VisitStore vs = visit_store_load(path);
     assert(visit_store_get(vs, visit_store_app_key("firefox.desktop")) == 0);
@@ -154,7 +166,7 @@ void test_files_provider() {
     assert(basename_of("/home/user/") == "user");
     assert(basename_of("/") == "/");
 
-    std::string tmp_dir = "/tmp/adastria_shell_test_fd_" + std::to_string(getpid());
+    std::string tmp_dir = "/tmp/astralia_shell_test_fd_" + std::to_string(getpid());
     system(("mkdir -p " + tmp_dir + "/subdir && touch " + tmp_dir + "/hello.txt").c_str());
 
     auto files = run_fd_search("**/*hello*", tmp_dir, false, 10);
@@ -229,7 +241,7 @@ void test_search() {
     std::vector<FileEntry> files = {dir_entry, file_entry};
 
     VisitStore visits;
-    visits.path = "/tmp/adastria_shell_test_search_unused";
+    visits.path = "/tmp/astralia_shell_test_search_unused";
     visit_store_record(visits, visit_store_app_key("b.desktop"));
 
     auto results = combined_drun_results(apps, files, visits, 10);

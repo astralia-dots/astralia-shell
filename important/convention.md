@@ -1,4 +1,4 @@
-# `adastria-shell` developing conventions
+# `astralia-shell` developing conventions
 
 ## Commenting
 
@@ -17,8 +17,8 @@
 
 - A module is `src/modules/<name>.h`+`.cpp` plus, when split, its private components under `src/modules/<name>/`.
 - A module is not allowed to include files from another module, its private components included.
-- A module shall manage its internal works, without bleeding into `adastria-shell.cpp`.
-- `adastria-shell.cpp` shall not include specific components belonging to a module.
+- A module shall manage its internal works, without bleeding into `astralia-shell.cpp`.
+- `astralia-shell.cpp` shall not include specific components belonging to a module.
 
 ## Config headers
 
@@ -30,7 +30,7 @@
 
 ## Includes
 
-- `meson.build` adds `include_directories('src')` to both the `adastria-shell` and `adastria-shell-test` targets.
+- `meson.build` adds `include_directories('src')` to both the `astralia-shell` and `astralia-shell-test` targets.
 - Every local `#include` is root-relative from `src/`, e.g. `#include "core/log.h"`, never `../` or a bare filename.
 - `test/**` includes `src/` headers the same root-relative way, e.g. `#include "app/config.h"`.
 - Generated Wayland protocol headers stay bare filenames since they build outside `src/`.

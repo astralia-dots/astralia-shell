@@ -69,7 +69,7 @@ inline constexpr std::array<LogoutAction, kLogoutButtonCount>
     kLogoutActions = {{
         {"劍", "systemctl poweroff"},
         {"光", "systemctl reboot"},
-        {"如", "adastria-shell lock"},
+        {"如", "astralia-shell lock"},
         {"我", "systemctl reboot --firmware-setup"},
         {"斬", ""},
         {"盡", ""},

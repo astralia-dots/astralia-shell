@@ -74,25 +74,27 @@ bool notification_service_init(NotificationService &service, const std::function
 
         service.object
             ->addVTable(sdbus::registerMethod("Notify").implementedAs([&service, on_change](const std::string &app_name, uint32_t replaces_id, const std::string &, const std::string &summary, const std::string &body, const std::vector<std::string> &, const std::map<std::string, sdbus::Variant> &hints, int32_t expire_timeout) -> uint32_t {
-                        uint8_t urgency = 1;
-                        auto hint_it = hints.find("urgency");
-                        if (hint_it != hints.end()) {
-                            try {
-                                urgency = hint_it->second.get<uint8_t>();
-                            } catch (const sdbus::Error &) {
-                            }
-                        }
-                        uint32_t id = notification_service_push(service, app_name, summary, body, expire_timeout, replaces_id, urgency);
-                        if (on_change)
-                            on_change();
-                        return id;
-                    }), sdbus::registerMethod("CloseNotification").implementedAs([&service, on_change](uint32_t id) {
-                        klog("notification: closed id=%u", id);
-                        notification_service_close(service, id);
-                        if (on_change)
-                            on_change();
-                    }), sdbus::registerMethod("GetCapabilities").implementedAs([]() -> std::vector<std::string> { return {"body"}; }), sdbus::registerMethod("GetServerInformation").implementedAs([]() -> std::tuple<std::string, std::string, std::string, std::string> {
-                            return {"adastria-shell", "adastria-shell", "0.1.0", "1.2"};
+                uint8_t urgency = 1;
+                auto hint_it = hints.find("urgency");
+                if (hint_it != hints.end()) {
+                    try {
+                        urgency = hint_it->second.get<uint8_t>();
+                    } catch (const sdbus::Error &) {
+                    }
+                }
+                uint32_t id = notification_service_push(service, app_name, summary, body, expire_timeout, replaces_id, urgency);
+                if (on_change)
+                    on_change();
+                return id;
+            }),
+                        sdbus::registerMethod("CloseNotification").implementedAs([&service, on_change](uint32_t id) {
+                            klog("notification: closed id=%u", id);
+                            notification_service_close(service, id);
+                            if (on_change)
+                                on_change();
+                        }),
+                        sdbus::registerMethod("GetCapabilities").implementedAs([]() -> std::vector<std::string> { return {"body"}; }), sdbus::registerMethod("GetServerInformation").implementedAs([]() -> std::tuple<std::string, std::string, std::string, std::string> {
+                            return {"astralia-shell", "astralia-shell", "0.1.0", "1.2"};
                         }))
             .forInterface("org.freedesktop.Notifications");
 
@@ -100,7 +102,9 @@ bool notification_service_init(NotificationService &service, const std::function
         klog("notification: registered org.freedesktop.Notifications");
         return true;
     } catch (const sdbus::Error &e) {
-        klog("notification: D-Bus registration failed (%s): %s - is another " "notification daemon running?", e.getName().c_str(), e.getMessage().c_str());
+        klog("notification: D-Bus registration failed (%s): %s - is another "
+             "notification daemon running?",
+             e.getName().c_str(), e.getMessage().c_str());
         service.object.reset();
         service.bus.reset();
         return false;

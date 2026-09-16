@@ -154,7 +154,7 @@ void text_field_row_slide_reset(TextFieldRowSlide &slide, AnimationManager &am, 
 }
 
 float draw_text_field_value(Node *parent, TextureCache &tcache, int32_t scale, const std::string &text, float x, float center_y, const float *color, const TextFieldTypeAnim *anim) {
-    float cell_w = adastria_shell_text_advance();
+    float cell_w = astralia_shell_text_advance();
 
     float cx = x;
     size_t char_index = 0;

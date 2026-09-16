@@ -154,7 +154,9 @@ void render_thread_main(VisualizerState *state) {
         if (render_ms > heartbeat_draw_ms)
             heartbeat_draw_ms = render_ms;
         if (t3 - last_heartbeat >= std::chrono::seconds(1)) {
-            klog("visualizer: heartbeat tick=%d frames=%d fps=%.1f " "worst=%.1fms fade=%.2f %dx%d", tick, heartbeat_frames, static_cast<float>(heartbeat_frames) / std::chrono::duration<float>(t3 - last_heartbeat).count(), heartbeat_draw_ms, fade, width, height);
+            klog("visualizer: heartbeat tick=%d frames=%d fps=%.1f "
+                 "worst=%.1fms fade=%.2f %dx%d",
+                 tick, heartbeat_frames, static_cast<float>(heartbeat_frames) / std::chrono::duration<float>(t3 - last_heartbeat).count(), heartbeat_draw_ms, fade, width, height);
             last_heartbeat = t3;
             heartbeat_frames = 0;
             heartbeat_draw_ms = 0.0f;
@@ -217,7 +219,7 @@ void visualizer_shutdown(VisualizerState &state) {
 
 void visualizer_toggle(VisualizerState &state, WaylandState &app) {
     if (state.base.egl_surface == EGL_NO_SURFACE) {
-        if (!toplevel_window_create_surface(state.base, app.compositor, app.wm_base, "Visualizer", "adastria-shell-visualizer", kVisualizerDefaultWindow, kVisualizerDefaultWindow))
+        if (!toplevel_window_create_surface(state.base, app.compositor, app.wm_base, "Visualizer", "astralia-shell-visualizer", kVisualizerDefaultWindow, kVisualizerDefaultWindow))
             return;
         while (!state.base.configured)
             wl_display_dispatch(app.display);

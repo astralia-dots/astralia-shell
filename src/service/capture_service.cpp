@@ -44,7 +44,7 @@ bool allocate_buffer(ToplevelExportCapture &cap, wl_shm *shm, uint32_t width, ui
     unmap_and_destroy_buffer(cap);
 
     size_t size = static_cast<size_t>(stride) * height;
-    int fd = memfd_create("adastria-shell-toplevel-export", MFD_CLOEXEC);
+    int fd = memfd_create("astralia-shell-toplevel-export", MFD_CLOEXEC);
     if (fd < 0) {
         klog("toplevel_export: memfd_create failed: %s", strerror(errno));
         return false;

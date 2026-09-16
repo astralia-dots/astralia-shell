@@ -15,4 +15,4 @@ constexpr float kIdleLogoSpeed = 90.0f;
 constexpr float kIdleLogoSize = 200.0f;
 
 // layer-shell namespace
-constexpr const char *kIdleOverlayLayerNamespace = "adastria-shell-idle-overlay";
+constexpr const char *kIdleOverlayLayerNamespace = "astralia-shell-idle-overlay";
