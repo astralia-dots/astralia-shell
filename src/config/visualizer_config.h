@@ -1,7 +1,7 @@
 #pragma once
 
 // canvas sizing
-constexpr float kVisualizerCanvasFraction = 0.8f;
+constexpr float kVisualizerCanvasFraction = 0.7f;
 constexpr int kVisualizerCanvasMin = 200;
 
 // bar visualizer
@@ -40,8 +40,7 @@ constexpr int kVisualizerFpsMin = 15;
 constexpr int kVisualizerFpsMax = 144;
 constexpr float kVisualizerParticleThinMin = 0.0f;
 constexpr float kVisualizerParticleThinMax = 0.95f;
-constexpr int kVisualizerParticleSizeMin = 1;
-constexpr int kVisualizerParticleSizeMax = 4;
+constexpr int kVisualizerParticleSize = 8;
 constexpr int kVisualizerComplexityMin = 1;
 constexpr int kVisualizerComplexityMax = 3;
 constexpr float kVisualizerGlowDirectionsMin = 4.0f;
@@ -49,13 +48,14 @@ constexpr float kVisualizerGlowDirectionsMax = 32.0f;
 constexpr float kVisualizerGlowQualityMin = 2.0f;
 constexpr float kVisualizerGlowQualityMax = 8.0f;
 
-enum class VisualizerShape { Bar, Sphere };
+enum class VisualizerShape { Bar,
+                             Sphere };
 
 struct VisualizerParams {
     VisualizerShape visualizer_shape = VisualizerShape::Bar;
     int fps = kVisualizerFps;
     float particle_thin = 0.12f;
-    int particle_size = 4;
+    int particle_size = kVisualizerParticleSize;
     int fractal_complexity = 3;
     float glow_directions = 16.0f;
     float glow_quality = 6.0f;

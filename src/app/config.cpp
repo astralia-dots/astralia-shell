@@ -231,7 +231,7 @@ Config load_config() {
         cfg.visualizer.fps =
             std::clamp(visualizer.value("fps", cfg.visualizer.fps), kVisualizerFpsMin, kVisualizerFpsMax);
         cfg.visualizer.particle_thin = std::clamp(visualizer.value("particleThin", cfg.visualizer.particle_thin), kVisualizerParticleThinMin, kVisualizerParticleThinMax);
-        cfg.visualizer.particle_size = std::clamp(visualizer.value("particleSize", cfg.visualizer.particle_size), kVisualizerParticleSizeMin, kVisualizerParticleSizeMax);
+        cfg.visualizer.particle_size = kVisualizerParticleSize;
         cfg.visualizer.fractal_complexity =
             std::clamp(visualizer.value("fractalComplexity", cfg.visualizer.fractal_complexity), kVisualizerComplexityMin, kVisualizerComplexityMax);
         cfg.visualizer.glow_directions = std::clamp(visualizer.value("glowDirections", cfg.visualizer.glow_directions), kVisualizerGlowDirectionsMin, kVisualizerGlowDirectionsMax);

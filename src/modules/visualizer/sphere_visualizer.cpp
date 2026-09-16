@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <chrono>
 #include <cmath>
 #include <vector>
 
@@ -213,67 +212,7 @@ void SphereVisualizer::render(int width, int height, int tick, float fade, GLuin
 
     int canvas = visualizer_canvas_size(width, height);
 
-    static int trace_frames = 8;
-    bool trace = trace_frames > 0;
-    if (trace)
-        --trace_frames;
-    auto mark = [trace, tick](const char *tag) {
-        if (!trace)
-            return;
-        auto t0 = std::chrono::steady_clock::now();
-        glFinish();
-        klog("visualizer_sphere: f%d %s %.1fms", tick, tag, std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - t0).count());
-    };
-    // TEMP DIAGNOSTIC: stats (min/avg/max/stddev of the red channel) of the raw
-    // float accumulator, to find whether local variance survives into it or is
-    // already gone by the time sphere2 reads it.
-    auto dump_stats_r_float = [trace, tick, canvas](GLuint fbo, const char *tag) {
-        if (!trace)
-            return;
-        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-        std::vector<float> buf(static_cast<size_t>(canvas) * static_cast<size_t>(canvas) * 4);
-        glReadPixels(0, 0, canvas, canvas, GL_RGBA, GL_FLOAT, buf.data());
-        double sum = 0, sumsq = 0;
-        float mn = 1e30f, mx = -1e30f;
-        size_t n = buf.size() / 4;
-        for (size_t i = 0; i < buf.size(); i += 4) {
-            float r = buf[i];
-            sum += r;
-            sumsq += static_cast<double>(r) * r;
-            mn = std::min(mn, r);
-            mx = std::max(mx, r);
-        }
-        double mean = sum / n;
-        double stddev = std::sqrt(std::max(0.0, sumsq / n - mean * mean));
-        klog("visualizer_sphere: f%d %s(float) min=%.4f mean=%.4f max=%.4f stddev=%.4f", tick, tag, mn, mean, mx, stddev);
-    };
-    // Same stats, for an 8-bit UNORM target's red channel (0..255 space).
-    auto dump_stats_r_u8 = [trace, tick, canvas](GLuint fbo, const char *tag) {
-        if (!trace)
-            return;
-        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-        std::vector<unsigned char> buf(static_cast<size_t>(canvas) * static_cast<size_t>(canvas) * 4);
-        glReadPixels(0, 0, canvas, canvas, GL_RGBA, GL_UNSIGNED_BYTE, buf.data());
-        double sum = 0, sumsq = 0;
-        int mn = 255, mx = 0;
-        size_t n = buf.size() / 4;
-        for (size_t i = 0; i < buf.size(); i += 4) {
-            int r = buf[i];
-            sum += r;
-            sumsq += static_cast<double>(r) * r;
-            mn = std::min(mn, r);
-            mx = std::max(mx, r);
-        }
-        double mean = sum / n;
-        double stddev = std::sqrt(std::max(0.0, sumsq / n - mean * mean));
-        klog("visualizer_sphere: f%d %s(u8) min=%d mean=%.2f max=%d stddev=%.2f", tick, tag, mn, mean, mx, stddev);
-    };
-
-    bool first_targets = fbo_tex_[0] == 0 || canvas != canvas_;
     ensure_targets(canvas);
-    if (first_targets)
-        mark("ensure_targets");
-
     ensure_particle_grid(canvas, params.particle_thin);
 
     glDisable(GL_SCISSOR_TEST);
@@ -299,8 +238,6 @@ void SphereVisualizer::render(int width, int height, int tick, float fade, GLuin
     glDrawArrays(GL_POINTS, 0, particle_count_);
     glDisableVertexAttribArray(0);
     glDisable(GL_BLEND);
-    mark("sphere1");
-    dump_stats_r_float(fbo_[0], "sphere1_accum");
 
     glBindFramebuffer(GL_FRAMEBUFFER, fbo_[1]);
     glUseProgram(sphere2_prog_);
@@ -309,8 +246,6 @@ void SphereVisualizer::render(int width, int height, int tick, float fade, GLuin
     glBindTexture(GL_TEXTURE_2D, fbo_tex_[0]);
     glUniform1i(glGetUniformLocation(sphere2_prog_, "tex"), 0);
     draw_quad();
-    mark("sphere2");
-    dump_stats_r_u8(fbo_[1], "sphere2_out");
 
     glBindFramebuffer(GL_FRAMEBUFFER, glow_fbo_);
     glUseProgram(glow_prog_);
@@ -320,10 +255,8 @@ void SphereVisualizer::render(int width, int height, int tick, float fade, GLuin
     glBindTexture(GL_TEXTURE_2D, fbo_tex_[1]);
     glUniform1i(glGetUniformLocation(glow_prog_, "tex"), 0);
     draw_quad();
-    mark("glow");
 
     present(width, height, canvas, fade);
-    mark("present");
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glBindTexture(GL_TEXTURE_2D, 0);

@@ -183,7 +183,6 @@ void VisualizerAudioStages::run_channel(int offset, int size) {
     glUniform1f(glGetUniformLocation(gravity_prog_, "u_texWidth"), static_cast<float>(size));
     glViewport(0, 0, size, 1);
     draw_quad();
-    glFinish();
 
     bind_target(ring_[oidx], offset, size);
     glViewport(0, 0, size, 1);
@@ -193,7 +192,6 @@ void VisualizerAudioStages::run_channel(int offset, int size) {
     glUniform1i(glGetUniformLocation(pass_prog_, "audioR"), offset);
     glUniform1f(glGetUniformLocation(pass_prog_, "u_texWidth"), static_cast<float>(size));
     draw_quad();
-    glFinish();
 
     bind_target(average_, offset, size);
     glViewport(0, 0, size, 1);
@@ -211,9 +209,7 @@ void VisualizerAudioStages::run_channel(int offset, int size) {
         std::snprintf(name, sizeof(name), "audioR%d", t);
         glUniform1i(glGetUniformLocation(average_prog_, name), unit);
     }
-    glFinish();
     draw_quad();
-    glFinish();
 
     oidx = (oidx + 1) % kRing;
 
@@ -225,7 +221,6 @@ void VisualizerAudioStages::run_channel(int offset, int size) {
     glActiveTexture(GL_TEXTURE0 + offset);
     glBindTexture(GL_TEXTURE_2D, (offset == 1) ? average_.tex_r : average_.tex_l);
     glUniform1i(glGetUniformLocation(smooth_prog_, "audioR"), offset);
-    glFinish();
     draw_quad();
 
     glActiveTexture(GL_TEXTURE0);

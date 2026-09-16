@@ -42,8 +42,7 @@ void settings_service_apply_field_text(Config &cfg, SettingsFieldId id, const st
                 std::clamp(std::stof(text), kVisualizerParticleThinMin, kVisualizerParticleThinMax);
             break;
         case SettingsFieldId::VisualizerParticleSize:
-            cfg.visualizer.particle_size =
-                std::clamp(std::stoi(text), kVisualizerParticleSizeMin, kVisualizerParticleSizeMax);
+            cfg.visualizer.particle_size = kVisualizerParticleSize;
             break;
         case SettingsFieldId::VisualizerComplexity:
             cfg.visualizer.fractal_complexity =

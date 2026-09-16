@@ -14,7 +14,7 @@ uniform sampler2D audioR4;
 uniform float u_texWidth;
 
 vec4 fetch(sampler2D tex) {
-    return texture2D(tex, vec2((gl_FragCoord.x + 0.5) / u_texWidth, 0.5));
+    return texture2D(tex, vec2(gl_FragCoord.x / u_texWidth, 0.5));
 }
 
 void main() {
