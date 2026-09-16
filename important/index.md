@@ -236,7 +236,7 @@
 ## assets
 
 - `fonts/*`, `constellation/C*.png`: Installed fonts, launcher constellation bullet icons.
-- `shaders/**`: Every `#version 320 es` GLES shader the shell compiles, grouped by consumer directory; installed as a subdir by meson.
+- `shaders/**`: Every `#version 100` GLES shader the shell compiles, grouped by consumer directory; installed as a subdir by meson.
 - `NOTICE`: Third-party attribution for ported shader and asset parts.
 - `stellar-restoration.png`: Default wallpaper wallpaper, the `ASTRALIA_SHELL_DEFAULT_WALLPAPER` fallback when a column has no configured path.
 - `stellar-restoration.svg`: Idle screensaver bouncing-logo source (placeholder).

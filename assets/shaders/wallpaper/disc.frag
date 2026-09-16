@@ -1,6 +1,6 @@
-#version 320 es
+#version 100
 precision highp float;
-in vec2 v_uv;
+varying vec2 v_uv;
 uniform sampler2D u_from;
 uniform sampler2D u_to;
 uniform vec4 u_from_uv;
@@ -10,20 +10,19 @@ uniform float u_progress;
 uniform float u_smoothness;
 uniform vec2 u_center;
 uniform float u_aspect;
-out vec4 fragColor;
 
 vec4 s_from(vec2 uv) {
     vec2 p = uv * u_from_uv.xy + u_from_uv.zw;
     if (p.x < 0.0 || p.x > 1.0 || p.y < 0.0 || p.y > 1.0)
         return u_fill;
-    return texture(u_from, p);
+    return texture2D(u_from, p);
 }
 
 vec4 s_to(vec2 uv) {
     vec2 p = uv * u_to_uv.xy + u_to_uv.zw;
     if (p.x < 0.0 || p.x > 1.0 || p.y < 0.0 || p.y > 1.0)
         return u_fill;
-    return texture(u_to, p);
+    return texture2D(u_to, p);
 }
 
 void main() {
@@ -45,5 +44,5 @@ void main() {
 
     float radius = u_progress * (md + 2.0 * ms) - ms;
     float f = smoothstep(radius - ms, radius + ms, dist);
-    fragColor = mix(c2, c1, f);
+    gl_FragColor = mix(c2, c1, f);
 }

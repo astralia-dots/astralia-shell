@@ -174,7 +174,7 @@ void render_thread_main(VisualizerState *state) {
 
 void visualizer_render_thread_start(VisualizerState &state, const VisualizerParams &params) {
     static const EGLint kContextAttribs[] = {
-        EGL_CONTEXT_MAJOR_VERSION, 3, EGL_CONTEXT_MINOR_VERSION, 2, EGL_NONE};
+        EGL_CONTEXT_MAJOR_VERSION, 2, EGL_NONE};
     state.render_context =
         eglCreateContext(state.base.egl_display, state.egl_config, state.base.egl_context, kContextAttribs);
     if (state.render_context == EGL_NO_CONTEXT) {

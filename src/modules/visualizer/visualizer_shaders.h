@@ -4,7 +4,7 @@
 
 namespace visualizer_shaders {
 
-std::string sphere1_fs();
+std::string sphere1_vs();
 std::string sphere2_fs();
 std::string glow_fs();
 

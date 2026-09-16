@@ -82,7 +82,7 @@ mat3 rotateX(float angle)
 {
     float angleRads = angle * RAD_PI;
     float sinAngle = sin(angleRads), cosAngle = cos(angleRads);
-    mat3x3 rotationMatrix = mat3x3(
+    mat3 rotationMatrix = mat3(
         vec3(1, 0, 0),
         vec3(0, cosAngle, sinAngle),
         vec3(0, -sinAngle, cosAngle));
@@ -92,7 +92,7 @@ mat3 rotateY(float angle)
 {
     float angleRads = angle * RAD_PI;
     float sinAngle = sin(angleRads), cosAngle = cos(angleRads);
-    mat3x3 rotationMatrix = mat3x3(
+    mat3 rotationMatrix = mat3(
         vec3(cosAngle, 0, -sinAngle),
         vec3(0, 1, 0),
         vec3(sinAngle, 0, cosAngle));
@@ -102,7 +102,7 @@ mat3 rotateZ(float angle)
 {
     float angleRads = angle * RAD_PI;
     float sinAngle = sin(angleRads), cosAngle = cos(angleRads);
-    mat3x3 rotationMatrix = mat3x3(
+    mat3 rotationMatrix = mat3(
         vec3(cosAngle, sinAngle, 0),
         vec3(-sinAngle, cosAngle, 0),
         vec3(0, 0, 1));

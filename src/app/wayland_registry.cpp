@@ -1,4 +1,4 @@
-#include <GLES3/gl32.h>
+#include <GLES2/gl2.h>
 #include <algorithm>
 #include <cstring>
 
@@ -151,7 +151,7 @@ bool bootstrap_egl(WaylandState &state) {
         EGL_SURFACE_TYPE,
         EGL_WINDOW_BIT | EGL_PBUFFER_BIT,
         EGL_RENDERABLE_TYPE,
-        EGL_OPENGL_ES3_BIT,
+        EGL_OPENGL_ES2_BIT,
         EGL_RED_SIZE,
         8,
         EGL_GREEN_SIZE,
@@ -167,10 +167,10 @@ bool bootstrap_egl(WaylandState &state) {
         return false;
     }
 
-    const EGLint context_attribs[] = {EGL_CONTEXT_MAJOR_VERSION, 3, EGL_CONTEXT_MINOR_VERSION, 2, EGL_NONE};
+    const EGLint context_attribs[] = {EGL_CONTEXT_MAJOR_VERSION, 2, EGL_NONE};
     state.egl_context = eglCreateContext(state.egl_display, state.egl_config, EGL_NO_CONTEXT, context_attribs);
     if (state.egl_context == EGL_NO_CONTEXT) {
-        klog("egl: OpenGL ES 3.2 context creation failed, egl error 0x%04x", eglGetError());
+        klog("egl: OpenGL ES 2.0 context creation failed, egl error 0x%04x", eglGetError());
         return false;
     }
     return true;

@@ -1,4 +1,4 @@
-#include <GLES3/gl32.h>
+#include <GLES2/gl2.h>
 
 #include <GLES2/gl2ext.h>
 #include <algorithm>
@@ -12,8 +12,6 @@
 bool Renderer::init() {
     texture_detect_caps();
     video_texture_detect_caps(eglGetCurrentDisplay());
-    glGenVertexArrays(1, &vao_);
-    glBindVertexArray(vao_);
     std::string quad_vs = gl_load_shader("renderer/quad.vert");
     auto build = [&](const char *fs_rel, const char *label) {
         std::string fs = gl_load_shader(fs_rel);
@@ -49,8 +47,6 @@ void Renderer::destroy() {
         glDeleteProgram(video_program_);
     if (quad_vbo_)
         glDeleteBuffers(1, &quad_vbo_);
-    if (vao_)
-        glDeleteVertexArrays(1, &vao_);
     *this = Renderer{};
 }
 

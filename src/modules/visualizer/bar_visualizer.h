@@ -1,6 +1,6 @@
 #pragma once
 
-#include <GLES3/gl32.h>
+#include <GLES2/gl2.h>
 
 #include "config/visualizer_config.h"
 
@@ -15,7 +15,6 @@ class BarVisualizer {
     void draw_quad();
 
     GLuint prog_ = 0;
-    GLuint vao_ = 0;
     GLuint vbo_ = 0;
     bool ready_ = false;
 };

@@ -1,6 +1,6 @@
-#version 320 es
+#version 100
 precision highp float;
-in vec2 v_uv;
+varying vec2 v_uv;
 uniform vec2 u_size;
 uniform vec2 u_a;
 uniform vec2 u_b;
@@ -12,7 +12,6 @@ uniform float u_amp;
 uniform float u_thick;
 uniform vec4 u_core;
 uniform vec4 u_glow;
-out vec4 fragColor;
 
 float hash1(float n) { return fract(sin(n) * 43758.5453123); }
 
@@ -58,5 +57,5 @@ void main() {
     f = min(f, 8.0);
     float a = clamp(f, 0.0, 1.0);
     vec3 col = mix(u_glow.rgb, u_core.rgb, clamp(f * f, 0.0, 1.0));
-    fragColor = vec4(col, a);
+    gl_FragColor = vec4(col, a);
 }

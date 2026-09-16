@@ -1,4 +1,4 @@
-#version 320 es
+#version 100
 precision highp float;
 precision highp sampler2D;
 uniform sampler2D audioL;
@@ -13,13 +13,12 @@ uniform float u_barRadius;
 uniform float u_barHeightRatio;
 uniform float u_barOpacity;
 uniform float u_minBarHeight;
-out vec4 FragColor;
 
 float barMagnitude(int i) {
     float p = (float(i) + 0.5) / float(u_barCount);
     float tc = pow(max(p, 1e-4), 1.8) * 0.5;
-    float l = texture(audioL, vec2(tc, 0.5)).r;
-    float r = texture(audioR, vec2(tc, 0.5)).r;
+    float l = texture2D(audioL, vec2(tc, 0.5)).r;
+    float r = texture2D(audioR, vec2(tc, 0.5)).r;
     return clamp(max(l, r), 0.0, 1.0);
 }
 
@@ -58,5 +57,5 @@ void main() {
         discard;
 
     float a = u_barOpacity * u_fade * aa;
-    FragColor = vec4(u_accent * a, a);
+    gl_FragColor = vec4(u_accent * a, a);
 }

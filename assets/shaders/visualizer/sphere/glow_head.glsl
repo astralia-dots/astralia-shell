@@ -1,4 +1,4 @@
-#version 320 es
+#version 100
 precision highp float;
 precision highp int;
 precision highp sampler2D;
@@ -11,7 +11,8 @@ uniform int audioLSize;
 uniform int audioRSize;
 uniform sampler2D tex;
 uniform float u_fade;
-out vec4 FragColor;
+#define FragColor gl_FragColor
+#define texture texture2D
 #ifndef TWOPI
 #define TWOPI 6.28318530718
 #endif

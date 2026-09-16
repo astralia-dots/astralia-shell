@@ -47,7 +47,10 @@ void defaultParticleValues()
     particle.color = vec4(0, 0, 1, 1);
     particle.size = 3;
     particle.feather = 0.5;
-    particle.position = vec3(gl_FragCoord.xy, 0);
+    // aPos replaces gl_FragCoord.xy: this runs once per particle vertex
+    // (the CPU-built grid already applied the particleThin dropout), not
+    // once per screen fragment.
+    particle.position = vec3(aPos, 0);
     particle.opacityMultiplier = 1.0;
     particle.colorIntensityAddStrength = 0.1;
     particle.antiAlias = 4.5;
@@ -132,4 +135,117 @@ void setAudio()
     audio.intermediateAudios[5] = audioFractal6;
     audio.intermediateAudios[6] = audioFractal7;
     audio.intermediateAudios[7] = audioFractal8;
+}
+float octaveNoise(vec4 p, vec4 flow, vec4 rep)
+{
+    float total = 0.0;
+    float frequency = 1.0;
+    float amplitude = 1.0;
+    float value = 0.0;
+    for (int i = 0; i < fractalField.complexity; i += 1) {
+        vec4 fractalFieldInput = p;
+        modifyNoiseCoordinates(fractalFieldInput);
+        fractalFieldInput += flow * time;
+        fractalFieldInput *= frequency;
+        value += (pnoise(vec4((fractalFieldInput)), rep)) * amplitude;
+        total += amplitude;
+        amplitude *= fractalField.octaveMultiplier;
+        frequency *= fractalField.octaveScale;
+    }
+    return value / total;
+}
+float fbm3(vec4 p, vec4 flow)
+{
+    vec4 flowXLoopFrames = flow * float(fractalField.loopFrames);
+    vec4 rep = vec4(fractalField.loop * ivec4(fractalField.fScale * flowXLoopFrames / fractalField.dimensions));
+    flowXLoopFrames = mix(vec4(1), flowXLoopFrames, 1. - step(abs(flowXLoopFrames), vec4(0)));
+    vec4 newFScale = mix(fractalField.dimensions * rep / (flowXLoopFrames), vec4(fractalField.fScale), vec4(1) - abs(float(fractalField.loop) * sign(flow)));
+    p = newFScale * p / fractalField.dimensions;
+    flow *= newFScale / fractalField.dimensions;
+    vec3 originalSphereCenter = sphere.center;
+    sphere.center *= newFScale.xyz / fractalField.dimensions.xyz;
+    float oN = (fractalField.constantNoiseMultiplier + audio.value) * (octaveNoise(p, flow, rep));
+    oN = sign(oN) * pow(abs(oN), fractalField.gamma);
+    sphere.center = originalSphereCenter;
+    oN = fractalField.offset + fractalField.noiseMultiplier * oN;
+    oN = clamp(oN, fractalField.minVal, fractalField.maxVal);
+    return oN;
+}
+vec3 sphereCoords(vec3 particleCoords, float zLayer, float zLayerDistance)
+{
+    vec3 newPos;
+    float u = (TWOPI * (((particleCoords.x) / (resolution.x))));
+    float v = PI * (particleCoords.y / resolution.y);
+    newPos.x = resolution.x * sin(u) * sin(v);
+    newPos.z = baseForm.zSize * cos(u) * sin(v);
+    newPos.y = resolution.y * cos(v);
+    newPos.xy += resolution.xy / 2.;
+    newPos -= zLayer * (vec3(resolution.xy / 2., baseForm.zSize / 2.) / baseForm.numParticles.z) * normalize(newPos - vec3(resolution.xy / 2.0, 0));
+    return newPos;
+}
+vec3 transformedCoords(vec3 particleCoords)
+{
+    particleCoords = (baseForm.rotations) * (particleCoords - baseForm.rotationCenter);
+    return (particleCoords + vec3(resolution.xy / 2.0, 0));
+}
+// Replaces processZLayer()'s kernel loop + imageAtomicAdd: computes the
+// single splat center position for this particle (one vertex == one
+// particle, always zLayer 0 -- astralia-shell's baseForm.numParticles.z <= 1
+// default means the old z-layer loop in sphere1_main.glsl's main() only ever
+// ran once anyway). The splat footprint itself (the old -size..size double
+// loop) is evaluated per-fragment in sphere1_splat.frag using gl_PointCoord.
+void computeParticle()
+{
+    vec3 particleCoords = particle.position;
+    particleCoords = mix(particleCoords, sphereCoords(particleCoords, 0.0, 0.0), float(baseForm.type));
+    vec4 old = vec4(particleCoords, 0);
+    vec3 displacementValues = vec3(0);
+    vec4 flows = fractalField.flows;
+    float xFBM3 = fbm3(old.xyzw, flows);
+    float yFBM3 = fbm3(old.yzxw, flows.yzxw);
+    float zFBM3 = fbm3(old.zxyw, flows.zxyw);
+    fractalField.noise = vec3(xFBM3, yFBM3, zFBM3);
+    setPropsWithNoise();
+    displacementValues.xyz += mix(vec3((fractalField.displacements.x) * xFBM3, (fractalField.displacements.y) * yFBM3, (fractalField.displacements.z) * zFBM3), (fractalField.displacements.x) * xFBM3 * normalize(particleCoords.xyz - vec3(resolution.xy / 2.0, 0)), float(fractalField.displacementType));
+    particleCoords.xyz += displacementValues;
+    float radius = sphere.radius, blurSize = particle.antiAlias / resolution.y;
+    radius += audio.bass;
+    vec3 sphereCenterCoords = sphere.center;
+    vec3 vectorFromSphereCenter = (particleCoords - sphereCenterCoords);
+    vec3 normalizedVector = normalize(vectorFromSphereCenter);
+    vec3 newPos = (sphereCenterCoords + radius * normalizedVector);
+    float diff = length(newPos - particleCoords);
+    diff *= (clamp((smoothstep(0.0, sphere.feather * (radius), diff)) + blurSize, blurSize, 1.0 + blurSize));
+    particleCoords += step(length(vectorFromSphereCenter), radius) * sphere.strength * diff * normalizedVector * sphere.scale;
+    modifySphericalDisplacement();
+    particle.size = int(max(0., float(particle.size) + fractalField.affectSize * (xFBM3 + yFBM3 + zFBM3)));
+    particle.opacityMultiplier = max(particle.opacityMultiplier + fractalField.affectOpacity * (xFBM3 + yFBM3 + zFBM3), 0.);
+
+    vec3 finalCoords = transformedCoords(particleCoords.xyz) / baseForm.scale;
+    finalCoords += vec3(resolution.xy / 2., 0) * (1. - 1. / (baseForm.scale));
+
+    vSplatSize = float(particle.size);
+    vSplatFeather = particle.feather;
+    vSplatOpacity = particle.opacityMultiplier;
+
+    vec2 ndc = (finalCoords.xy / resolution.xy) * 2.0 - 1.0;
+    gl_Position = vec4(ndc, 0.0, 1.0);
+    // The original -size..size double loop added its (i, j) offset before
+    // dividing by baseForm.scale (see the deleted sphere1_main.glsl's
+    // `vec3(transformedCoords(...) + vec3(i, j, 0)) / baseForm.scale`), so
+    // the footprint radius in final pixel space is particle.size/scale, not
+    // particle.size.
+    gl_PointSize = max(1.0, 2.0 * float(particle.size) / baseForm.scale.x);
+}
+void main()
+{
+    defaultAudioValues();
+    defaultBaseFormValues();
+    defaultParticleValues();
+    defaultFractalFieldValues();
+    defaultSphereValues();
+    init();
+    setAudio();
+    setProps();
+    computeParticle();
 }

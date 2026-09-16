@@ -16,8 +16,8 @@ std::string frag(const char *name) {
 
 } // namespace
 
-std::string sphere1_fs() {
-    return frag("sphere_head.glsl") + frag("lygia_pnoise.glsl") + frag("common.glsl") + frag("defaults.glsl") + frag("sphere1_main.glsl");
+std::string sphere1_vs() {
+    return frag("sphere1_vert_head.glsl") + frag("lygia_pnoise.glsl") + frag("common.glsl") + frag("sphere1_vert_main.glsl");
 }
 
 std::string sphere2_fs() {

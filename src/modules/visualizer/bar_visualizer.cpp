@@ -24,12 +24,10 @@ bool BarVisualizer::init() {
         return false;
     }
 
-    glGenVertexArrays(1, &vao_);
     glGenBuffers(1, &vbo_);
-    glBindVertexArray(vao_);
     glBindBuffer(GL_ARRAY_BUFFER, vbo_);
     glBufferData(GL_ARRAY_BUFFER, sizeof(kQuadVerts), kQuadVerts, GL_STATIC_DRAW);
-    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     ready_ = true;
     return true;
@@ -40,19 +38,15 @@ void BarVisualizer::destroy() {
         glDeleteProgram(prog_);
     if (vbo_)
         glDeleteBuffers(1, &vbo_);
-    if (vao_)
-        glDeleteVertexArrays(1, &vao_);
     *this = BarVisualizer{};
 }
 
 void BarVisualizer::draw_quad() {
-    glBindVertexArray(vao_);
     glBindBuffer(GL_ARRAY_BUFFER, vbo_);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(0);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glDisableVertexAttribArray(0);
-    glBindVertexArray(0);
 }
 
 void BarVisualizer::render(int width, int height, int tick, float fade, GLuint audio_l_tex, GLuint audio_r_tex, int audio_size, const VisualizerParams &params) {

@@ -1,10 +1,10 @@
-#version 320 es
-in vec2 a_pos;
+#version 100
+attribute vec2 a_pos;
 uniform vec2 u_viewport;
 uniform vec4 u_rect;
 uniform vec4 u_model_ab;
 uniform vec2 u_model_t;
-out vec2 v_uv;
+varying vec2 v_uv;
 void main() {
     v_uv = a_pos;
     vec2 px = u_rect.xy + a_pos * u_rect.zw;

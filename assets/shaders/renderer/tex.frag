@@ -1,7 +1,6 @@
-#version 320 es
+#version 100
 precision mediump float;
-in vec2 v_uv;
+varying vec2 v_uv;
 uniform sampler2D u_tex;
 uniform vec4 u_color;
-out vec4 fragColor;
-void main() { fragColor = texture(u_tex, v_uv) * u_color; }
+void main() { gl_FragColor = texture2D(u_tex, v_uv) * u_color; }

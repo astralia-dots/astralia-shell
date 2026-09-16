@@ -34,10 +34,18 @@ void main()
     vec2 glowRadius = (glow.size) / resolution.xy;
     vec4 Color = vec4(0);
     float glowOffsetValue = (float(glow.offsetAngle) / 360.) * TWOPI;
-    for (float d = glowOffsetValue; d < (glow.maxAngle / 360. * TWOPI); d += TWOPI / (glow.directions))
-    {
-        for (float i = 1.0 / (glow.quality); i <= 1.0; i += 1.0 / (glow.quality))
-        {
+    float dMax = glow.maxAngle / 360. * TWOPI;
+    float dStep = TWOPI / (glow.directions);
+    float iStep = 1.0 / (glow.quality);
+    // ponytail: ES 1.00 forbids a non-constant loop bound (glow.directions/
+    // quality are uniforms clamped in [4,32]/[2,8] host-side); cap at those
+    // maxima and break early instead. Raise if the clamp range widens.
+    for (int di = 0; di < 32; di++) {
+        float d = glowOffsetValue + float(di) * dStep;
+        if (d >= dMax) break;
+        for (int ii = 1; ii <= 8; ii++) {
+            float i = float(ii) * iStep;
+            if (i > 1.0) break;
             vec2 coords = uv + glowRadius * i * vec2(cos(d), sin(d));
             if (coords.x > 0.0 && coords.x < 1.0 && coords.y > 0.0 && coords.y < 1.0)
                 Color += texture(tex, coords);

@@ -1,9 +1,8 @@
-#version 320 es
+#version 100
 precision highp float;
-precision highp int;
 precision highp sampler2D;
 uniform sampler2D audioR;
-out vec4 fragment;
+uniform float u_texWidth;
 void main() {
-    fragment.r = texelFetch(audioR, ivec2(int(gl_FragCoord.x), 0), 0).r;
+    gl_FragColor.r = texture2D(audioR, vec2((gl_FragCoord.x + 0.5) / u_texWidth, 0.5)).r;
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <GLES3/gl32.h>
+#include <GLES2/gl2.h>
 #include <vector>
 
 #include "config/visualizer_config.h"
@@ -39,7 +39,6 @@ class VisualizerAudioStages {
 
     GLuint raw_l_ = 0;
     GLuint raw_r_ = 0;
-    GLuint vao_ = 0;
     GLuint vbo_ = 0;
 
     Target pass_;
