@@ -123,14 +123,14 @@
 - `settings.h`+`.cpp`: Settings panel core: hosts per-tab modules, responsive nav rail, shared toggle widgets, and a separately-faded active-tab scene.
 - `rain.h`+`.cpp`: Rain overlay, a real `xdg_toplevel` window; hosts the `MatrixRain`/`StilettoRain` sims and applies mode/speed config live.
 - `visualizer.h`+`.cpp`: Audio visualizer overlay window; a dedicated self-pacing render thread draws either `SphereVisualizer` or `BarVisualizer`, fed by its own PipeWire capture.
-- `lock.h`+`.cpp`: `ext-session-lock-v1` session lock; one surface per output, `PAM` auth on a worker thread, `caelestia`-style three-column info card.
+- `lock.h`+`.cpp`: `ext-session-lock-v1` session lock; one surface per output, `PAM` auth on a worker thread, three-column info card.
 - `polkit.h`+`.cpp`: Reactive singleton overlay prompting for the user's password on a polkit authentication request; centered card with `EaseOutBack`/`EaseInBack` scale-in/out, dot-masked password field shared with `lock`'s echo glyph.
 
 ## src/modules/visualizer
 
-- `fft.h`+`.cpp`: Radix-2 DIT FFT (`GLava`-derived, GPL-3.0), Hann window plus `log`/`fftScale`/`fftCutOff` magnitude tilt; `EGL`-free, linked into the test binary.
+- `fft.h`+`.cpp`: Radix-2 DIT FFT, Hann window plus `log`/`fftScale`/`fftCutOff` magnitude tilt; `EGL`-free, linked into the test binary.
 - `audio_capture.h`+`.cpp`: Own `pw_thread_loop` `11 kHz` stereo sink capture; `ncs` ring/fragment bookkeeping into `4096`-sample L/R buffers, `take()` snapshot under a mutex.
-- `audio_stages.h`+`.cpp`: Render-thread GLava GPU transform chain (peak-hold, decay, ring-averaged, frequency-smoothed) over `GL_R16` textures, for the left and right channels.
+- `audio_stages.h`+`.cpp`: Render-thread GPU transform chain (peak-hold, decay, ring-averaged, frequency-smoothed) over `GL_R16` textures, for the left and right channels.
 - `sphere_visualizer.h`+`.cpp`: `SphereVisualizer`: a multi-pass particle-accumulation/blob/glow GPU pipeline on a square canvas, rebuilt on resize, presented over a black backdrop.
 - `bar_visualizer.h`+`.cpp`: `BarVisualizer`: a single-pass fragment shader drawing accent-tinted, bottom-anchored bars from `audio_stages`' smoothed spectrum textures.
 - `visualizer_shaders.h`+`.cpp`: Concatenates the `assets/shaders/visualizer/sphere/*.glsl` fragments into the flattened sphere/glow shaders at runtime, since astralia-shell has no shader preprocessor.
@@ -237,11 +237,11 @@
 
 - `fonts/*`, `constellation/C*.png`: Installed fonts, launcher constellation bullet icons.
 - `shaders/**`: Every `#version 320 es` GLES shader the shell compiles, grouped by consumer directory; installed as a subdir by meson.
-- `NOTICE`: Third-party attribution for the `lygia`/`GLava`/`noctalia`-derived shader and asset parts.
+- `NOTICE`: Third-party attribution for ported shader and asset parts.
 - `stellar-restoration.png`: Default wallpaper wallpaper, the `ASTRALIA_SHELL_DEFAULT_WALLPAPER` fallback when a column has no configured path.
 - `stellar-restoration.svg`: Idle screensaver bouncing-logo source (placeholder).
 - `stiletto.svg`: `stiletto_rain` comet head, rasterized once aspect-correct and scaled to the comet-row head height.
-- `electro.png`: Password-field echo glyph, ported from `keqing-shell`'s `Input.qml`, drawn per character.
+- `electro.png`: Password-field echo glyph, drawn per character.
 - `gifs/profile.gif`: Lock avatar, settings and dashboard profile-picture source, decoded to cached frames via `ffmpeg`.
 - `logout/logo.gif`: Logout animated centre-logo source, decoded to cached frames via `ffmpeg`.
 - `logout/logo.png`: Logout static centre-logo source, used when the animated-logo toggle is off.
