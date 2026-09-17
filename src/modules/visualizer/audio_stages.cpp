@@ -1,3 +1,6 @@
+#include <GLES2/gl2.h>
+
+#include <GLES2/gl2ext.h>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -10,8 +13,6 @@
 
 #include "render/gl.h"
 
-#include <GLES2/gl2ext.h>
-
 #ifndef GL_R16
 #define GL_R16 0x822A
 #endif
@@ -19,7 +20,7 @@
 namespace {
 
 constexpr GLfloat kQuadVerts[18] = {-1, -1, 0, 1, -1, 0, -1, 1, 0,
-                                    1,  1,  0, 1, -1, 0, -1, 1, 0};
+                                    1, 1, 0, 1, -1, 0, -1, 1, 0};
 
 void quantize(std::vector<uint16_t> &out, const float *data, int size) {
     out.resize(static_cast<size_t>(size));
@@ -92,7 +93,7 @@ void VisualizerAudioStages::destroy() {
             glDeleteProgram(p);
     pass_prog_ = gravity_prog_ = average_prog_ = smooth_prog_ = 0;
 
-    GLuint texs[] = {raw_l_,        raw_r_,         pass_.tex_l, pass_.tex_r,   average_.tex_l, average_.tex_r, smooth_.tex_l, smooth_.tex_r};
+    GLuint texs[] = {raw_l_, raw_r_, pass_.tex_l, pass_.tex_r, average_.tex_l, average_.tex_r, smooth_.tex_l, smooth_.tex_r};
     for (GLuint t : texs)
         if (t)
             glDeleteTextures(1, &t);

@@ -152,7 +152,7 @@ void notification_start_progress(NotificationRenderModel &service, uint32_t id, 
     service.animations.animate(1.0f, 0.0f, static_cast<float>(timeout_ms), Easing::Linear, [&service, id](float v) {
             auto e = std::find_if(service.entries.begin(), service.entries.end(), [id](const NotificationEntry &en) { return en.id == id; });
             if (e != service.entries.end())
-                e->progress = v; }, [&service, id] { notification_start_exit(service, id); }, progress_owner(id));
+                e->progress = v; }, {}, progress_owner(id));
 }
 
 } // namespace

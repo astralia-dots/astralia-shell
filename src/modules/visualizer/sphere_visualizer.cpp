@@ -1,3 +1,6 @@
+#include <GLES2/gl2.h>
+
+#include <GLES2/gl2ext.h>
 #include <algorithm>
 #include <cmath>
 #include <vector>
@@ -12,12 +15,10 @@
 #include "render/gl.h"
 #include "render/palette.h"
 
-#include <GLES2/gl2ext.h>
-
 namespace {
 
 constexpr GLfloat kQuadVerts[18] = {-1, -1, 0, 1, -1, 0, -1, 1, 0,
-                                    1,  1,  0, 1, -1, 0, -1, 1, 0};
+                                    1, 1, 0, 1, -1, 0, -1, 1, 0};
 
 int visualizer_canvas_size(int width, int height) {
     int smaller = width < height ? width : height;
@@ -25,13 +26,10 @@ int visualizer_canvas_size(int width, int height) {
     return size < kVisualizerCanvasMin ? kVisualizerCanvasMin : size;
 }
 
-// Mirrors sphere1_vert_main.glsl's (and the deleted sphere1_main.glsl's)
-// per-pixel dropout hash exactly:
-// fract(sin(mod(dot(floor(gl_FragCoord.xy), vec2(127.1, 311.7)), TWOPI)) * 43758.5453123)
 float particle_thin_hash(float px, float py) {
     constexpr float kTwoPi = 6.2831853071794f;
     float d = px * 127.1f + py * 311.7f;
-    float m = std::fmod(d, kTwoPi); // dot() is always >= 0 here, matching GLSL mod()
+    float m = std::fmod(d, kTwoPi);
     float s = std::sin(m) * 43758.5453123f;
     return s - std::floor(s);
 }
@@ -115,25 +113,9 @@ void SphereVisualizer::ensure_targets(int canvas) {
 
     canvas_ = canvas;
 
-    // fbo_[0]/fbo_tex_[0] is the point-sprite additive-blend target (replaces
-    // the old atomic_tex_ accumulator); sphere2_prog_ samples it as `tex`.
-    // It needs GL_FLOAT, not GL_UNSIGNED_BYTE: the shell-evacuation math in
-    // sphere1_vert_main.glsl can pile hundreds of overlapping splats onto the
-    // same pixel (the whole inner ~55% of the particle disc converges onto a
-    // thin ring), so the accumulated value routinely exceeds 1.0. An 8-bit
-    // UNORM target hard-clamps there, starving sphere2_main.glsl's
-    // actualDepth-driven brightness curve (ported verbatim from the ES3.2
-    // atomic accumulator, which had no such ceiling). GL_OES_texture_float +
-    // GL_EXT_color_buffer_float (render) + GL_EXT_float_blend (additive
-    // blending into it) are all present on this hardware.
     GLuint *tex[] = {&fbo_tex_[0], &fbo_tex_[1], &glow_tex_};
     GLuint *fbo[] = {&fbo_[0], &fbo_[1], &glow_fbo_};
     for (int i = 0; i < 3; ++i) {
-        // GL_EXT_color_buffer_float on ES 2.0 requires the sized internal
-        // format token passed directly to glTexImage2D to make the texture
-        // framebuffer-attachable; the unsized GL_RGBA/GL_FLOAT combo compiles
-        // and samples fine but every draw into it fails framebuffer
-        // completeness (GL_INVALID_FRAMEBUFFER_OPERATION).
         GLenum internal_format = (i == 0) ? GL_RGBA32F_EXT : GL_RGBA;
         GLenum type = (i == 0) ? GL_FLOAT : GL_UNSIGNED_BYTE;
         glGenTextures(1, tex[i]);
@@ -225,8 +207,6 @@ void SphereVisualizer::render(int width, int height, int tick, float fade, GLuin
         glClear(GL_COLOR_BUFFER_BIT);
     }
 
-    // ES 2.0 has no image load/store: fbo_[0] accumulates particle splats via
-    // additive blending instead of imageAtomicAdd (see sphere1_vert_head.glsl).
     glBindFramebuffer(GL_FRAMEBUFFER, fbo_[0]);
     glUseProgram(sphere1_prog_);
     set_audio_uniforms(sphere1_prog_, audio_l_tex, audio_r_tex, audio_size, tick, canvas, params);

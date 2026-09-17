@@ -24,9 +24,7 @@ void layer_surface_configure(void *data, zwlr_layer_surface_v1 *layer_surface, u
     mon->configured = true;
 }
 
-void layer_surface_closed(void *data, zwlr_layer_surface_v1 *) {
-    static_cast<MonitorOutput *>(data)->app->running = false;
-}
+void layer_surface_closed(void *, zwlr_layer_surface_v1 *) {}
 
 namespace output_detail {
 void geometry(void *, wl_output *, int32_t, int32_t, int32_t, int32_t, int32_t, const char *, const char *, int32_t) {}

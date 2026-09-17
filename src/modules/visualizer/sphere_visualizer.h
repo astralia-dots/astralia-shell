@@ -18,9 +18,6 @@ class SphereVisualizer {
     void present(int width, int height, int canvas, float fade);
     void set_audio_uniforms(GLuint prog, GLuint audio_l_tex, GLuint audio_r_tex, int audio_size, int tick, int canvas, const VisualizerParams &params);
 
-    // sphere1_prog_ is a point-sprite vertex+fragment pair (ES 2.0 has no
-    // image load/store, see sphere1_vert_head.glsl); it additive-blends into
-    // fbo_[0]/fbo_tex_[0], which sphere2_prog_ then samples as `tex`.
     GLuint sphere1_prog_ = 0;
     GLuint sphere2_prog_ = 0;
     GLuint glow_prog_ = 0;
@@ -33,9 +30,6 @@ class SphereVisualizer {
 
     GLuint vbo_ = 0;
 
-    // Host-built particle grid (one 2D point per surviving particleThin-dropout
-    // pixel) feeding sphere1_prog_'s vertex stage; rebuilt whenever canvas size
-    // or particle_thin changes.
     GLuint particle_vbo_ = 0;
     int particle_count_ = 0;
     float particle_grid_thin_ = -1.0f;

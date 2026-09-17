@@ -440,6 +440,8 @@ void BarPerMonitorModule::text_input_deactivated(TextInputService &) {
 }
 
 void BarPerMonitorModule::destroy(WaylandState &app, MonitorOutput &mon) {
+    if (state.network_panel.sync_text_input_focus)
+        state.network_panel.sync_text_input_focus(false);
     EGLDisplay d = app.egl_display;
     destroy_layer_surface(d, mon.surface, mon.layer_surface, mon.egl_window, mon.egl_surface, &mon.frame_clock);
     overlay_panel_destroy_surface(state.network_panel.base);

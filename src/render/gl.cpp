@@ -59,8 +59,6 @@ GLuint gl_compile_program(const char *vs_src, const char *fs_src, const char *la
     GLuint program = glCreateProgram();
     glAttachShader(program, vs);
     glAttachShader(program, fs);
-    // ES 1.00 has no `layout(location=)`; bind explicitly since a shader
-    // without the named attribute simply ignores its binding.
     glBindAttribLocation(program, 0, "a_pos");
     glBindAttribLocation(program, 0, "aPos");
     glLinkProgram(program);

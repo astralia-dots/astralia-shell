@@ -1,5 +1,6 @@
 #include <cerrno>
 #include <chrono>
+#include <csignal>
 #include <cstdio>
 #include <cstring>
 #include <malloc.h>
@@ -48,6 +49,8 @@ inline Module *find_overlay_for_surface(WaylandState &app, wl_surface *surface) 
 
 int main(int argc, char **argv) {
     mallopt(M_ARENA_MAX, 2);
+    klog_install_crash_handler();
+    signal(SIGPIPE, SIG_IGN);
 
     bool want_daemonize = argc == 1;
     bool want_debug = argc > 1 && strcmp(argv[1], "debug") == 0;
@@ -274,8 +277,12 @@ int main(int argc, char **argv) {
             if (t >= 0 && (poll_timeout_ms < 0 || t < poll_timeout_ms))
                 poll_timeout_ms = t;
         }
-        if (poll(fds.data(), fds.size(), poll_timeout_ms) < 0)
+        if (poll(fds.data(), fds.size(), poll_timeout_ms) < 0) {
+            if (errno == EINTR)
+                continue;
+            klog("poll: %s", strerror(errno));
             break;
+        }
 
         if (fds[0].revents & POLLIN) {
             wl_display_dispatch(app.display);
