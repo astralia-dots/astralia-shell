@@ -10,7 +10,6 @@ uniform float time;
 uniform int audioLSize;
 uniform int audioRSize;
 uniform sampler2D tex;
-uniform float u_fade;
 #define FragColor gl_FragColor
 #define texture texture2D
 #ifndef TWOPI

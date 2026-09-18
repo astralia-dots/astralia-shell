@@ -1,7 +1,6 @@
 #pragma once
 
 #include <EGL/egl.h>
-#include <wayland-client.h>
 
 #include "render/marquee_scroll.h"
 #include "render/overlay_panel.h"
@@ -13,9 +12,10 @@
 
 #include "service/input_service.h"
 
-#include "wlr-layer-shell-unstable-v1-client-protocol.h"
-
 struct WaylandState;
+struct wl_compositor;
+struct wl_output;
+struct zwlr_layer_shell_v1;
 
 struct PolkitState {
     OverlayPanelBase base;
@@ -37,7 +37,7 @@ bool polkit_create_surface(PolkitState &state, wl_compositor *compositor, zwlr_l
 
 bool polkit_init_egl(PolkitState &state, Renderer &renderer, WaylandState &app, EGLDisplay display, EGLConfig config, EGLContext context);
 
-void polkit_retarget(PolkitState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_display *display, Renderer &renderer, WaylandState &app, EGLDisplay egl_display, EGLConfig egl_config, EGLContext egl_context, wl_output *target_output, const char *target_name);
+void polkit_retarget(PolkitState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, Renderer &renderer, WaylandState &app, EGLDisplay egl_display, EGLConfig egl_config, EGLContext egl_context, wl_output *target_output, const char *target_name);
 
 void polkit_request_frame(PolkitState &state);
 

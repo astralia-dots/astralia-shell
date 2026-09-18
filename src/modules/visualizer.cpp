@@ -2,6 +2,7 @@
 #include <chrono>
 #include <vector>
 
+#include "app/backend.h"
 #include "app/monitor_output.h"
 #include "app/wayland_state.h"
 
@@ -16,7 +17,6 @@
 #include "modules/visualizer/sphere_visualizer.h"
 
 #include "render/gl.h"
-#include "render/overlay_panel.h"
 #include "render/palette.h"
 
 namespace {
@@ -79,13 +79,6 @@ void render_thread_main(VisualizerState *state) {
         if (next < now)
             next = now;
 
-        float fade = 0.0f;
-        if (first_frame_done) {
-            float ft = std::chrono::duration<float, std::milli>(now - state->fade_start).count() / kOverlayFadeMs;
-            ft = ft < 0.0f ? 0.0f : (ft > 1.0f ? 1.0f : ft);
-            fade = applyEasing(Easing::EaseOutCubic, ft);
-        }
-
         int width = state->base.width;
         int height = state->base.height;
 
@@ -125,9 +118,9 @@ void render_thread_main(VisualizerState *state) {
         GLuint al = stages->ready() ? stages->smooth_l() : 0;
         GLuint ar = stages->ready() ? stages->smooth_r() : 0;
         if (want_sphere)
-            sphere->render(width, height, tick, fade, al, ar, stages->size(), params);
+            sphere->render(width, height, tick, al, ar, stages->size(), params);
         else
-            bar->render(width, height, tick, fade, al, ar, stages->size(), params);
+            bar->render(width, height, tick, al, ar, stages->size(), params);
         glFinish();
         auto t2 = std::chrono::steady_clock::now();
 
@@ -140,7 +133,6 @@ void render_thread_main(VisualizerState *state) {
 
         if (!first_frame_done) {
             first_frame_done = true;
-            state->fade_start = t3;
             klog("visualizer: first frame presented at %d (%.1fms)", tick, render_ms);
         }
 
@@ -155,8 +147,8 @@ void render_thread_main(VisualizerState *state) {
             heartbeat_draw_ms = render_ms;
         if (t3 - last_heartbeat >= std::chrono::seconds(1)) {
             klog("visualizer: heartbeat tick=%d frames=%d fps=%.1f "
-                 "worst=%.1fms fade=%.2f %dx%d",
-                 tick, heartbeat_frames, static_cast<float>(heartbeat_frames) / std::chrono::duration<float>(t3 - last_heartbeat).count(), heartbeat_draw_ms, fade, width, height);
+                 "worst=%.1fms %dx%d",
+                 tick, heartbeat_frames, static_cast<float>(heartbeat_frames) / std::chrono::duration<float>(t3 - last_heartbeat).count(), heartbeat_draw_ms, width, height);
             last_heartbeat = t3;
             heartbeat_frames = 0;
             heartbeat_draw_ms = 0.0f;
@@ -222,7 +214,7 @@ void visualizer_toggle(VisualizerState &state, WaylandState &app) {
         if (!toplevel_window_create_surface(state.base, app.compositor, app.wm_base, "Visualizer", "astralia-shell-visualizer", kVisualizerDefaultWindow, kVisualizerDefaultWindow))
             return;
         while (!state.base.configured)
-            wl_display_dispatch(app.display);
+            backend_wait_dispatch();
         if (!toplevel_window_init_egl(state.base, app.egl_display, app.egl_config, app.egl_context)) {
             toplevel_window_destroy_surface(state.base);
             return;
@@ -235,7 +227,6 @@ void visualizer_toggle(VisualizerState &state, WaylandState &app) {
 
         state.egl_config = app.egl_config;
         state.base.open = true;
-        state.fade_start = std::chrono::steady_clock::now();
         state.capture.start();
         visualizer_render_thread_start(state, app.cfg.visualizer);
         return;

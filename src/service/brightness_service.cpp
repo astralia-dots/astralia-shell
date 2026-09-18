@@ -42,7 +42,8 @@ int read_int_file(const std::string &path) {
 void brightness_init(BrightnessBackend &backend) {
     backend.device = find_backlight_device();
     if (backend.device.empty()) {
-        klog("brightness: no backlight device found, brightness control " "disabled");
+        klog("brightness: no backlight device found, brightness control "
+             "disabled");
         return;
     }
     backend.max = read_int_file("/sys/class/backlight/" + backend.device + "/max_brightness");

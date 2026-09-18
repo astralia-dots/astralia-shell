@@ -74,7 +74,9 @@ void hypr_tile_focus_workspace(HyprlandState &state, int id, bool global = false
 
 void hypr_tile_move_window(HyprlandState &state, int id, bool follow = true, const std::string &address = {}, bool global = false);
 
-enum class HyprCloseScope { Workspace, Monitor, All };
+enum class HyprCloseScope { Workspace,
+                            Monitor,
+                            All };
 
 void hypr_tile_close_workspace(HyprlandState &state, HyprCloseScope scope, int id = -1);
 

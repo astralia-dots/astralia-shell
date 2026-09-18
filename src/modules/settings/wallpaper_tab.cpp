@@ -65,13 +65,13 @@ void wallpaper_picker_scan(WallpaperPickerState &state, std::string dir, bool (*
         }
         std::sort(found.begin(), found.end(), wallpaper_picker_less);
         DeferredCall::call_later([&state, found = std::move(found), generation] {
-                if (generation != state.scan_generation)
-                    return;
-                state.files = std::move(found);
-                state.scanning = false;
-                if (state.request_frame)
-                    state.request_frame();
-            });
+            if (generation != state.scan_generation)
+                return;
+            state.files = std::move(found);
+            state.scanning = false;
+            if (state.request_frame)
+                state.request_frame();
+        });
     }).detach();
 }
 
@@ -87,19 +87,19 @@ void wallpaper_picker_request_thumbnail(WallpaperPickerState &state, const std::
         unsigned char *data =
             animate_decode_scaled(path, target_size, target_size, w, h);
         DeferredCall::call_later([&state, path, data, w, h, generation, display, surface, context] {
-                state.pending.erase(path);
-                if (generation != state.scan_generation) {
-                    delete[] data;
-                    return;
-                }
-                if (!data)
-                    return;
-                gl_make_current(display, surface, context);
-                state.thumbnails[path] = make_texture_rgba(w, h, data, true);
+            state.pending.erase(path);
+            if (generation != state.scan_generation) {
                 delete[] data;
-                if (state.request_frame)
-                    state.request_frame();
-            });
+                return;
+            }
+            if (!data)
+                return;
+            gl_make_current(display, surface, context);
+            state.thumbnails[path] = make_texture_rgba(w, h, data, true);
+            delete[] data;
+            if (state.request_frame)
+                state.request_frame();
+        });
     }).detach();
 }
 

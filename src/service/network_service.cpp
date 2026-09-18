@@ -214,26 +214,26 @@ std::string to_lower(std::string s) {
 }
 
 std::vector<std::string> device_status_argv() {
-    return {"nmcli",  "-t",    "-f", "DEVICE,TYPE,STATE,CONNECTION",
+    return {"nmcli", "-t", "-f", "DEVICE,TYPE,STATE,CONNECTION",
             "device", "status"};
 }
 std::vector<std::string> profile_argv() {
     return {"nmcli", "-t", "-f", "NAME,TYPE", "connection", "show"};
 }
 std::vector<std::string> quick_scan_argv() {
-    return {"nmcli",  "-t",   "-f",   "SSID,SECURITY,SIGNAL,IN-USE",
+    return {"nmcli", "-t", "-f", "SSID,SECURITY,SIGNAL,IN-USE",
             "device", "wifi", "list", "--rescan",
             "no"};
 }
 std::vector<std::string> scan_argv() {
-    return {"nmcli",  "-t",   "-f",   "SSID,SECURITY,SIGNAL,IN-USE",
+    return {"nmcli", "-t", "-f", "SSID,SECURITY,SIGNAL,IN-USE",
             "device", "wifi", "list", "--rescan",
             "yes"};
 }
 std::vector<std::string> connect_argv(const std::string &ssid, const std::string &password, bool saved) {
     if (saved)
         return {"nmcli", "-t", "connection", "up", "id", ssid};
-    std::vector<std::string> argv = {"nmcli", "-t",      "device", "wifi",  "connect", ssid};
+    std::vector<std::string> argv = {"nmcli", "-t", "device", "wifi", "connect", ssid};
     if (!password.empty()) {
         argv.push_back("password");
         argv.push_back(password);

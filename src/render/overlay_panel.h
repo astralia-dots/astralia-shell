@@ -2,16 +2,19 @@
 
 #include <EGL/egl.h>
 #include <functional>
-#include <wayland-client.h>
-#include <wayland-egl.h>
+
+#include "app/backend.h"
 
 #include "core/log.h"
 
 #include "render/animation.h"
+#include "render/egl_surface.h"
 #include "render/layer_surface.h"
 
 #include "service/frame_service.h"
 #include "service/output_service.h"
+
+struct wl_output;
 
 constexpr float kOverlayFadeMs = 220.0f;
 constexpr uint64_t kOverlayFadeOwner = 1;
@@ -19,10 +22,10 @@ constexpr uint64_t kPanelHeightAnimOwner = 2;
 
 struct OverlayPanelBase {
     const char *name_space = nullptr;
-    wl_compositor *compositor = nullptr;
-    wl_surface *surface = nullptr;
-    zwlr_layer_surface_v1 *layer_surface = nullptr;
-    wl_egl_window *egl_window = nullptr;
+    void *compositor = nullptr;
+    NativeSurfaceHandle surface = nullptr;
+    LayerSurfaceHandle layer_surface = nullptr;
+    NativeEglWindowHandle egl_window = nullptr;
     EGLSurface egl_surface = EGL_NO_SURFACE;
     EGLDisplay egl_display = nullptr;
     EGLContext egl_context = nullptr;
@@ -34,11 +37,11 @@ struct OverlayPanelBase {
     float opacity = 0.0f;
 };
 
-extern const zwlr_layer_surface_v1_listener overlay_panel_listener;
+void overlay_panel_configure(void *data, int32_t width, int32_t height);
 
 void overlay_panel_update_input_region(OverlayPanelBase &base);
 
-bool overlay_panel_create_surface(OverlayPanelBase &base, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, const char *name_space, wl_output *output = nullptr);
+bool overlay_panel_create_surface(OverlayPanelBase &base, void *compositor, void *layer_shell, const char *name_space, wl_output *output = nullptr);
 
 bool overlay_panel_init_egl(OverlayPanelBase &base, EGLDisplay display, EGLConfig config, EGLContext context);
 
@@ -71,19 +74,19 @@ float panel_reveal_tick(PanelHeightReveal &r, OverlayPanelBase &base, float targ
 void panel_reveal_close(PanelHeightReveal &r, OverlayPanelBase &base, std::function<void()> on_done);
 
 template <typename CreateSurface, typename InitEgl>
-inline bool overlay_panel_ensure(OverlayPanelBase &base, wl_display *display, CreateSurface create_surface, InitEgl init_egl) {
+inline bool overlay_panel_ensure(OverlayPanelBase &base, CreateSurface create_surface, InitEgl init_egl) {
     if (base.layer_surface)
         return true;
     if (!create_surface())
         return false;
     while (!base.configured)
-        wl_display_dispatch(display);
+        backend_wait_dispatch();
     return init_egl();
 }
 
 template <typename CreateSurface, typename InitEgl>
 inline wl_output *
-overlay_panel_retarget(OverlayPanelBase &base, wl_display *display, wl_output *previous_output, wl_output *target_output, const char *target_name, CreateSurface create_surface, InitEgl init_egl) {
+overlay_panel_retarget(OverlayPanelBase &base, wl_output *previous_output, wl_output *target_output, const char *target_name, CreateSurface create_surface, InitEgl init_egl) {
     klog("panel: %s retargeting from output=%p to '%s'", base.name_space ? base.name_space : "?", static_cast<void *>(previous_output), target_name);
     overlay_panel_destroy_surface(base);
     base.configured = false;
@@ -94,7 +97,7 @@ overlay_panel_retarget(OverlayPanelBase &base, wl_display *display, wl_output *p
         if (!create_surface(out))
             return false;
         while (!base.configured)
-            wl_display_dispatch(display);
+            backend_wait_dispatch();
         return init_egl();
     };
 

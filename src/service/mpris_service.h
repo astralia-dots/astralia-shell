@@ -8,7 +8,9 @@
 #include <string>
 #include <vector>
 
-enum class MprisPlaybackStatus { Stopped, Paused, Playing };
+enum class MprisPlaybackStatus { Stopped,
+                                 Paused,
+                                 Playing };
 
 MprisPlaybackStatus mpris_detail_parse_playback_status(const std::string &s);
 

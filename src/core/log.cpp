@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <exception>
 #include <execinfo.h>
 #include <string>
 #include <sys/stat.h>
@@ -14,25 +15,42 @@
 
 namespace {
 
-FILE *klog_open_file() {
+std::string klog_state_dir() {
     const char *state_home = getenv("XDG_STATE_HOME");
     std::string base = state_home && *state_home ? std::string(state_home) : std::string(getenv("HOME") ? getenv("HOME") : "") + "/.local/state";
 
-    std::string dir;
     for (size_t pos = 1; pos <= base.size(); ++pos) {
         if (pos == base.size() || base[pos] == '/') {
             mkdir(base.substr(0, pos).c_str(), 0755);
         }
     }
-    dir = base + "/astralia";
+    std::string dir = base + "/astralia";
     mkdir(dir.c_str(), 0755);
+    return dir;
+}
 
-    return fopen((dir + "/astralia.log").c_str(), "a");
+FILE *klog_open_file(const char *name) {
+    return fopen((klog_state_dir() + "/" + name + ".log").c_str(), "a");
 }
 
 FILE *&klog_file() {
-    static FILE *f = klog_open_file();
+    static FILE *f = klog_open_file("astralia");
     return f;
+}
+
+void klog_terminate_handler() {
+    if (std::exception_ptr eptr = std::current_exception()) {
+        try {
+            std::rethrow_exception(eptr);
+        } catch (const std::exception &e) {
+            klog("terminate: uncaught exception: %s", e.what());
+        } catch (...) {
+            klog("terminate: uncaught exception of unknown type");
+        }
+    } else {
+        klog("terminate: called with no active exception");
+    }
+    std::abort();
 }
 
 void klog_crash_handler(int sig) {
@@ -59,11 +77,25 @@ void klog_install_crash_handler() {
     void *warmup[8];
     backtrace(warmup, 8);
 
+    std::set_terminate(klog_terminate_handler);
+
     struct sigaction sa{};
     sa.sa_handler = klog_crash_handler;
     sigemptyset(&sa.sa_mask);
     for (int sig : {SIGSEGV, SIGABRT, SIGBUS, SIGILL, SIGFPE})
         sigaction(sig, &sa, nullptr);
+}
+
+void klog_set_backend(const char *label) {
+    std::string name = std::string("astralia-") + label;
+    FILE *next = klog_open_file(name.c_str());
+    if (!next)
+        return;
+    FILE *&f = klog_file();
+    FILE *prev = f;
+    f = next;
+    if (prev)
+        fclose(prev);
 }
 
 void klog(const char *fmt, ...) {

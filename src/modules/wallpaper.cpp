@@ -293,78 +293,75 @@ void wallpaper_column_set_animated(WallpaperColumn &col, const WallpaperColumnGl
 
     std::string filter = animate_scale_filter(target_w, target_h, to_fit(mode));
 
-    col.decode = media_decode_stream(path, filter, kAnimateWallpaperFps, texture_row_length_supported(), [&col, &gl, gen, life](unsigned char *rgba, int w, int h, int stride_px) {
-            DeferredCall::call_later([&col, &gl, rgba, w, h, stride_px, gen, life] {
-                auto keep = life.lock();
-                if (!keep) {
-                    delete[] rgba;
-                    return;
-                }
-                if (gen != col.generation) {
-                    delete[] rgba;
-                    return;
-                }
-                delete[] col.pending_pixels;
-                col.pending_pixels = rgba;
-                col.pending_width = w;
-                col.pending_height = h;
-                col.pending_stride = stride_px;
-                wallpaper_column_upload_pending(col, gl);
-            });
-        }, video_texture_import_supported() ? MediaDecodeDrmFrameCallback([&col, &gl, gen, life](MediaDrmFrame frame) {
-                  DeferredCall::call_later([&col, &gl, frame, gen, life] {
-                      auto keep = life.lock();
-                      if (!keep) {
-                          media_decode_release_drm_frame(frame.avframe_handle);
-                          return;
-                      }
-                      if (gen != col.generation || gl.surface == EGL_NO_SURFACE) {
-                          media_decode_release_drm_frame(frame.avframe_handle);
-                          return;
-                      }
-                      DrmFrameImport import;
-                      import.plane_count = frame.plane_count;
-                      import.width = frame.width;
-                      import.height = frame.height;
-                      for (int i = 0; i < frame.plane_count; ++i)
-                          import.planes[i] = {frame.planes[i].fd, frame.planes[i].modifier, frame.planes[i].offset, frame.planes[i].pitch};
-                      auto t0 = std::chrono::steady_clock::now();
-                      column_make_current(gl);
-                      bool ok = video_texture_import(col.video_tex, gl.display, import);
-                      float ms = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - t0).count();
-                      if (ms > 5.0f)
-                          klog("wallpaper: zero-copy import %.1fms", ms);
-                      if (ok) {
-                          col.zero_copy = true;
-                          if (col.pinned_frame_prev)
-                              media_decode_release_drm_frame(col.pinned_frame_prev);
-                          col.pinned_frame_prev = col.pinned_frame;
-                          col.pinned_frame = frame.avframe_handle;
-                          if (gl.request_frame)
-                              gl.request_frame();
-                      } else {
-                          klog("wallpaper: video_texture_import failed " "(%dx%d planes=%d), falling back to CPU upload", frame.width, frame.height, frame.plane_count);
-                          if (col.decode.egl_import_failed)
-                              col.decode.egl_import_failed->store(true);
-                          media_decode_release_drm_frame(frame.avframe_handle);
-                      }
-                  });
-              }) : MediaDecodeDrmFrameCallback());
+    col.decode = media_decode_stream(path, filter, kAnimateWallpaperFps, texture_row_length_supported(), [&col, &gl, gen, life](unsigned char *rgba, int w, int h, int stride_px) { DeferredCall::call_later([&col, &gl, rgba, w, h, stride_px, gen, life] {
+                                                                                                                                                                                        auto keep = life.lock();
+                                                                                                                                                                                        if (!keep) {
+                                                                                                                                                                                            delete[] rgba;
+                                                                                                                                                                                            return;
+                                                                                                                                                                                        }
+                                                                                                                                                                                        if (gen != col.generation) {
+                                                                                                                                                                                            delete[] rgba;
+                                                                                                                                                                                            return;
+                                                                                                                                                                                        }
+                                                                                                                                                                                        delete[] col.pending_pixels;
+                                                                                                                                                                                        col.pending_pixels = rgba;
+                                                                                                                                                                                        col.pending_width = w;
+                                                                                                                                                                                        col.pending_height = h;
+                                                                                                                                                                                        col.pending_stride = stride_px;
+                                                                                                                                                                                        wallpaper_column_upload_pending(col, gl);
+                                                                                                                                                                                    }); }, video_texture_import_supported() ? MediaDecodeDrmFrameCallback([&col, &gl, gen, life](MediaDrmFrame frame) { DeferredCall::call_later([&col, &gl, frame, gen, life] {
+                                                                                                                                                                                                                                                                                                                                                                                   auto keep = life.lock();
+                                                                                                                                                                                                                                                                                                                                                                                   if (!keep) {
+                                                                                                                                                                                                                                                                                                                                                                                       media_decode_release_drm_frame(frame.avframe_handle);
+                                                                                                                                                                                                                                                                                                                                                                                       return;
+                                                                                                                                                                                                                                                                                                                                                                                   }
+                                                                                                                                                                                                                                                                                                                                                                                   if (gen != col.generation || gl.surface == EGL_NO_SURFACE) {
+                                                                                                                                                                                                                                                                                                                                                                                       media_decode_release_drm_frame(frame.avframe_handle);
+                                                                                                                                                                                                                                                                                                                                                                                       return;
+                                                                                                                                                                                                                                                                                                                                                                                   }
+                                                                                                                                                                                                                                                                                                                                                                                   DrmFrameImport import;
+                                                                                                                                                                                                                                                                                                                                                                                   import.plane_count = frame.plane_count;
+                                                                                                                                                                                                                                                                                                                                                                                   import.width = frame.width;
+                                                                                                                                                                                                                                                                                                                                                                                   import.height = frame.height;
+                                                                                                                                                                                                                                                                                                                                                                                   for (int i = 0; i < frame.plane_count; ++i)
+                                                                                                                                                                                                                                                                                                                                                                                       import.planes[i] = {frame.planes[i].fd, frame.planes[i].modifier, frame.planes[i].offset, frame.planes[i].pitch};
+                                                                                                                                                                                                                                                                                                                                                                                   auto t0 = std::chrono::steady_clock::now();
+                                                                                                                                                                                                                                                                                                                                                                                   column_make_current(gl);
+                                                                                                                                                                                                                                                                                                                                                                                   bool ok = video_texture_import(col.video_tex, gl.display, import);
+                                                                                                                                                                                                                                                                                                                                                                                   float ms = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - t0).count();
+                                                                                                                                                                                                                                                                                                                                                                                   if (ms > 5.0f)
+                                                                                                                                                                                                                                                                                                                                                                                       klog("wallpaper: zero-copy import %.1fms", ms);
+                                                                                                                                                                                                                                                                                                                                                                                   if (ok) {
+                                                                                                                                                                                                                                                                                                                                                                                       col.zero_copy = true;
+                                                                                                                                                                                                                                                                                                                                                                                       if (col.pinned_frame_prev)
+                                                                                                                                                                                                                                                                                                                                                                                           media_decode_release_drm_frame(col.pinned_frame_prev);
+                                                                                                                                                                                                                                                                                                                                                                                       col.pinned_frame_prev = col.pinned_frame;
+                                                                                                                                                                                                                                                                                                                                                                                       col.pinned_frame = frame.avframe_handle;
+                                                                                                                                                                                                                                                                                                                                                                                       if (gl.request_frame)
+                                                                                                                                                                                                                                                                                                                                                                                           gl.request_frame();
+                                                                                                                                                                                                                                                                                                                                                                                   } else {
+                                                                                                                                                                                                                                                                                                                                                                                       klog("wallpaper: video_texture_import failed "
+                                                                                                                                                                                                                                                                                                                                                                                            "(%dx%d planes=%d), falling back to CPU upload",
+                                                                                                                                                                                                                                                                                                                                                                                            frame.width, frame.height, frame.plane_count);
+                                                                                                                                                                                                                                                                                                                                                                                       if (col.decode.egl_import_failed)
+                                                                                                                                                                                                                                                                                                                                                                                           col.decode.egl_import_failed->store(true);
+                                                                                                                                                                                                                                                                                                                                                                                       media_decode_release_drm_frame(frame.avframe_handle);
+                                                                                                                                                                                                                                                                                                                                                                                   }
+                                                                                                                                                                                                                                                                                                                                                                               }); }) : MediaDecodeDrmFrameCallback());
 }
 
 MediaDecodeStatus wallpaper_column_decode_status(const WallpaperColumn &col) {
     return media_decode_status(col.decode);
 }
 
-void wallpaper_layer_surface_configure(void *data, zwlr_layer_surface_v1 *layer_surface, uint32_t serial, uint32_t width, uint32_t height) {
+void wallpaper_layer_surface_configure(void *data, int32_t width, int32_t height) {
     auto *wp = static_cast<WallpaperState *>(data);
-    zwlr_layer_surface_v1_ack_configure(layer_surface, serial);
-    bool changed = wp->width != static_cast<int32_t>(width) || wp->height != static_cast<int32_t>(height);
-    wp->width = static_cast<int32_t>(width);
-    wp->height = static_cast<int32_t>(height);
+    bool changed = wp->width != width || wp->height != height;
+    wp->width = width;
+    wp->height = height;
     if (changed && wp->egl_window) {
         int32_t scale = wp->output_scale.scale;
-        wl_egl_window_resize(wp->egl_window, wp->width * scale, wp->height * scale, 0, 0);
+        egl_native_window_resize(wp->egl_window, wp->width * scale, wp->height * scale);
         if (wp->frame_clock.surface)
             request_frame(wp->frame_clock);
     }
@@ -372,13 +369,6 @@ void wallpaper_layer_surface_configure(void *data, zwlr_layer_surface_v1 *layer_
     if (changed && wp->on_resize)
         wp->on_resize();
 }
-
-void wallpaper_layer_surface_closed(void *, zwlr_layer_surface_v1 *) {}
-
-constexpr zwlr_layer_surface_v1_listener wallpaper_layer_surface_listener = {
-    .configure = wallpaper_layer_surface_configure,
-    .closed = wallpaper_layer_surface_closed,
-};
 
 void wallpaper_draw_transitions(WallpaperState &wp) {
     if (wp.columns.empty())
@@ -459,24 +449,24 @@ void wallpaper_draw_columns(const WallpaperState &wp, Node *parent, int32_t widt
 
 bool wallpaper_create_surface(WallpaperState &wp, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
     LayerSurfaceConfig cfg{
-        .layer = ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND,
+        .layer = kLayerShellBackground,
         .name_space = kWallpaperLayerNamespace,
-        .anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT,
+        .anchor = kLayerAnchorTop | kLayerAnchorBottom | kLayerAnchorLeft | kLayerAnchorRight,
     };
     wp.layer_surface =
-        layer_surface_create(wp.surface, compositor, layer_shell, cfg, &wallpaper_layer_surface_listener, &wp, output);
+        layer_surface_create(wp.surface, compositor, layer_shell, cfg, wallpaper_layer_surface_configure, &wp, output);
     if (!wp.layer_surface)
         return false;
     wp.output_scale.on_change = [&wp](int32_t scale) {
         if (wp.egl_window)
-            wl_egl_window_resize(wp.egl_window, wp.width * scale, wp.height * scale, 0, 0);
+            egl_native_window_resize(wp.egl_window, wp.width * scale, wp.height * scale);
         if (wp.frame_clock.surface)
             request_frame(wp.frame_clock);
         if (wp.on_resize)
             wp.on_resize();
     };
-    output_scale_watch(wp.output_scale, wp.surface);
-    wl_surface_commit(wp.surface);
+    output_scale_watch(wp.output_scale, static_cast<wl_surface *>(wp.surface));
+    native_surface_commit(wp.surface);
     return true;
 }
 
@@ -486,8 +476,8 @@ bool wallpaper_init_egl(WallpaperState &wp, Renderer &renderer, EGLDisplay displ
     wp.renderer = &renderer;
     int32_t scale = wp.output_scale.scale;
     wp.egl_window =
-        wl_egl_window_create(wp.surface, wp.width * scale, wp.height * scale);
-    wp.egl_surface = eglCreateWindowSurface(display, config, reinterpret_cast<EGLNativeWindowType>(wp.egl_window), nullptr);
+        egl_native_window_create(wp.surface, wp.width * scale, wp.height * scale);
+    wp.egl_surface = egl_surface_create(wp.surface, wp.egl_window, display, config);
     if (wp.egl_surface == EGL_NO_SURFACE)
         return false;
     if (!gl_make_current(display, wp.egl_surface, context))

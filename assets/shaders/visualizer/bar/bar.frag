@@ -4,7 +4,6 @@ precision highp sampler2D;
 uniform sampler2D audioL;
 uniform sampler2D audioR;
 uniform vec2 u_resolution;
-uniform float u_fade;
 uniform vec3 u_accent;
 uniform int u_barCount;
 uniform float u_barWidth;
@@ -56,6 +55,6 @@ void main() {
     if (aa <= 0.0)
         discard;
 
-    float a = u_barOpacity * u_fade * aa;
+    float a = u_barOpacity * aa;
     gl_FragColor = vec4(u_accent * a, a);
 }

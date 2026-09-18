@@ -3,7 +3,6 @@
 #include <EGL/egl.h>
 #include <string>
 #include <vector>
-#include <wayland-client.h>
 
 #include "render/overlay_panel.h"
 #include "render/panel_chrome.h"
@@ -15,7 +14,9 @@
 #include "service/input_service.h"
 #include "service/telemetry_service.h"
 
-#include "wlr-layer-shell-unstable-v1-client-protocol.h"
+struct wl_compositor;
+struct wl_output;
+struct zwlr_layer_shell_v1;
 
 constexpr float kSysMonTextRowHeight = 18.0f;
 constexpr float kSysMonBarHeight = 6.0f;

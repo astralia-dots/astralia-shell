@@ -1,11 +1,12 @@
 #pragma once
 
 #include <functional>
-#include <wayland-client.h>
+
+#include "render/egl_surface.h"
 
 struct FrameClock {
-    wl_surface *surface = nullptr;
-    wl_callback *callback = nullptr;
+    NativeSurfaceHandle surface = nullptr;
+    void *callback = nullptr;
     bool redraw_requested = false;
     bool mapped = false;
     std::function<void()> draw;

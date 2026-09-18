@@ -1,7 +1,6 @@
 #pragma once
 
 #include <EGL/egl.h>
-#include <chrono>
 #include <condition_variable>
 #include <memory>
 #include <mutex>
@@ -30,7 +29,6 @@ struct VisualizerRenderThreadState {
 struct VisualizerState {
     ToplevelWindowBase base;
     VisualizerAudioCapture capture;
-    std::chrono::steady_clock::time_point fade_start{};
 
     EGLConfig egl_config = nullptr;
     EGLContext render_context = EGL_NO_CONTEXT;

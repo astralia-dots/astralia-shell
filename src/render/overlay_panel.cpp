@@ -4,60 +4,42 @@
 #include "render/gl.h"
 #include "render/overlay_panel.h"
 
-namespace {
-
-void overlay_panel_configure(void *data, zwlr_layer_surface_v1 *layer_surface, uint32_t serial, uint32_t width, uint32_t height) {
+void overlay_panel_configure(void *data, int32_t width, int32_t height) {
     auto *base = static_cast<OverlayPanelBase *>(data);
-    zwlr_layer_surface_v1_ack_configure(layer_surface, serial);
-    base->width = static_cast<int32_t>(width);
-    base->height = static_cast<int32_t>(height);
+    base->width = width;
+    base->height = height;
     int32_t scale = base->output_scale.scale;
     if (base->egl_window)
-        wl_egl_window_resize(base->egl_window, base->width * scale, base->height * scale, 0, 0);
+        egl_native_window_resize(base->egl_window, base->width * scale, base->height * scale);
     base->configured = true;
 }
 
-void overlay_panel_closed(void *, zwlr_layer_surface_v1 *) {}
-
-} // namespace
-
-const zwlr_layer_surface_v1_listener overlay_panel_listener = {
-    .configure = overlay_panel_configure,
-    .closed = overlay_panel_closed,
-};
-
 void overlay_panel_update_input_region(OverlayPanelBase &base) {
-    if (base.open) {
-        wl_surface_set_input_region(base.surface, nullptr);
-        return;
-    }
-    wl_region *empty_region = wl_compositor_create_region(base.compositor);
-    wl_surface_set_input_region(base.surface, empty_region);
-    wl_region_destroy(empty_region);
+    native_surface_set_input_region(base.surface, base.compositor, !base.open);
 }
 
-bool overlay_panel_create_surface(OverlayPanelBase &base, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, const char *name_space, wl_output *output) {
+bool overlay_panel_create_surface(OverlayPanelBase &base, void *compositor, void *layer_shell, const char *name_space, wl_output *output) {
     base.compositor = compositor;
     base.name_space = name_space;
     LayerSurfaceConfig cfg{
-        .layer = ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY,
+        .layer = kLayerShellOverlay,
         .name_space = name_space,
-        .anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT,
+        .anchor = kLayerAnchorTop | kLayerAnchorBottom | kLayerAnchorLeft | kLayerAnchorRight,
     };
     base.layer_surface =
-        layer_surface_create(base.surface, compositor, layer_shell, cfg, &overlay_panel_listener, &base, output);
+        layer_surface_create(base.surface, compositor, layer_shell, cfg, overlay_panel_configure, &base, output);
     if (!base.layer_surface)
         return false;
 
     base.output_scale.on_change = [&base](int32_t scale) {
         if (base.egl_window)
-            wl_egl_window_resize(base.egl_window, base.width * scale, base.height * scale, 0, 0);
+            egl_native_window_resize(base.egl_window, base.width * scale, base.height * scale);
         if (base.frame_clock.surface)
             request_frame(base.frame_clock);
     };
-    output_scale_watch(base.output_scale, base.surface);
+    output_scale_watch(base.output_scale, static_cast<wl_surface *>(base.surface));
     overlay_panel_update_input_region(base);
-    wl_surface_commit(base.surface);
+    native_surface_commit(base.surface);
     return true;
 }
 
@@ -65,8 +47,8 @@ bool overlay_panel_init_egl(OverlayPanelBase &base, EGLDisplay display, EGLConfi
     base.egl_display = display;
     base.egl_context = context;
     int32_t scale = base.output_scale.scale;
-    base.egl_window = wl_egl_window_create(base.surface, base.width * scale, base.height * scale);
-    base.egl_surface = eglCreateWindowSurface(display, config, reinterpret_cast<EGLNativeWindowType>(base.egl_window), nullptr);
+    base.egl_window = egl_native_window_create(base.surface, base.width * scale, base.height * scale);
+    base.egl_surface = egl_surface_create(base.surface, base.egl_window, display, config);
     if (base.egl_surface == EGL_NO_SURFACE)
         return false;
     if (!gl_make_current(display, base.egl_surface, context))
@@ -82,10 +64,7 @@ void overlay_panel_request_frame(OverlayPanelBase &base) {
 }
 
 void overlay_panel_destroy_surface(OverlayPanelBase &base) {
-    if (base.frame_clock.callback) {
-        wl_callback_destroy(base.frame_clock.callback);
-        base.frame_clock.callback = nullptr;
-    }
+    frame_clock_drop_callback(base.frame_clock);
     base.frame_clock.surface = nullptr;
     base.frame_clock.redraw_requested = false;
     base.frame_clock.mapped = false;
@@ -95,17 +74,12 @@ void overlay_panel_destroy_surface(OverlayPanelBase &base) {
         base.egl_surface = EGL_NO_SURFACE;
     }
     if (base.egl_window) {
-        wl_egl_window_destroy(base.egl_window);
+        egl_native_window_destroy(base.egl_window);
         base.egl_window = nullptr;
     }
-    if (base.layer_surface) {
-        zwlr_layer_surface_v1_destroy(base.layer_surface);
-        base.layer_surface = nullptr;
-    }
-    if (base.surface) {
-        wl_surface_destroy(base.surface);
-        base.surface = nullptr;
-    }
+    NativeSurfaceHandle surface = base.surface;
+    destroy_layer_surface(base.egl_display, surface, base.layer_surface, base.egl_window, base.egl_surface, nullptr);
+    base.surface = surface;
     base.configured = false;
 }
 
@@ -116,9 +90,9 @@ void overlay_panel_toggle(OverlayPanelBase &base) {
     bool opening = !base.open;
     if (opening) {
         base.open = true;
-        zwlr_layer_surface_v1_set_keyboard_interactivity(base.layer_surface, ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE);
+        layer_surface_set_keyboard_interactivity(base.layer_surface, true);
         overlay_panel_update_input_region(base);
-        wl_surface_commit(base.surface);
+        native_surface_commit(base.surface);
         klog("panel: %s acquired exclusive keyboard interactivity", base.name_space ? base.name_space : "?");
     }
 
@@ -127,9 +101,9 @@ void overlay_panel_toggle(OverlayPanelBase &base) {
             if (opening)
                 return;
             base.open = false;
-            zwlr_layer_surface_v1_set_keyboard_interactivity(base.layer_surface, ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
+            layer_surface_set_keyboard_interactivity(base.layer_surface, false);
             overlay_panel_update_input_region(base);
-            wl_surface_commit(base.surface);
+            native_surface_commit(base.surface);
             klog("panel: %s released exclusive keyboard interactivity", base.name_space ? base.name_space : "?"); }, kOverlayFadeOwner);
 }
 

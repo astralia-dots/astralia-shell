@@ -195,7 +195,8 @@ using InterfaceProps = std::map<std::string, sdbus::Variant>;
 using ObjectInterfaces = std::map<std::string, InterfaceProps>;
 using ManagedObjects = std::map<sdbus::ObjectPath, ObjectInterfaces>;
 
-template <typename T> std::optional<T> variant_get(const sdbus::Variant &v) {
+template <typename T>
+std::optional<T> variant_get(const sdbus::Variant &v) {
     try {
         return v.get<T>();
     } catch (const sdbus::Error &) {
@@ -373,8 +374,8 @@ bool bluetooth_init(BluetoothState &state, sdbus::IConnection &bus) {
         state.root->uponSignal("InterfacesAdded")
             .onInterface(kObjectManagerIface)
             .call([&state](const sdbus::ObjectPath &, const ObjectInterfaces &) {
-                    state.next_refresh_at = std::chrono::steady_clock::now();
-                });
+                state.next_refresh_at = std::chrono::steady_clock::now();
+            });
         state.root->uponSignal("InterfacesRemoved")
             .onInterface(kObjectManagerIface)
             .call([&state](const sdbus::ObjectPath &path, const std::vector<std::string> &) {
@@ -393,7 +394,9 @@ bool bluetooth_init(BluetoothState &state, sdbus::IConnection &bus) {
         klog("bluetooth: connected, adapter_present=%d powered=%d", state.adapter_present, state.powered);
         return true;
     } catch (const sdbus::Error &e) {
-        klog("bluetooth: connection failed (%s): %s - no bluetooth info " "available", e.getName().c_str(), e.getMessage().c_str());
+        klog("bluetooth: connection failed (%s): %s - no bluetooth info "
+             "available",
+             e.getName().c_str(), e.getMessage().c_str());
         state.root.reset();
         return false;
     }

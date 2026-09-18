@@ -1,6 +1,7 @@
 #include <chrono>
 #include <unistd.h>
 
+#include "app/backend.h"
 #include "app/module_registry.h"
 #include "app/monitor_output.h"
 #include "app/service_registry.h"
@@ -193,7 +194,8 @@ class NetworkService final : public Service {
     bool init(WaylandState &app) override {
         want_ = app.upower.bus && network_init(app.network, *app.upower.bus);
         if (!want_)
-            klog("network: no system bus available - network info " "unavailable");
+            klog("network: no system bus available - network info "
+                 "unavailable");
         return true;
     }
 
@@ -209,36 +211,36 @@ class NetworkService final : public Service {
         };
         if (app.network.device_proc.wake_fd >= 0)
             sources.emplace_back(app.network.device_proc.wake_fd, POLLIN, [&app, notify] {
-                    network_dispatch(app, network_poll_device(app.network, notify));
-                });
+                network_dispatch(app, network_poll_device(app.network, notify));
+            });
         if (app.network.profile_proc.wake_fd >= 0)
             sources.emplace_back(app.network.profile_proc.wake_fd, POLLIN, [&app] {
-                    network_dispatch(app, network_poll_profile(app.network));
-                });
+                network_dispatch(app, network_poll_profile(app.network));
+            });
         if (app.network.quick_scan_proc.wake_fd >= 0)
             sources.emplace_back(app.network.quick_scan_proc.wake_fd, POLLIN, [&app] {
-                    network_dispatch(app, network_poll_quick_scan(app.network));
-                });
+                network_dispatch(app, network_poll_quick_scan(app.network));
+            });
         if (app.network.scan_proc.wake_fd >= 0)
             sources.emplace_back(app.network.scan_proc.wake_fd, POLLIN, [&app, notify] {
-                    network_dispatch(app, network_poll_scan(app.network, notify));
-                });
+                network_dispatch(app, network_poll_scan(app.network, notify));
+            });
         if (app.network.connect_proc.wake_fd >= 0)
             sources.emplace_back(app.network.connect_proc.wake_fd, POLLIN, [&app, notify] {
-                    network_dispatch(app, network_poll_connect(app.network, notify));
-                });
+                network_dispatch(app, network_poll_connect(app.network, notify));
+            });
         if (app.network.disconnect_proc.wake_fd >= 0)
             sources.emplace_back(app.network.disconnect_proc.wake_fd, POLLIN, [&app, notify] {
-                    network_dispatch(app, network_poll_disconnect(app.network, notify));
-                });
+                network_dispatch(app, network_poll_disconnect(app.network, notify));
+            });
         if (app.network.forget_proc.wake_fd >= 0)
             sources.emplace_back(app.network.forget_proc.wake_fd, POLLIN, [&app] {
-                    network_dispatch(app, network_poll_forget(app.network));
-                });
+                network_dispatch(app, network_poll_forget(app.network));
+            });
         if (app.network.connectivity_proc.wake_fd >= 0)
             sources.emplace_back(app.network.connectivity_proc.wake_fd, POLLIN, [&app, notify] {
-                    network_dispatch(app, network_poll_connectivity(app.network, notify));
-                });
+                network_dispatch(app, network_poll_connectivity(app.network, notify));
+            });
         return sources;
     }
 
@@ -254,16 +256,15 @@ class BluetoothService final : public Service {
         want_ =
             app.upower.bus && bluetooth_init(app.bluetooth, *app.upower.bus);
         if (!want_)
-            klog("bluetooth: no system bus available - bluetooth info " "unavailable");
+            klog("bluetooth: no system bus available - bluetooth info "
+                 "unavailable");
         return true;
     }
 
     void timer_tick(WaylandState &app) override {
         if (!want_)
             return;
-        bluetooth_tick(app.bluetooth, [&app](const std::string &summary, const std::string &body) {
-                bluetooth_notify(app, summary, body);
-            }, std::chrono::steady_clock::now(), [&app] { redraw_and_present(app); });
+        bluetooth_tick(app.bluetooth, [&app](const std::string &summary, const std::string &body) { bluetooth_notify(app, summary, body); }, std::chrono::steady_clock::now(), [&app] { redraw_and_present(app); });
     }
 
   private:
@@ -330,15 +331,16 @@ class CompositorWorkspaceService final : public Service {
     const char *name() const override { return "compositor-workspace"; }
 
     bool init(WaylandState &app) override {
-        if (hypr_init(app.hypr))
+        if (active_backend() == Backend::Wayland && hypr_init(app.hypr))
             app.compositor_backend = WaylandState::CompositorBackend::Hyprland;
-        klog("compositor backend: %s", app.compositor_backend == WaylandState::CompositorBackend::Hyprland ? "hyprland" : "none");
+        const char *backend_name = app.compositor_backend == WaylandState::CompositorBackend::Hyprland ? "hyprland" : "none";
+        klog("compositor backend: %s", backend_name);
         return true;
     }
 
     std::vector<FnPollSource> poll_sources(WaylandState &app) override {
         std::vector<FnPollSource> sources;
-        if (app.compositor_backend != WaylandState::CompositorBackend::Hyprland)
+        if (app.compositor_backend == WaylandState::CompositorBackend::None)
             return sources;
         int fd = app.hypr.event_fd;
         if (fd < 0)
@@ -366,9 +368,10 @@ class CompositorWorkspaceService final : public Service {
     }
 
     void timer_tick(WaylandState &app) override {
-        if (app.compositor_backend != WaylandState::CompositorBackend::Hyprland)
+        if (app.compositor_backend == WaylandState::CompositorBackend::None)
             return;
-        if (!hypr_refresh_clients(app.hypr))
+        bool refreshed = hypr_refresh_clients(app.hypr);
+        if (!refreshed)
             return;
         redraw_all_monitors(app);
         for (auto &m : app.overlays)
@@ -411,11 +414,12 @@ class TextInputProtocolService final : public Service {
     const char *name() const override { return "text-input"; }
 
     bool init(WaylandState &app) override {
-        app.keyboard.on_focus_surface = [&app](wl_surface *surface, bool entered) {
-            app.text_input.on_keyboard_focus_surface(surface, entered);
+        app.keyboard.on_focus_surface = [&app](NativeSurfaceHandle surface, bool entered) {
+            app.text_input.on_keyboard_focus_surface(static_cast<wl_surface *>(surface), entered);
         };
         if (!app.text_input.bind(app.text_input_manager, app.seat))
-            klog("text-input: zwp_text_input_manager_v3 unavailable - IME " "input unavailable");
+            klog("text-input: zwp_text_input_manager_v3 unavailable - IME "
+                 "input unavailable");
         return true;
     }
 };
@@ -430,7 +434,7 @@ class IdleService final : public Service {
 
     void timer_tick(WaylandState &app) override {
         std::string focused =
-            app.compositor_backend == WaylandState::CompositorBackend::Hyprland
+            app.compositor_backend != WaylandState::CompositorBackend::None
                 ? app.hypr.focused_monitor
                 : std::string();
         idle_tick(app.idle, focused);

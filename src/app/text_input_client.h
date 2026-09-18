@@ -5,7 +5,8 @@
 
 class TextInputService;
 
-enum class TextInputPurpose { Normal, Password };
+enum class TextInputPurpose { Normal,
+                              Password };
 
 struct TextInputState {
     int32_t cursor_rect_x = 0;

@@ -60,7 +60,9 @@ void settings_service_apply_field_text(Config &cfg, SettingsFieldId id, const st
             break;
         }
     } catch (const std::exception &) {
-        klog("settings: could not parse '%s' for field %d, keeping previous " "value", text.c_str(), static_cast<int>(id));
+        klog("settings: could not parse '%s' for field %d, keeping previous "
+             "value",
+             text.c_str(), static_cast<int>(id));
     }
 }
 

@@ -56,5 +56,4 @@ void main()
     FragColor = addColors(glow.blendMode, mix(prevColor, FragColor, glow.onTop), mix(FragColor, prevColor, glow.onTop));
     FragColor *= glowLightVal(length(FragColor), glow.brightnessOffset, glow.lightStrength);
     FragColor.w = mix(prevColor.w, FragColor.w, glow.mixAlpha * 0.5);
-    FragColor *= u_fade;
 }

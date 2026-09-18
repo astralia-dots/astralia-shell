@@ -19,8 +19,8 @@ struct Affine2D {
     static Affine2D rotation_deg(float deg);
 
     Affine2D compose(const Affine2D &l) const {
-        return {a * l.a + b * l.c,        a * l.b + b * l.d,
-                c * l.a + d * l.c,        c * l.b + d * l.d,
+        return {a * l.a + b * l.c, a * l.b + b * l.d,
+                c * l.a + d * l.c, c * l.b + d * l.d,
                 a * l.tx + b * l.ty + tx, c * l.tx + d * l.ty + ty};
     }
 };

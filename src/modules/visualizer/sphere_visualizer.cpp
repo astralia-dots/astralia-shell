@@ -188,7 +188,7 @@ void SphereVisualizer::set_audio_uniforms(GLuint prog, GLuint audio_l_tex, GLuin
     glActiveTexture(GL_TEXTURE0);
 }
 
-void SphereVisualizer::render(int width, int height, int tick, float fade, GLuint audio_l_tex, GLuint audio_r_tex, int audio_size, const VisualizerParams &params) {
+void SphereVisualizer::render(int width, int height, int tick, GLuint audio_l_tex, GLuint audio_r_tex, int audio_size, const VisualizerParams &params) {
     if (!ready_ || width <= 0 || height <= 0)
         return;
 
@@ -230,13 +230,12 @@ void SphereVisualizer::render(int width, int height, int tick, float fade, GLuin
     glBindFramebuffer(GL_FRAMEBUFFER, glow_fbo_);
     glUseProgram(glow_prog_);
     set_audio_uniforms(glow_prog_, audio_l_tex, audio_r_tex, audio_size, tick, canvas, params);
-    glUniform1f(glGetUniformLocation(glow_prog_, "u_fade"), fade);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, fbo_tex_[1]);
     glUniform1i(glGetUniformLocation(glow_prog_, "tex"), 0);
     draw_quad();
 
-    present(width, height, canvas, fade);
+    present(width, height, canvas);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -244,13 +243,13 @@ void SphereVisualizer::render(int width, int height, int tick, float fade, GLuin
     glDisable(GL_BLEND);
 }
 
-void SphereVisualizer::present(int width, int height, int canvas, float fade) {
+void SphereVisualizer::present(int width, int height, int canvas) {
     int off_x = (width - canvas) / 2;
     int off_y = (height - canvas) / 2;
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, width, height);
-    glClearColor(palette::window_backdrop.r, palette::window_backdrop.g, palette::window_backdrop.b, palette::window_backdrop.a * fade);
+    glClearColor(palette::window_backdrop.r, palette::window_backdrop.g, palette::window_backdrop.b, palette::window_backdrop.a);
     glClear(GL_COLOR_BUFFER_BIT);
 
     glViewport(off_x, off_y, canvas, canvas);

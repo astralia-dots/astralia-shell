@@ -60,6 +60,36 @@ int active_workspace_id(const HyprlandState &hypr, const std::string &monitor_na
     return it->second.active_id;
 }
 
+void refresh_compositor(WaylandState &app) {
+    if (app.compositor_backend == WaylandState::CompositorBackend::Hyprland)
+        hypr_refresh(app.hypr);
+}
+
+void tile_focus_workspace(WaylandState &app, int id, bool global = false) {
+    if (app.compositor_backend == WaylandState::CompositorBackend::Hyprland)
+        hypr_tile_focus_workspace(app.hypr, id, global);
+}
+
+void tile_move_window(WaylandState &app, int id, bool follow, const std::string &address, bool global = false) {
+    if (app.compositor_backend == WaylandState::CompositorBackend::Hyprland)
+        hypr_tile_move_window(app.hypr, id, follow, address, global);
+}
+
+void tile_swap_workspace(WaylandState &app, int id, bool global = false) {
+    if (app.compositor_backend == WaylandState::CompositorBackend::Hyprland)
+        hypr_tile_swap_workspace(app.hypr, id, global);
+}
+
+void tile_move_workspace_in(WaylandState &app, int id, bool global = false) {
+    if (app.compositor_backend == WaylandState::CompositorBackend::Hyprland)
+        hypr_tile_move_workspace_in(app.hypr, id, global);
+}
+
+void tile_close_workspace(WaylandState &app, HyprCloseScope scope, int id = -1) {
+    if (app.compositor_backend == WaylandState::CompositorBackend::Hyprland)
+        hypr_tile_close_workspace(app.hypr, scope, id);
+}
+
 struct GridLayout {
     Rect root;
     Rect background;
@@ -210,8 +240,8 @@ bool overview_init_egl(OverviewState &state, Renderer &renderer, EGLDisplay disp
     return true;
 }
 
-void overview_retarget(OverviewState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_display *display, Renderer &renderer, EGLDisplay egl_display, EGLConfig egl_config, EGLContext egl_context, wl_output *target_output, const char *target_name) {
-    wl_output *bound = overlay_panel_retarget(state.base, display, state.bound_output, target_output, target_name, [&](wl_output *out) { return overview_create_surface(state, compositor, layer_shell, out); }, [&] { return overview_init_egl(state, renderer, egl_display, egl_config, egl_context); });
+void overview_retarget(OverviewState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, Renderer &renderer, EGLDisplay egl_display, EGLConfig egl_config, EGLContext egl_context, wl_output *target_output, const char *target_name) {
+    wl_output *bound = overlay_panel_retarget(state.base, state.bound_output, target_output, target_name, [&](wl_output *out) { return overview_create_surface(state, compositor, layer_shell, out); }, [&] { return overview_init_egl(state, renderer, egl_display, egl_config, egl_context); });
     if (bound)
         state.bound_output = bound;
 }
@@ -221,14 +251,14 @@ void overview_request_frame(OverviewState &state) {
 }
 
 void overview_toggle(OverviewState &state, WaylandState &app, bool by_widget) {
-    if (app.compositor_backend != WaylandState::CompositorBackend::Hyprland)
+    if (app.compositor_backend == WaylandState::CompositorBackend::None)
         return;
     if (!state.base.layer_surface || state.base.egl_surface == EGL_NO_SURFACE)
         return;
 
     bool opening = !state.base.open;
     if (opening) {
-        hypr_refresh(app.hypr);
+        refresh_compositor(app);
         state.opened_by_widget = by_widget;
         std::string monitor_name;
         for (auto &mon : app.outputs)
@@ -253,11 +283,11 @@ std::vector<IpcHandler> overview_ipc_handlers(OverviewState &overview, WaylandSt
              if (!overview.base.open) {
                  MonitorOutput *target = app_detail::active_target_monitor(state);
                  if (target && (target->output.wl != overview.bound_output || !overview.base.layer_surface))
-                     overview_retarget(overview, state.compositor, state.layer_shell, state.display, state.renderer, state.egl_display, state.egl_config, state.egl_context, target->output.wl, target->output.name.c_str());
+                     overview_retarget(overview, state.compositor, state.layer_shell, state.renderer, state.egl_display, state.egl_config, state.egl_context, target->output.wl, target->output.name.c_str());
              }
              overview_toggle(overview, state);
          },
-         "toggle the overview (Hyprland only)"},
+         "toggle the overview (needs Hyprland workspace tracking)"},
     };
 }
 
@@ -296,7 +326,7 @@ void overview_handle_click(OverviewState &state, WaylandState &app, double px, d
                 continue;
             int ws = workspace_id_at(state.workspace_group, row, col);
             state.selected_workspace = ws;
-            hypr_tile_focus_workspace(app.hypr, ws);
+            tile_focus_workspace(app, ws);
             return;
         }
     }
@@ -377,9 +407,9 @@ void overview_handle_pointer_release(OverviewState &state, WaylandState &app) {
                 continue;
             int target_ws = workspace_id_at(state.workspace_group, row, col);
             if (target_ws != state.drag_from_workspace) {
-                hypr_tile_move_window(app.hypr, target_ws, false, state.drag_address);
+                tile_move_window(app, target_ws, false, state.drag_address);
             } else {
-                hypr_tile_focus_workspace(app.hypr, target_ws);
+                tile_focus_workspace(app, target_ws);
             }
             return;
         }
@@ -395,11 +425,11 @@ void overview_handle_key_event(OverviewState &state, WaylandState &app, const Ke
         state.selected_workspace = ws;
         state.workspace_group = (ws - 1) / shown;
         if (shift)
-            hypr_tile_swap_workspace(app.hypr, ws);
+            tile_swap_workspace(app, ws);
         else if (alt)
-            hypr_tile_move_workspace_in(app.hypr, ws);
+            tile_move_workspace_in(app, ws);
         else
-            hypr_tile_focus_workspace(app.hypr, ws);
+            tile_focus_workspace(app, ws);
     };
 
     switch (event.kind) {
@@ -432,7 +462,7 @@ void overview_handle_key_event(OverviewState &state, WaylandState &app, const Ke
             if (position <= shown)
                 switch_to(state.workspace_group * shown + position, event.shift, event.alt);
         } else if (event.ctrl && (event.text == "d" || event.text == "D")) {
-            hypr_tile_close_workspace(app.hypr, HyprCloseScope::All);
+            tile_close_workspace(app, HyprCloseScope::All);
         } else if (event.text == "D") {
             std::string monitor_name;
             for (auto &mon : app.outputs)
@@ -441,9 +471,9 @@ void overview_handle_key_event(OverviewState &state, WaylandState &app, const Ke
             const HyprMonitor *target =
                 find_monitor_by_name(app.hypr, monitor_name);
             if (target)
-                hypr_tile_close_workspace(app.hypr, HyprCloseScope::Monitor, target->id);
+                tile_close_workspace(app, HyprCloseScope::Monitor, target->id);
         } else if (event.text == "d") {
-            hypr_tile_close_workspace(app.hypr, HyprCloseScope::Workspace, state.selected_workspace);
+            tile_close_workspace(app, HyprCloseScope::Workspace, state.selected_workspace);
         }
         break;
     default:
@@ -464,7 +494,7 @@ void overview_paint(OverviewState &state, WaylandState &app) {
 
     state.scene.rebuild();
 
-    if (state.base.open && app.compositor_backend == WaylandState::CompositorBackend::Hyprland) {
+    if (state.base.open && app.compositor_backend != WaylandState::CompositorBackend::None) {
         std::string monitor_name;
         for (auto &mon : app.outputs)
             if (mon->output.wl == state.bound_output)

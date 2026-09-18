@@ -1,13 +1,14 @@
 #pragma once
 
 #include <vector>
-#include <wayland-client.h>
 
 #include "app/ipc.h"
 
 struct WaylandState;
 struct MonitorOutput;
 struct KeyEvent;
+struct wl_output;
+struct wl_surface;
 
 class PerMonitorModule {
   public:

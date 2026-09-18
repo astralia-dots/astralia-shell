@@ -7,13 +7,13 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <wayland-client.h>
-#include <wayland-egl.h>
 
 #include "app/config.h"
 
 #include "config/wallpaper_config.h"
 
+#include "render/egl_surface.h"
+#include "render/layer_surface.h"
 #include "render/scene.h"
 #include "render/texture.h"
 #include "render/video_texture.h"
@@ -22,13 +22,15 @@
 #include "service/media_service.h"
 #include "service/output_service.h"
 
-#include "wlr-layer-shell-unstable-v1-client-protocol.h"
-
 class Renderer;
 struct Node;
 struct WaylandState;
+struct wl_compositor;
+struct wl_output;
+struct zwlr_layer_shell_v1;
 
-enum class FillMode { Crop, Fit };
+enum class FillMode { Crop,
+                      Fit };
 
 struct WallpaperColumnGl {
     EGLDisplay display = nullptr;
@@ -78,9 +80,9 @@ struct WallpaperColumn {
 };
 
 struct WallpaperState {
-    wl_surface *surface = nullptr;
-    zwlr_layer_surface_v1 *layer_surface = nullptr;
-    wl_egl_window *egl_window = nullptr;
+    NativeSurfaceHandle surface = nullptr;
+    LayerSurfaceHandle layer_surface = nullptr;
+    NativeEglWindowHandle egl_window = nullptr;
     EGLSurface egl_surface = EGL_NO_SURFACE;
     EGLDisplay egl_display = nullptr;
     EGLContext egl_context = nullptr;

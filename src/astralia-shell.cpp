@@ -9,6 +9,9 @@
 #include <unistd.h>
 #include <vector>
 
+#include "app/backend.h"
+#include "app/backend_bootstrap.h"
+#include "app/backend_poll.h"
 #include "app/config.h"
 #include "app/ipc.h"
 #include "app/key_dispatch.h"
@@ -71,25 +74,16 @@ int main(int argc, char **argv) {
     app.config_watch_fd = config_watch_init(config_path());
     DeferredCall::init();
 
-    app.display = wl_display_connect(nullptr);
-    if (!app.display) {
-        klog("failed to connect to Wayland display");
+    BackendConnection conn = backend_connect();
+    if (!conn.display) {
+        klog("failed to connect to a Wayland or X11 display");
         return 1;
     }
+    app.display = static_cast<wl_display *>(conn.display);
+    klog_set_backend(conn.backend == Backend::Wayland ? "wayland" : "x11");
 
-    wl_registry *registry = wl_display_get_registry(app.display);
-    wl_registry_add_listener(registry, &registry_listener, &app);
-    wl_display_roundtrip(app.display);
-
-    wl_display_roundtrip(app.display);
-
-    if (!app.compositor || !app.layer_shell || !app.wm_base) {
-        klog("compositor is missing wl_compositor, zwlr_layer_shell_v1, or "
-             "xdg_wm_base");
-        return 1;
-    }
-    if (app.outputs.empty()) {
-        klog("no wl_output advertised by the compositor");
+    if (!backend_bootstrap(app)) {
+        klog("backend bootstrap failed");
         return 1;
     }
 
@@ -124,7 +118,7 @@ int main(int argc, char **argv) {
                 all_configured = false;
         if (all_configured)
             break;
-        wl_display_dispatch(app.display);
+        backend_wait_dispatch();
     }
 
     for (auto &m : app.overlays) {
@@ -176,7 +170,7 @@ int main(int argc, char **argv) {
                 klog("poll: iter=%ld locked=%d", poll_iter, app.session_locked);
             }
         }
-        wl_display_flush(app.display);
+        backend_poll_flush(app);
 
         std::vector<FnPollSource> fn_sources;
 
@@ -254,7 +248,7 @@ int main(int argc, char **argv) {
         }
 
         std::vector<pollfd> fds;
-        fds.push_back({.fd = wl_display_get_fd(app.display), .events = POLLIN, .revents = 0});
+        fds.push_back({.fd = backend_poll_fd(app), .events = POLLIN, .revents = 0});
         struct SourceRange {
             PollSource *src;
             std::size_t start;
@@ -285,16 +279,17 @@ int main(int argc, char **argv) {
         }
 
         if (fds[0].revents & POLLIN) {
-            wl_display_dispatch(app.display);
+            backend_poll_dispatch(app);
 
             if (app.pointer.dirty) {
                 app.pointer.dirty = false;
                 for (auto &mon : app.outputs)
                     request_all_frames(*mon);
+                auto *pointer_focused_surface = static_cast<wl_surface *>(app.pointer.focused_surface);
                 for (auto &m : app.overlays)
-                    m->handle_pointer_move(app, app.pointer.focused_surface, app.pointer.x, app.pointer.y);
-                if (app.pointer.focused_surface) {
-                    if (MonitorOutput *m = find_monitor_for_surface(app, app.pointer.focused_surface))
+                    m->handle_pointer_move(app, pointer_focused_surface, app.pointer.x, app.pointer.y);
+                if (pointer_focused_surface) {
+                    if (MonitorOutput *m = find_monitor_for_surface(app, pointer_focused_surface))
                         app.last_pointer_monitor = m;
                 }
                 for (auto &mon : app.outputs)
@@ -302,14 +297,14 @@ int main(int argc, char **argv) {
                         pm->handle_pointer_move(app, *mon, app.pointer.x, app.pointer.y);
 
                 Module *hovered =
-                    find_overlay_for_surface(app, app.pointer.focused_surface);
+                    find_overlay_for_surface(app, pointer_focused_surface);
                 bool hand = hovered && hovered->wants_pointing_hand_cursor();
-                if (!hand && app.pointer.focused_surface)
+                if (!hand && pointer_focused_surface)
                     for (auto &mon : app.outputs)
                         for (auto &pm : mon->modules)
-                            if (pm->owns_surface(app.pointer.focused_surface) && pm->wants_pointing_hand_cursor())
+                            if (pm->owns_surface(pointer_focused_surface) && pm->wants_pointing_hand_cursor())
                                 hand = true;
-                pointer_set_cursor_shape(app.pointer, hand ? WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_POINTER : WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT);
+                pointer_set_cursor_shape(app.pointer, hand ? PointerShape::Pointer : PointerShape::Default);
             }
         }
         for (SourceRange &r : ranges)
@@ -325,7 +320,8 @@ int main(int argc, char **argv) {
             }
 
         for (const PointerClick &click : pointer_drain_clicks(app.pointer)) {
-            MonitorOutput *mon = find_monitor_for_surface(app, click.surface);
+            auto *click_surface = static_cast<wl_surface *>(click.surface);
+            MonitorOutput *mon = find_monitor_for_surface(app, click_surface);
             if (!click.pressed) {
                 for (auto &m : app.outputs)
                     for (auto &pm : m->modules)
@@ -335,7 +331,7 @@ int main(int argc, char **argv) {
                 continue;
             }
             if (click.button == BTN_LEFT) {
-                if (Module *m = find_overlay_for_surface(app, click.surface)) {
+                if (Module *m = find_overlay_for_surface(app, click_surface)) {
                     m->handle_click(app, click.x, click.y);
                     m->request_frame();
                     rest_egl_current();
@@ -345,24 +341,25 @@ int main(int argc, char **argv) {
             if (!mon)
                 continue;
             for (auto &pm : mon->modules) {
-                if (pm->owns_surface(click.surface)) {
-                    pm->handle_click(app, *mon, click.surface, click.button, click.x, click.y, click.serial);
+                if (pm->owns_surface(click_surface)) {
+                    pm->handle_click(app, *mon, click_surface, click.button, click.x, click.y, click.serial);
                     break;
                 }
             }
         }
 
         for (const PointerScroll &scroll : pointer_drain_scrolls(app.pointer)) {
-            MonitorOutput *mon = find_monitor_for_surface(app, scroll.surface);
-            if (Module *m = find_overlay_for_surface(app, scroll.surface)) {
+            auto *scroll_surface = static_cast<wl_surface *>(scroll.surface);
+            MonitorOutput *mon = find_monitor_for_surface(app, scroll_surface);
+            if (Module *m = find_overlay_for_surface(app, scroll_surface)) {
                 m->handle_scroll(app, scroll.dy);
                 continue;
             }
             if (!mon)
                 continue;
             for (auto &pm : mon->modules) {
-                if (pm->owns_surface(scroll.surface)) {
-                    pm->handle_scroll(app, *mon, scroll.surface, scroll.dy);
+                if (pm->owns_surface(scroll_surface)) {
+                    pm->handle_scroll(app, *mon, scroll_surface, scroll.dy);
                     break;
                 }
             }

@@ -10,7 +10,7 @@
 namespace {
 
 constexpr GLfloat kQuadVerts[18] = {-1, -1, 0, 1, -1, 0, -1, 1, 0,
-                                    1,  1,  0, 1, -1, 0, -1, 1, 0};
+                                    1, 1, 0, 1, -1, 0, -1, 1, 0};
 
 } // namespace
 
@@ -49,7 +49,7 @@ void BarVisualizer::draw_quad() {
     glDisableVertexAttribArray(0);
 }
 
-void BarVisualizer::render(int width, int height, int tick, float fade, GLuint audio_l_tex, GLuint audio_r_tex, int audio_size, const VisualizerParams &params) {
+void BarVisualizer::render(int width, int height, int tick, GLuint audio_l_tex, GLuint audio_r_tex, int audio_size, const VisualizerParams &params) {
     (void)tick;
     (void)audio_size;
     (void)params;
@@ -58,7 +58,7 @@ void BarVisualizer::render(int width, int height, int tick, float fade, GLuint a
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, width, height);
-    glClearColor(palette::window_backdrop.r, palette::window_backdrop.g, palette::window_backdrop.b, palette::window_backdrop.a * fade);
+    glClearColor(palette::window_backdrop.r, palette::window_backdrop.g, palette::window_backdrop.b, palette::window_backdrop.a);
     glClear(GL_COLOR_BUFFER_BIT);
 
     glEnable(GL_BLEND);
@@ -70,7 +70,6 @@ void BarVisualizer::render(int width, int height, int tick, float fade, GLuint a
     bar_count = bar_count < 1 ? 1 : bar_count;
 
     glUniform2f(glGetUniformLocation(prog_, "u_resolution"), static_cast<float>(width), static_cast<float>(height));
-    glUniform1f(glGetUniformLocation(prog_, "u_fade"), fade);
     glUniform3f(glGetUniformLocation(prog_, "u_accent"), palette::accent.r, palette::accent.g, palette::accent.b);
     glUniform1i(glGetUniformLocation(prog_, "u_barCount"), bar_count);
     glUniform1f(glGetUniformLocation(prog_, "u_barWidth"), kVisualizerBarWidth);

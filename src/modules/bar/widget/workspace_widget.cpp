@@ -58,7 +58,8 @@ float draw_workspace_row(Node *root, WorkspaceWidgetState &wstate, AnimationMana
     for (const Workspace &ws : ws_list) {
         bool is_active = ws.id == active_id;
         float pw = workspace_pill_width(wstate, animations, ws.id, is_active);
-        const float *color = is_active     ? rgba(palette::accent_alt) : ws.occupied ? rgba(palette::accent) : rgba(palette::text_dim);
+        const float *color = is_active ? rgba(palette::accent_alt) : ws.occupied ? rgba(palette::accent)
+                                                                                 : rgba(palette::text_dim);
         node_add_rrect(root, wx, wy, pw, kWorkspacePillHeight, kWorkspacePillHeight / 2.0f, 0.0f, color, color);
         wstate.pill_hits.push_back({ws.id, Rect{wx - kWorkspacePillSpacing / 2.0f, 0.0f, pw + kWorkspacePillSpacing, height}});
         wx += pw + kWorkspacePillSpacing;
@@ -69,7 +70,7 @@ float draw_workspace_row(Node *root, WorkspaceWidgetState &wstate, AnimationMana
         float icon_y = (height - static_cast<float>(overview_icon.height)) / 2.0f;
         node_add_texture(root, icon_x, icon_y, overview_icon, rgba(palette::text));
         wstate.overview_hit = {icon_x - kWorkspaceOverviewGap / 2.0f, 0.0f,
-                            icon_w + kWorkspaceOverviewGap, height};
+                               icon_w + kWorkspaceOverviewGap, height};
     }
 
     return x + row_w + kCapsuleGap;

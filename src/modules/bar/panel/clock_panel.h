@@ -3,7 +3,6 @@
 #include <EGL/egl.h>
 #include <array>
 #include <vector>
-#include <wayland-client.h>
 
 #include "render/overlay_panel.h"
 #include "render/panel_chrome.h"
@@ -14,7 +13,9 @@
 
 #include "service/input_service.h"
 
-#include "wlr-layer-shell-unstable-v1-client-protocol.h"
+struct wl_compositor;
+struct wl_output;
+struct zwlr_layer_shell_v1;
 
 constexpr float kClockPanelWidth = 280.0f;
 constexpr float kClockWeekdayRowHeight = 22.0f;

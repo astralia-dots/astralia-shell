@@ -1,13 +1,10 @@
 #pragma once
 
-#include <wayland-client.h>
-
-#include "wlr-layer-shell-unstable-v1-client-protocol.h"
+#include <cstdint>
 
 struct WaylandState;
 
-extern const wl_registry_listener registry_listener;
-extern const zwlr_layer_surface_v1_listener bar_layer_surface_listener;
+void bar_layer_surface_configure(void *data, int32_t width, int32_t height);
 
 bool bootstrap_egl(WaylandState &state);
 bool renderer_bootstrap_init(WaylandState &state);

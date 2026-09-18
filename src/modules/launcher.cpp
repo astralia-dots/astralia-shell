@@ -2,7 +2,8 @@
 #include <algorithm>
 #include <cstdlib>
 
-#include "core/deferred_call.h"
+#include "app/backend.h"
+
 #include "core/log.h"
 #include "core/path_home.h"
 
@@ -26,34 +27,20 @@
 
 #include "service/icon_service.h"
 
-namespace {
-
-void launcher_layer_surface_configure(void *data, zwlr_layer_surface_v1 *layer_surface, uint32_t serial, uint32_t width, uint32_t height) {
+void launcher_layer_surface_configure(void *data, int32_t width, int32_t height) {
     auto *state = static_cast<LauncherState *>(data);
-    zwlr_layer_surface_v1_ack_configure(layer_surface, serial);
-    state->width = static_cast<int32_t>(width);
-    state->height = static_cast<int32_t>(height);
+    state->width = width;
+    state->height = height;
     int32_t scale = state->output_scale.scale;
     if (state->egl_window)
-        wl_egl_window_resize(state->egl_window, state->width * scale, state->height * scale, 0, 0);
+        egl_native_window_resize(state->egl_window, state->width * scale, state->height * scale);
     state->configured = true;
 }
 
-void launcher_layer_surface_closed(void *, zwlr_layer_surface_v1 *) {}
-
-constexpr zwlr_layer_surface_v1_listener launcher_layer_surface_listener = {
-    .configure = launcher_layer_surface_configure,
-    .closed = launcher_layer_surface_closed,
-};
+namespace {
 
 void launcher_update_input_region(LauncherState &state) {
-    if (state.open) {
-        wl_surface_set_input_region(state.surface, nullptr);
-        return;
-    }
-    wl_region *empty_region = wl_compositor_create_region(state.compositor);
-    wl_surface_set_input_region(state.surface, empty_region);
-    wl_region_destroy(empty_region);
+    native_surface_set_input_region(state.surface, state.compositor, !state.open);
 }
 
 std::vector<FileEntry> launcher_dir_lister(const std::string &path, bool want_dirs) {
@@ -152,23 +139,23 @@ void launcher_launch_selected(LauncherState &state) {
 bool launcher_create_surface(LauncherState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
     state.compositor = compositor;
     LayerSurfaceConfig cfg{
-        .layer = ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY,
+        .layer = kLayerShellOverlay,
         .name_space = "astralia-shell-launcher",
-        .anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT,
+        .anchor = kLayerAnchorTop | kLayerAnchorBottom | kLayerAnchorLeft | kLayerAnchorRight,
     };
     state.layer_surface =
-        layer_surface_create(state.surface, compositor, layer_shell, cfg, &launcher_layer_surface_listener, &state, output);
+        layer_surface_create(state.surface, compositor, layer_shell, cfg, launcher_layer_surface_configure, &state, output);
     if (!state.layer_surface)
         return false;
     state.output_scale.on_change = [&state](int32_t scale) {
         if (state.egl_window)
-            wl_egl_window_resize(state.egl_window, state.width * scale, state.height * scale, 0, 0);
+            egl_native_window_resize(state.egl_window, state.width * scale, state.height * scale);
         if (state.frame_clock.surface)
             request_frame(state.frame_clock);
     };
-    output_scale_watch(state.output_scale, state.surface);
+    output_scale_watch(state.output_scale, static_cast<wl_surface *>(state.surface));
     launcher_update_input_region(state);
-    wl_surface_commit(state.surface);
+    native_surface_commit(state.surface);
 
     state.visits = visit_store_load();
     return true;
@@ -179,8 +166,8 @@ bool launcher_init_egl(LauncherState &state, Renderer &renderer, EGLDisplay disp
     state.egl_display = display;
     state.egl_context = context;
     int32_t scale = state.output_scale.scale;
-    state.egl_window = wl_egl_window_create(state.surface, state.width * scale, state.height * scale);
-    state.egl_surface = eglCreateWindowSurface(display, config, reinterpret_cast<EGLNativeWindowType>(state.egl_window), nullptr);
+    state.egl_window = egl_native_window_create(state.surface, state.width * scale, state.height * scale);
+    state.egl_surface = egl_surface_create(state.surface, state.egl_window, display, config);
     if (state.egl_surface == EGL_NO_SURFACE)
         return false;
     if (!gl_make_current(display, state.egl_surface, context))
@@ -199,33 +186,11 @@ void launcher_request_frame(LauncherState &state) {
 }
 
 void launcher_destroy_surface(LauncherState &state) {
-    if (state.frame_clock.callback) {
-        wl_callback_destroy(state.frame_clock.callback);
-        state.frame_clock.callback = nullptr;
-    }
-    state.frame_clock.surface = nullptr;
-    state.frame_clock.redraw_requested = false;
-    state.frame_clock.mapped = false;
-    if (state.egl_surface != EGL_NO_SURFACE) {
-        eglDestroySurface(state.egl_display, state.egl_surface);
-        state.egl_surface = EGL_NO_SURFACE;
-    }
-    if (state.egl_window) {
-        wl_egl_window_destroy(state.egl_window);
-        state.egl_window = nullptr;
-    }
-    if (state.layer_surface) {
-        zwlr_layer_surface_v1_destroy(state.layer_surface);
-        state.layer_surface = nullptr;
-    }
-    if (state.surface) {
-        wl_surface_destroy(state.surface);
-        state.surface = nullptr;
-    }
+    destroy_layer_surface(state.egl_display, state.surface, state.layer_surface, state.egl_window, state.egl_surface, &state.frame_clock);
     state.configured = false;
 }
 
-void launcher_retarget(LauncherState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_display *display, Renderer &renderer, EGLDisplay egl_display, EGLConfig egl_config, EGLContext egl_context, wl_output *target_output, const char *target_name) {
+void launcher_retarget(LauncherState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, Renderer &renderer, EGLDisplay egl_display, EGLConfig egl_config, EGLContext egl_context, wl_output *target_output, const char *target_name) {
     wl_output *previous_output = state.bound_output;
     klog("panel: launcher retargeting from output=%p to '%s'", static_cast<void *>(previous_output), target_name);
 
@@ -237,7 +202,7 @@ void launcher_retarget(LauncherState &state, wl_compositor *compositor, zwlr_lay
         if (!launcher_create_surface(state, compositor, layer_shell, out))
             return false;
         while (!state.configured)
-            wl_display_dispatch(display);
+            backend_wait_dispatch();
         return launcher_init_egl(state, renderer, egl_display, egl_config, egl_context);
     };
 
@@ -365,13 +330,9 @@ void launcher_toggle(LauncherState &state, bool global) {
                 state.highlight_offset_target = -1.0f;
                 state.scroll_offset_target = -1.0f;
                 submenu_close(state.submenu);
-                zwlr_layer_surface_v1_set_keyboard_interactivity(state.layer_surface, ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
+                layer_surface_set_keyboard_interactivity(state.layer_surface, false);
                 launcher_update_input_region(state);
-                wl_surface_commit(state.surface);
-                DeferredCall::call_later([&state] {
-                    if (!state.open)
-                        launcher_destroy_surface(state);
-                }); }, kOverlayFadeOwner);
+                native_surface_commit(state.surface); }, kOverlayFadeOwner);
         return;
     }
 
@@ -381,9 +342,9 @@ void launcher_toggle(LauncherState &state, bool global) {
     state.apps = scan_desktop_entries();
     state.open = true;
     state.search.cursor_idle_visible = true;
-    zwlr_layer_surface_v1_set_keyboard_interactivity(state.layer_surface, ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE);
+    layer_surface_set_keyboard_interactivity(state.layer_surface, true);
     launcher_update_input_region(state);
-    wl_surface_commit(state.surface);
+    native_surface_commit(state.surface);
     state.animations.animate(state.opacity, 1.0f, kOverlayFadeMs, Easing::EaseOutCubic, [&state](float v) { state.opacity = v; }, {}, kOverlayFadeOwner);
     launcher_request_frame(state);
     if (state.sync_text_input_focus)

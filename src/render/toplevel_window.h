@@ -2,22 +2,19 @@
 
 #include <EGL/egl.h>
 #include <functional>
-#include <wayland-client.h>
-#include <wayland-egl.h>
 
 #include "render/animation.h"
+#include "render/egl_surface.h"
 
 #include "service/frame_service.h"
 #include "service/output_service.h"
 
-#include "xdg-shell-client-protocol.h"
-
 struct ToplevelWindowBase {
-    wl_compositor *compositor = nullptr;
-    wl_surface *surface = nullptr;
-    xdg_surface *shell_surface = nullptr;
-    xdg_toplevel *toplevel = nullptr;
-    wl_egl_window *egl_window = nullptr;
+    void *compositor = nullptr;
+    NativeSurfaceHandle surface = nullptr;
+    void *shell_surface = nullptr;
+    void *toplevel = nullptr;
+    NativeEglWindowHandle egl_window = nullptr;
     EGLSurface egl_surface = EGL_NO_SURFACE;
     EGLDisplay egl_display = nullptr;
     EGLContext egl_context = nullptr;
@@ -33,7 +30,7 @@ struct ToplevelWindowBase {
     std::function<void()> on_close_request;
 };
 
-bool toplevel_window_create_surface(ToplevelWindowBase &base, wl_compositor *compositor, xdg_wm_base *wm_base, const char *title, const char *app_id, int32_t default_width, int32_t default_height);
+bool toplevel_window_create_surface(ToplevelWindowBase &base, void *compositor, void *wm_base, const char *title, const char *app_id, int32_t default_width, int32_t default_height);
 
 bool toplevel_window_init_egl(ToplevelWindowBase &base, EGLDisplay display, EGLConfig config, EGLContext context);
 

@@ -9,6 +9,8 @@
 #include <thread>
 #include <vector>
 
+#include "app/backend.h"
+#include "app/backend_poll.h"
 #include "app/monitor_output.h"
 #include "app/user_info.h"
 #include "app/wayland_state.h"
@@ -19,6 +21,10 @@
 #include "modules/lock.h"
 #include "modules/lock/layout.h"
 #include "modules/lock/pam_authenticator.h"
+
+#include "wayland/session_lock.h"
+
+#include "x11/session_lock.h"
 
 #include "render/arc_gauge.h"
 #include "render/color_ops.h"
@@ -37,7 +43,6 @@ constexpr Color kLockResGaugeGpuColor = color(kLockResGaugeGpuColorHex);
 
 namespace {
 
-void lock_paint(LockState &st, LockOutputSurface &los);
 void start_init_anim(LockState &st, LockOutputSurface &los);
 void start_unlock_anim(LockState &st, LockOutputSurface &los);
 void finish_unlock(LockState &st);
@@ -82,7 +87,14 @@ const Texture *tc_icon(LockState &st, const char *glyph, int px, int32_t scale) 
 }
 
 std::string wm_name(const WaylandState *app) {
-    return app && app->compositor_backend == WaylandState::CompositorBackend::Hyprland ? "Hyprland" : "Wayland";
+    if (!app)
+        return "Wayland";
+    switch (app->compositor_backend) {
+    case WaylandState::CompositorBackend::Hyprland:
+        return "Hyprland";
+    default:
+        return "Wayland";
+    }
 }
 
 void draw_center_column(LockState &st, LockOutputSurface &los, Node *content, const LockRect &col, int32_t scale, float ca);
@@ -102,14 +114,6 @@ LockOutputSurface *surface_for(LockState &st, wl_surface *s) {
         if (up->surface == s)
             return up.get();
     return nullptr;
-}
-
-void request_all(LockState &st) {
-    for (auto &up : st.surfaces)
-        if (up->frame_clock.surface)
-            request_frame(up->frame_clock);
-    if (st.app)
-        app_detail::rest_egl_current(*st.app);
 }
 
 void start_init_anim(LockState &st, LockOutputSurface &los) {
@@ -138,8 +142,7 @@ void start_init_anim(LockState &st, LockOutputSurface &los) {
             a2.animate(los.panel_h, target_h, kLockAnimExpandMs, Easing::EaseOutCubic, [&los](float v) { los.panel_h = v; }, {}, kLockOwnerPanelHeight);
             a2.animate(1.0f, 0.0f, kLockAnimIconFadeOutMs, Easing::EaseOutCubic, [&los](float v) { los.icon_alpha = v; }, {}, kLockOwnerIconAlpha);
             a2.animate(0.0f, 1.0f, kLockAnimContentFadeInMs, Easing::EaseOutCubic, [&los](float v) { los.content_alpha = v; }, {}, kLockOwnerContentAlpha);
-            a2.animate(kLockScaleHidden, kLockScaleFull, kLockAnimContentScaleInMs, Easing::EaseOutBack, [&los](float v) { los.content_scale = v; }, {}, kLockOwnerContentScale);
-        }, kLockOwnerPanelRotation);
+            a2.animate(kLockScaleHidden, kLockScaleFull, kLockAnimContentScaleInMs, Easing::EaseOutBack, [&los](float v) { los.content_scale = v; }, {}, kLockOwnerContentScale); }, kLockOwnerPanelRotation);
 }
 
 void start_unlock_anim(LockState &st, LockOutputSurface &los) {
@@ -158,8 +161,7 @@ void start_unlock_anim(LockState &st, LockOutputSurface &los) {
             a2.animate(0.0f, -360.0f, kLockAnimSpinMs, Easing::EaseInOutCubic, [&los](float v) { los.panel_rotation = v; }, [&st, is_primary] {
                     if (is_primary)
                         DeferredCall::call_later([&st] { finish_unlock(st); });
-                }, kLockOwnerPanelRotation);
-        }, kLockOwnerSequence);
+                }, kLockOwnerPanelRotation); }, kLockOwnerSequence);
 }
 
 std::deque<Color> &color_pool() {
@@ -353,12 +355,12 @@ void draw_fetch(LockState &st, Node *content, const LockRect &col, int32_t scale
         line_h = std::max(line_h, px_h(t));
     }
     static const Color *term[12] = {
-        &palette::accent,     &palette::accent_container,
+        &palette::accent, &palette::accent_container,
         &palette::accent_alt, &palette::accent_alt_container,
-        &palette::electro,    &palette::lavender,
-        &palette::critical,   &palette::text,
+        &palette::electro, &palette::lavender,
+        &palette::critical, &palette::text,
         &palette::text_muted, &palette::surface_alt,
-        &palette::field_bg,   &palette::base};
+        &palette::field_bg, &palette::base};
     int per_row = lock_fetch_colour_count(inner_w, 6);
     int rows = per_row > 0 ? 2 : 0;
     int total_boxes = std::min(12, per_row * rows);
@@ -495,7 +497,8 @@ void draw_resources(LockState &st, Node *content, const LockRect &col, int32_t s
             return std::string(base);
         int c = static_cast<int>(std::lround(celsius));
         label_color = celsius >= kLockResTempWarnC ? &palette::critical : &palette::text_dim;
-        return std::string(base) + " - " + std::to_string(c) + "\xC2\xB0" "C";
+        return std::string(base) + " - " + std::to_string(c) + "\xC2\xB0"
+                                                               "C";
     };
     std::vector<Tile> tiles;
     const Color *cpu_label_color = &palette::text_dim;
@@ -724,6 +727,8 @@ void draw_center_column(LockState &st, LockOutputSurface &los, Node *content, co
     draw_pill(st, los, content, cx - pill_w * 0.5f, y, pill_w, scale, ca);
 }
 
+} // namespace
+
 void lock_paint(LockState &st, LockOutputSurface &los) {
     if (!los.configured || los.egl_surface == EGL_NO_SURFACE || !st.app)
         return;
@@ -781,78 +786,20 @@ void lock_paint(LockState &st, LockOutputSurface &los) {
         return std::chrono::duration<float, std::milli>(b - a).count();
     };
     if (ms(t_begin, t_swap) > 50.0f)
-        klog("lock: SLOW frame #%d '%s' make=%.1f wallpaper=%.1f panel=%.1f " "draw=%.1f swap=%.1f", f, los.output_name.c_str(), ms(t_begin, t_make), ms(t_make, t_wallpaper), ms(t_wallpaper, t_panel), ms(t_panel, t_draw), ms(t_draw, t_swap));
+        klog("lock: SLOW frame #%d '%s' make=%.1f wallpaper=%.1f panel=%.1f "
+             "draw=%.1f swap=%.1f",
+             f, los.output_name.c_str(), ms(t_begin, t_make), ms(t_make, t_wallpaper), ms(t_wallpaper, t_panel), ms(t_panel, t_draw), ms(t_draw, t_swap));
     else if (f % 30 == 0)
-        klog("lock: paint #%d '%s' locked=%d unlocking=%d gated=%d " "scale=%.2f content=%.2f", f, los.output_name.c_str(), st.locked, st.unlocking, los.panel_gated, los.panel_scale, los.content_alpha);
+        klog("lock: paint #%d '%s' locked=%d unlocking=%d gated=%d "
+             "scale=%.2f content=%.2f",
+             f, los.output_name.c_str(), st.locked, st.unlocking, los.panel_gated, los.panel_scale, los.content_alpha);
 
     bool avatar_running = st.locked && !st.unlocking && !los.panel_gated && animated_image_animating(st.avatar);
     if (los.animations.hasActive() || avatar_running)
         request_frame(los.frame_clock);
 }
 
-void surface_configure(void *data, ext_session_lock_surface_v1 *s, uint32_t serial, uint32_t w, uint32_t h) {
-    auto *los = static_cast<LockOutputSurface *>(data);
-    ext_session_lock_surface_v1_ack_configure(s, serial);
-
-    LockState *st = los->owner;
-    int32_t scale = los->output_scale.scale;
-    bool first = los->egl_surface == EGL_NO_SURFACE;
-    los->width = static_cast<int32_t>(w);
-    los->height = static_cast<int32_t>(h);
-
-    if (first) {
-        los->egl_window = wl_egl_window_create(los->surface, los->width * scale, los->height * scale);
-        los->egl_surface = eglCreateWindowSurface(st->app->egl_display, st->app->egl_config, reinterpret_cast<EGLNativeWindowType>(los->egl_window), nullptr);
-        if (los->egl_surface == EGL_NO_SURFACE) {
-            klog("lock: eglCreateWindowSurface failed on '%s'", los->output_name.c_str());
-            return;
-        }
-        los->frame_clock.surface = los->surface;
-        los->frame_clock.draw = [st, los] { lock_paint(*st, *los); };
-    } else if (los->egl_window) {
-        wl_egl_window_resize(los->egl_window, los->width * scale, los->height * scale, 0, 0);
-    }
-    los->configured = true;
-    request_frame(los->frame_clock);
-    app_detail::rest_egl_current(*st->app);
-}
-
-constexpr ext_session_lock_surface_v1_listener kSurfaceListener = {
-    .configure = surface_configure,
-};
-
-void handle_locked(void *data, ext_session_lock_v1 *) {
-    auto *st = static_cast<LockState *>(data);
-    if (!st->active)
-        return;
-    st->locked = true;
-    st->locked_at = std::chrono::steady_clock::now();
-    if (st->app)
-        st->app->session_locked = true;
-    klog("lock: session locked, %zu surface(s)", st->surfaces.size());
-    for (auto &up : st->surfaces)
-        klog("lock:   '%s' configured=%d egl=%d %dx%d", up->output_name.c_str(), up->configured, up->egl_surface != EGL_NO_SURFACE, up->width, up->height);
-    request_all(*st);
-}
-
-void handle_finished(void *data, ext_session_lock_v1 *) {
-    auto *st = static_cast<LockState *>(data);
-    if (!st->lock)
-        return;
-    klog("lock: compositor sent finished");
-    if (st->locked)
-        ext_session_lock_v1_unlock_and_destroy(st->lock);
-    else
-        ext_session_lock_v1_destroy(st->lock);
-    st->lock = nullptr;
-    st->locked = false;
-    lock_teardown(*st);
-}
-
-constexpr ext_session_lock_v1_listener kLockListener = {
-    .locked = handle_locked,
-    .finished = handle_finished,
-};
+namespace {
 
 void deliver_auth(LockState &st, uint64_t gen, pam_auth::Result res) {
     if (gen != st.auth_generation || !st.locked)
@@ -869,7 +816,7 @@ void deliver_auth(LockState &st, uint64_t gen, pam_auth::Result res) {
     st.fail_clear_at =
         std::chrono::steady_clock::now() +
         std::chrono::milliseconds(static_cast<int>(kLockTimerFailMs));
-    request_all(st);
+    lock_request_all_frames(st);
 }
 
 void try_authenticate(LockState &st) {
@@ -884,7 +831,7 @@ void try_authenticate(LockState &st) {
         pam_auth::secure_clear(pw);
         DeferredCall::call_later([&st, gen, res] { deliver_auth(st, gen, res); });
     }).detach();
-    request_all(st);
+    lock_request_all_frames(st);
 }
 
 void create_output_surface(LockState &st, wl_output *output, const std::string &name) {
@@ -892,76 +839,84 @@ void create_output_surface(LockState &st, wl_output *output, const std::string &
     los->owner = &st;
     los->output = output;
     los->output_name = name;
-    los->surface = wl_compositor_create_surface(st.app->compositor);
-    los->lock_surface =
-        ext_session_lock_v1_get_lock_surface(st.lock, los->surface, output);
-    if (!los->lock_surface) {
-        klog("lock: get_lock_surface failed on '%s'", name.c_str());
-        wl_surface_destroy(los->surface);
+    bool ok = false;
+#ifdef ASTRALIA_HAVE_WAYLAND
+    if (active_backend() == Backend::Wayland)
+        ok = backend_wayland::session_lock_create_surface(st, *los, output);
+#endif
+#ifdef ASTRALIA_HAVE_X11
+    if (active_backend() == Backend::X11)
+        ok = backend_x11::session_lock_create_surface(st, *los, output);
+#endif
+    if (!ok)
         return;
-    }
-    ext_session_lock_surface_v1_add_listener(los->lock_surface, &kSurfaceListener, los.get());
-    los->output_scale.on_change = [ptr = los.get()](int32_t s) {
-        if (ptr->egl_window)
-            wl_egl_window_resize(ptr->egl_window, ptr->width * s, ptr->height * s, 0, 0);
-        if (ptr->frame_clock.surface)
-            request_frame(ptr->frame_clock);
-    };
-    output_scale_watch(los->output_scale, los->surface);
     los->panel_gated = st.panel_gated_for && !st.panel_gated_for(name);
     st.surfaces.push_back(std::move(los));
 }
 
 void destroy_output_surface(LockState &st, LockOutputSurface &los) {
-    if (los.frame_clock.callback) {
-        wl_callback_destroy(los.frame_clock.callback);
-        los.frame_clock.callback = nullptr;
-    }
+    frame_clock_drop_callback(los.frame_clock);
     if (los.egl_surface != EGL_NO_SURFACE) {
         eglMakeCurrent(st.app->egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, st.app->egl_context);
         eglDestroySurface(st.app->egl_display, los.egl_surface);
         los.egl_surface = EGL_NO_SURFACE;
     }
     if (los.egl_window) {
-        wl_egl_window_destroy(los.egl_window);
+        egl_native_window_destroy(los.egl_window);
         los.egl_window = nullptr;
     }
-    if (los.lock_surface) {
-        ext_session_lock_surface_v1_destroy(los.lock_surface);
-        los.lock_surface = nullptr;
+#ifdef ASTRALIA_HAVE_WAYLAND
+    if (active_backend() == Backend::Wayland) {
+        backend_wayland::session_lock_destroy_surface(los);
+        return;
     }
-    if (los.surface) {
-        wl_surface_destroy(los.surface);
-        los.surface = nullptr;
-    }
+#endif
+#ifdef ASTRALIA_HAVE_X11
+    backend_x11::session_lock_destroy_surface(los);
+#endif
 }
 
 void finish_unlock(LockState &st) {
     if (!st.lock)
         return;
-    ext_session_lock_v1_unlock_and_destroy(st.lock);
+#ifdef ASTRALIA_HAVE_WAYLAND
+    if (active_backend() == Backend::Wayland)
+        backend_wayland::session_lock_release(st);
+#endif
+#ifdef ASTRALIA_HAVE_X11
+    if (active_backend() == Backend::X11)
+        backend_x11::session_lock_release(st);
+#endif
     st.lock = nullptr;
-    wl_display_roundtrip(st.app->display);
     lock_teardown(st);
     klog("lock: session unlocked");
 }
 
 } // namespace
 
+void lock_request_all_frames(LockState &st) {
+    for (auto &up : st.surfaces)
+        if (up->frame_clock.surface)
+            request_frame(up->frame_clock);
+    if (st.app)
+        app_detail::rest_egl_current(*st.app);
+}
+
 bool lock_request(LockState &st, WaylandState &app) {
     if (st.active)
         return true;
-    if (!app.session_lock_manager) {
-        klog("lock: compositor has no ext_session_lock_manager_v1");
-        return false;
-    }
     st.app = &app;
-    st.lock = ext_session_lock_manager_v1_lock(app.session_lock_manager);
-    if (!st.lock) {
-        klog("lock: failed to create session lock");
+    st.lock = nullptr;
+#ifdef ASTRALIA_HAVE_WAYLAND
+    if (active_backend() == Backend::Wayland)
+        st.lock = backend_wayland::session_lock_acquire(app, st);
+#endif
+#ifdef ASTRALIA_HAVE_X11
+    if (active_backend() == Backend::X11)
+        st.lock = backend_x11::session_lock_acquire(app, st);
+#endif
+    if (!st.lock)
         return false;
-    }
-    ext_session_lock_v1_add_listener(st.lock, &kLockListener, &st);
 
     st.active = true;
     st.locked = false;
@@ -980,12 +935,12 @@ bool lock_request(LockState &st, WaylandState &app) {
     avatar_style.border_width = kLockProfileBorderWidth;
     avatar_style.decode = {static_cast<int>(kLockAvatarFps), static_cast<int>(kLockProfileSize) * 2};
     animated_image_set_source(st.avatar, user_info::profile_media_path(), avatar_style);
-    animated_image_show(st.avatar, [&st] { request_all(st); });
+    animated_image_show(st.avatar, [&st] { lock_request_all_frames(st); });
 
     for (auto &mon : app.outputs)
         create_output_surface(st, mon->output.wl, mon->output.name);
 
-    wl_display_flush(app.display);
+    backend_poll_flush(app);
     klog("lock: requested (%zu surface(s))", st.surfaces.size());
     return true;
 }
@@ -1007,7 +962,7 @@ void lock_teardown(LockState &st) {
         app_detail::rest_egl_current(*st.app);
         for (auto &mon : st.app->outputs)
             request_all_frames(*mon);
-        wl_display_flush(st.app->display);
+        backend_poll_flush(*st.app);
     }
 }
 
@@ -1045,7 +1000,7 @@ void lock_handle_key(LockState &st, const KeyEvent &ev) {
             text_field_type_anim_sync(st.pw_anim, focus->animations, kLockOwnerDotBase, st.password.text);
         else
             st.pw_anim.chars.resize(text_field_utf8_len(st.password.text));
-        request_all(st);
+        lock_request_all_frames(st);
     }
 }
 
@@ -1069,13 +1024,13 @@ void lock_handle_click(LockState &st, wl_surface *surf, double x, double y) {
     }
     if (hit(los->media_prev)) {
         mpris_previous(st.app->mpris);
-        request_all(st);
+        lock_request_all_frames(st);
     } else if (hit(los->media_play)) {
         mpris_play_pause(st.app->mpris);
-        request_all(st);
+        lock_request_all_frames(st);
     } else if (hit(los->media_next)) {
         mpris_next(st.app->mpris);
-        request_all(st);
+        lock_request_all_frames(st);
     }
 }
 
@@ -1085,7 +1040,7 @@ void lock_timer_tick(LockState &st) {
     if (st.failed && std::chrono::steady_clock::now() >= st.fail_clear_at) {
         st.failed = false;
     }
-    request_all(st);
+    lock_request_all_frames(st);
 }
 
 void lock_hotplug_add(LockState &st, wl_output *output, const char *name) {
@@ -1095,7 +1050,7 @@ void lock_hotplug_add(LockState &st, wl_output *output, const char *name) {
         if (up->output == output)
             return;
     create_output_surface(st, output, name ? name : "");
-    wl_display_flush(st.app->display);
+    backend_poll_flush(*st.app);
 }
 
 void lock_hotplug_remove(LockState &st, wl_output *output) {

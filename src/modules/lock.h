@@ -8,13 +8,12 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <wayland-client.h>
-#include <wayland-egl.h>
 
 #include "config/lock_config.h"
 
 #include "render/animated_image.h"
 #include "render/animation.h"
+#include "render/egl_surface.h"
 #include "render/rect.h"
 #include "render/renderer.h"
 #include "render/scene.h"
@@ -26,10 +25,12 @@
 #include "service/input_service.h"
 #include "service/output_service.h"
 
-#include "ext-session-lock-v1-client-protocol.h"
-
 struct WaylandState;
 struct LockState;
+struct wl_output;
+struct wl_surface;
+struct ext_session_lock_v1;
+struct ext_session_lock_surface_v1;
 
 struct LockOutputSurface {
     LockState *owner = nullptr;
@@ -37,7 +38,7 @@ struct LockOutputSurface {
     std::string output_name;
     wl_surface *surface = nullptr;
     ext_session_lock_surface_v1 *lock_surface = nullptr;
-    wl_egl_window *egl_window = nullptr;
+    NativeEglWindowHandle egl_window = nullptr;
     EGLSurface egl_surface = EGL_NO_SURFACE;
     int32_t width = 0;
     int32_t height = 0;
@@ -99,6 +100,8 @@ struct LockState {
     std::function<bool(const std::string &output_name)> panel_gated_for;
 };
 
+void lock_paint(LockState &st, LockOutputSurface &los);
+void lock_request_all_frames(LockState &st);
 bool lock_request(LockState &st, WaylandState &app);
 void lock_teardown(LockState &st);
 void lock_begin_unlock(LockState &st);

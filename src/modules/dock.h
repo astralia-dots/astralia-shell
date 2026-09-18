@@ -5,13 +5,13 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include <wayland-client.h>
-#include <wayland-egl.h>
 
 #include "config/dock_config.h"
 
 #include "render/animation.h"
 #include "render/dock_row.h"
+#include "render/egl_surface.h"
+#include "render/layer_surface.h"
 #include "render/renderer.h"
 #include "render/scene.h"
 
@@ -20,7 +20,9 @@
 #include "service/input_service.h"
 #include "service/output_service.h"
 
-#include "wlr-layer-shell-unstable-v1-client-protocol.h"
+struct wl_compositor;
+struct wl_output;
+struct zwlr_layer_shell_v1;
 
 struct DockAutoHideState {
     bool enabled = false;
@@ -30,10 +32,10 @@ struct DockAutoHideState {
 };
 
 struct DockState {
-    wl_surface *surface = nullptr;
+    NativeSurfaceHandle surface = nullptr;
     wl_compositor *compositor = nullptr;
-    zwlr_layer_surface_v1 *layer_surface = nullptr;
-    wl_egl_window *egl_window = nullptr;
+    LayerSurfaceHandle layer_surface = nullptr;
+    NativeEglWindowHandle egl_window = nullptr;
     EGLSurface egl_surface = EGL_NO_SURFACE;
     EGLDisplay egl_display = nullptr;
     EGLContext egl_context = nullptr;

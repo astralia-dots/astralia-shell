@@ -10,6 +10,9 @@
 #include "render/node.h"
 #include "render/palette.h"
 
+#ifdef ASTRALIA_HAVE_WAYLAND
+#include "ext-idle-notify-v1-client-protocol.h"
+
 namespace {
 
 void idle_recent_activity_idled(void *data, ext_idle_notification_v1 *) {
@@ -26,8 +29,10 @@ constexpr ext_idle_notification_v1_listener idle_recent_activity_listener = {
 };
 
 } // namespace
+#endif
 
 bool idle_init(IdleState &state, wl_seat *seat) {
+#ifdef ASTRALIA_HAVE_WAYLAND
     if (!state.notifier || !seat) {
         klog("idle: compositor is missing ext_idle_notifier_v1 or wl_seat, "
              "skipping");
@@ -40,6 +45,11 @@ bool idle_init(IdleState &state, wl_seat *seat) {
         klog("idle: recent-activity notification failed, ambient/screensaver "
              "clock disabled");
     return state.recent_activity_notification != nullptr;
+#else
+    (void)state;
+    (void)seat;
+    return false;
+#endif
 }
 
 void idle_reset(IdleState &state, const std::vector<std::string> &monitor_names) {
@@ -63,28 +73,19 @@ bool is_idle(const IdleState &state, const std::string &monitor, uint32_t timeou
 
 namespace {
 
-void idle_overlay_layer_surface_configure(void *data, zwlr_layer_surface_v1 *layer_surface, uint32_t serial, uint32_t width, uint32_t height) {
+void idle_overlay_layer_surface_configure(void *data, int32_t width, int32_t height) {
     auto *state = static_cast<IdleOverlayState *>(data);
-    zwlr_layer_surface_v1_ack_configure(layer_surface, serial);
-    bool changed = state->width != static_cast<int32_t>(width) || state->height != static_cast<int32_t>(height);
-    state->width = static_cast<int32_t>(width);
-    state->height = static_cast<int32_t>(height);
+    bool changed = state->width != width || state->height != height;
+    state->width = width;
+    state->height = height;
     if (changed && state->egl_window) {
         int32_t scale = state->output_scale.scale;
-        wl_egl_window_resize(state->egl_window, state->width * scale, state->height * scale, 0, 0);
+        egl_native_window_resize(state->egl_window, state->width * scale, state->height * scale);
         if (state->frame_clock.surface)
             request_frame(state->frame_clock);
     }
     state->configured = true;
 }
-
-void idle_overlay_layer_surface_closed(void *, zwlr_layer_surface_v1 *) {}
-
-constexpr zwlr_layer_surface_v1_listener idle_overlay_layer_surface_listener =
-    {
-        .configure = idle_overlay_layer_surface_configure,
-        .closed = idle_overlay_layer_surface_closed,
-};
 
 void idle_overlay_bounce(IdleOverlayState &state, float dt) {
     if (dt <= 0.0f || dt > 0.5f || state.logo.frames.empty())
@@ -157,22 +158,22 @@ void idle_overlay_paint(IdleOverlayState &state) {
 
 bool idle_overlay_create_surface(IdleOverlayState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
     LayerSurfaceConfig cfg{
-        .layer = ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY,
+        .layer = kLayerShellOverlay,
         .name_space = kIdleOverlayLayerNamespace,
-        .anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT,
+        .anchor = kLayerAnchorTop | kLayerAnchorBottom | kLayerAnchorLeft | kLayerAnchorRight,
         .empty_input_region = true,
     };
-    state.layer_surface = layer_surface_create(state.surface, compositor, layer_shell, cfg, &idle_overlay_layer_surface_listener, &state, output);
+    state.layer_surface = layer_surface_create(state.surface, compositor, layer_shell, cfg, idle_overlay_layer_surface_configure, &state, output);
     if (!state.layer_surface)
         return false;
     state.output_scale.on_change = [&state](int32_t scale) {
         if (state.egl_window)
-            wl_egl_window_resize(state.egl_window, state.width * scale, state.height * scale, 0, 0);
+            egl_native_window_resize(state.egl_window, state.width * scale, state.height * scale);
         if (state.frame_clock.surface)
             request_frame(state.frame_clock);
     };
-    output_scale_watch(state.output_scale, state.surface);
-    wl_surface_commit(state.surface);
+    output_scale_watch(state.output_scale, static_cast<wl_surface *>(state.surface));
+    native_surface_commit(state.surface);
     return true;
 }
 
@@ -181,8 +182,8 @@ bool idle_overlay_init_egl(IdleOverlayState &state, Renderer &renderer, EGLDispl
     state.egl_context = context;
     state.renderer = &renderer;
     int32_t scale = state.output_scale.scale;
-    state.egl_window = wl_egl_window_create(state.surface, state.width * scale, state.height * scale);
-    state.egl_surface = eglCreateWindowSurface(display, config, reinterpret_cast<EGLNativeWindowType>(state.egl_window), nullptr);
+    state.egl_window = egl_native_window_create(state.surface, state.width * scale, state.height * scale);
+    state.egl_surface = egl_surface_create(state.surface, state.egl_window, display, config);
     if (state.egl_surface == EGL_NO_SURFACE)
         return false;
     if (!gl_make_current(display, state.egl_surface, context))

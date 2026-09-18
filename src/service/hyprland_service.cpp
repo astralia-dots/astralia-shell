@@ -243,7 +243,8 @@ void hypr_dispatch(HyprlandState &state, const std::string &command) {
 
 bool hypr_init(HyprlandState &state) {
     if (!resolve_socket_paths(state)) {
-        klog("hyprland: HYPRLAND_INSTANCE_SIGNATURE not set, skipping " "compositor integration");
+        klog("hyprland: HYPRLAND_INSTANCE_SIGNATURE not set, skipping "
+             "compositor integration");
         return false;
     }
     hypr_refresh(state);

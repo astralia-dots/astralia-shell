@@ -13,8 +13,8 @@
 namespace {
 
 constexpr std::array<const char *, 11> kVirtualIfacePrefixes = {
-    "lo",  "docker", "veth", "br-",       "virbr",   "vnet",
-    "tun", "tap",    "wg",   "tailscale", "nordlynx"};
+    "lo", "docker", "veth", "br-", "virbr", "vnet",
+    "tun", "tap", "wg", "tailscale", "nordlynx"};
 
 } // namespace
 

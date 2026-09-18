@@ -21,7 +21,8 @@ constexpr const char *kManagerIface = "org.freedesktop.UPower";
 constexpr const char *kDeviceIface = "org.freedesktop.UPower.Device";
 constexpr const char *kPropertiesIface = "org.freedesktop.DBus.Properties";
 
-template <typename T> std::optional<T> variant_get(const sdbus::Variant &v) {
+template <typename T>
+std::optional<T> variant_get(const sdbus::Variant &v) {
     try {
         return v.get<T>();
     } catch (const sdbus::Error &) {
@@ -83,38 +84,38 @@ void refresh_device(UpowerState &state, UpowerDeviceEntry &entry) {
             .onInterface(kPropertiesIface)
             .withArguments(std::string(kDeviceIface))
             .uponReplyInvoke([&state, path](std::optional<sdbus::Error> err, std::map<std::string, sdbus::Variant> props) {
-                    if (err) {
-                        klog("upower: device property read failed (%s): %s", err->getName().c_str(), err->getMessage().c_str());
-                        return;
-                    }
-                    auto it = std::find_if(state.devices.begin(), state.devices.end(), [&](const auto &e) { return e->path == path; });
-                    if (it == state.devices.end())
-                        return;
-                    UpowerDeviceEntry &e = **it;
+                if (err) {
+                    klog("upower: device property read failed (%s): %s", err->getName().c_str(), err->getMessage().c_str());
+                    return;
+                }
+                auto it = std::find_if(state.devices.begin(), state.devices.end(), [&](const auto &e) { return e->path == path; });
+                if (it == state.devices.end())
+                    return;
+                UpowerDeviceEntry &e = **it;
 
-                    if (auto p = props.find("Type"); p != props.end())
-                        if (auto v = variant_get<uint32_t>(p->second))
-                            e.type = *v;
-                    if (auto p = props.find("IsPresent"); p != props.end())
-                        if (auto v = variant_get<bool>(p->second))
-                            e.present = *v;
-                    if (auto p = props.find("State"); p != props.end())
-                        if (auto v = variant_get<uint32_t>(p->second))
-                            e.state = *v;
-                    if (auto p = props.find("Percentage"); p != props.end())
-                        if (auto v = variant_get<double>(p->second))
-                            e.percent = static_cast<int>(std::lround(*v));
-                    if (auto p = props.find("TimeToEmpty"); p != props.end())
-                        if (auto v = variant_get<int64_t>(p->second))
-                            e.time_to_empty_s = static_cast<int>(*v);
-                    if (auto p = props.find("TimeToFull"); p != props.end())
-                        if (auto v = variant_get<int64_t>(p->second))
-                            e.time_to_full_s = static_cast<int>(*v);
-                    if (auto p = props.find("NativePath"); p != props.end())
-                        if (auto v = variant_get<std::string>(p->second))
-                            e.native_path = *v;
-                    state.dirty = true;
-                });
+                if (auto p = props.find("Type"); p != props.end())
+                    if (auto v = variant_get<uint32_t>(p->second))
+                        e.type = *v;
+                if (auto p = props.find("IsPresent"); p != props.end())
+                    if (auto v = variant_get<bool>(p->second))
+                        e.present = *v;
+                if (auto p = props.find("State"); p != props.end())
+                    if (auto v = variant_get<uint32_t>(p->second))
+                        e.state = *v;
+                if (auto p = props.find("Percentage"); p != props.end())
+                    if (auto v = variant_get<double>(p->second))
+                        e.percent = static_cast<int>(std::lround(*v));
+                if (auto p = props.find("TimeToEmpty"); p != props.end())
+                    if (auto v = variant_get<int64_t>(p->second))
+                        e.time_to_empty_s = static_cast<int>(*v);
+                if (auto p = props.find("TimeToFull"); p != props.end())
+                    if (auto v = variant_get<int64_t>(p->second))
+                        e.time_to_full_s = static_cast<int>(*v);
+                if (auto p = props.find("NativePath"); p != props.end())
+                    if (auto v = variant_get<std::string>(p->second))
+                        e.native_path = *v;
+                state.dirty = true;
+            });
     } catch (const sdbus::Error &e) {
         klog("upower: device GetAll dispatch failed (%s): %s", e.getName().c_str(), e.getMessage().c_str());
     }
@@ -128,17 +129,17 @@ void refresh_on_battery(UpowerState &state) {
             .onInterface(kPropertiesIface)
             .withArguments(std::string(kManagerIface))
             .uponReplyInvoke([&state](std::optional<sdbus::Error> err, std::map<std::string, sdbus::Variant> props) {
-                    if (err) {
-                        klog("upower: OnBattery read failed (%s): %s", err->getName().c_str(), err->getMessage().c_str());
-                        return;
-                    }
-                    if (!state.manager)
-                        return;
-                    if (auto it = props.find("OnBattery"); it != props.end())
-                        if (auto v = variant_get<bool>(it->second))
-                            state.on_battery = *v;
-                    state.dirty = true;
-                });
+                if (err) {
+                    klog("upower: OnBattery read failed (%s): %s", err->getName().c_str(), err->getMessage().c_str());
+                    return;
+                }
+                if (!state.manager)
+                    return;
+                if (auto it = props.find("OnBattery"); it != props.end())
+                    if (auto v = variant_get<bool>(it->second))
+                        state.on_battery = *v;
+                state.dirty = true;
+            });
     } catch (const sdbus::Error &e) {
         klog("upower: OnBattery GetAll dispatch failed (%s): %s", e.getName().c_str(), e.getMessage().c_str());
     }

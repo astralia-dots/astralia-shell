@@ -2,12 +2,12 @@
 
 #include <EGL/egl.h>
 #include <chrono>
-#include <wayland-client.h>
-#include <wayland-egl.h>
 
 #include "config/osd_config.h"
 
 #include "render/animation.h"
+#include "render/egl_surface.h"
+#include "render/layer_surface.h"
 #include "render/renderer.h"
 #include "render/scene.h"
 #include "render/texture.h"
@@ -15,14 +15,18 @@
 #include "service/frame_service.h"
 #include "service/output_service.h"
 
-#include "wlr-layer-shell-unstable-v1-client-protocol.h"
+struct wl_compositor;
+struct wl_output;
+struct zwlr_layer_shell_v1;
 
-enum class OsdKind { Volume, Mic, Brightness };
+enum class OsdKind { Volume,
+                     Mic,
+                     Brightness };
 
 struct OsdState {
-    wl_surface *surface = nullptr;
-    zwlr_layer_surface_v1 *layer_surface = nullptr;
-    wl_egl_window *egl_window = nullptr;
+    NativeSurfaceHandle surface = nullptr;
+    LayerSurfaceHandle layer_surface = nullptr;
+    NativeEglWindowHandle egl_window = nullptr;
     EGLSurface egl_surface = EGL_NO_SURFACE;
     EGLDisplay egl_display = nullptr;
     EGLContext egl_context = nullptr;

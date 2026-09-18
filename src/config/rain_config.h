@@ -1,6 +1,7 @@
 #pragma once
 
-enum class RainMode { Matrix, Stiletto };
+enum class RainMode { Matrix,
+                      Stiletto };
 
 struct RainParams {
     RainMode mode = RainMode::Matrix;

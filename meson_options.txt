@@ -1,0 +1,2 @@
+option('wayland_backend', type: 'feature', value: 'auto', description: 'Build the Wayland backend (src/wayland/*)')
+option('x11_backend', type: 'feature', value: 'auto', description: 'Build the X11 backend (src/x11/*)')

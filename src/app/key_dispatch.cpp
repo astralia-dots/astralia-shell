@@ -9,8 +9,9 @@ void dispatch_key_events(WaylandState &state, const std::vector<KeyEvent> &event
         return;
 
     if (state.keyboard.focused_surface) {
+        auto *focused_surface = static_cast<wl_surface *>(state.keyboard.focused_surface);
         for (auto &m : state.overlays) {
-            if (!m->owns_surface(state.keyboard.focused_surface))
+            if (!m->owns_surface(focused_surface))
                 continue;
             for (const KeyEvent &event : events)
                 m->handle_key_event(state, event);

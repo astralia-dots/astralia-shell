@@ -52,8 +52,8 @@ bool dashboard_init_egl(DashboardState &state, Renderer &renderer, WaylandState 
     return true;
 }
 
-void dashboard_retarget(DashboardState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_display *display, Renderer &renderer, WaylandState &app, EGLDisplay egl_display, EGLConfig egl_config, EGLContext egl_context, wl_output *target_output, const char *target_name) {
-    wl_output *bound = overlay_panel_retarget(state.base, display, state.bound_output, target_output, target_name, [&](wl_output *out) { return dashboard_create_surface(state, compositor, layer_shell, out); }, [&] { return dashboard_init_egl(state, renderer, app, egl_display, egl_config, egl_context); });
+void dashboard_retarget(DashboardState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, Renderer &renderer, WaylandState &app, EGLDisplay egl_display, EGLConfig egl_config, EGLContext egl_context, wl_output *target_output, const char *target_name) {
+    wl_output *bound = overlay_panel_retarget(state.base, state.bound_output, target_output, target_name, [&](wl_output *out) { return dashboard_create_surface(state, compositor, layer_shell, out); }, [&] { return dashboard_init_egl(state, renderer, app, egl_display, egl_config, egl_context); });
     if (bound)
         state.bound_output = bound;
 }
@@ -83,7 +83,7 @@ std::vector<IpcHandler> dashboard_ipc_handlers(DashboardState &dashboard, Waylan
              if (!dashboard.base.open) {
                  MonitorOutput *target = app_detail::active_target_monitor(state);
                  if (target && (target->output.wl != dashboard.bound_output || !dashboard.base.layer_surface))
-                     dashboard_retarget(dashboard, state.compositor, state.layer_shell, state.display, state.renderer, state, state.egl_display, state.egl_config, state.egl_context, target->output.wl, target->output.name.c_str());
+                     dashboard_retarget(dashboard, state.compositor, state.layer_shell, state.renderer, state, state.egl_display, state.egl_config, state.egl_context, target->output.wl, target->output.name.c_str());
                  cpu_temp_poll(state.cpu_temp);
                  system_stats_poll(state.system_stats);
                  gpu_temp_poll(state.gpu_temp);

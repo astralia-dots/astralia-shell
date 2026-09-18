@@ -52,7 +52,8 @@ constexpr const char *kPlayerIface = "org.mpris.MediaPlayer2.Player";
 constexpr const char *kPropertiesIface = "org.freedesktop.DBus.Properties";
 constexpr const char *kNamePrefix = "org.mpris.MediaPlayer2.";
 
-template <typename T> std::optional<T> variant_get(const sdbus::Variant &v) {
+template <typename T>
+std::optional<T> variant_get(const sdbus::Variant &v) {
     try {
         return v.get<T>();
     } catch (const sdbus::Error &) {
@@ -110,11 +111,11 @@ void subscribe_player(MprisState &state, sdbus::IConnection &bus, const std::str
         .onInterface(kPropertiesIface)
         .withArguments(std::string(kPlayerIface), std::string("PlaybackStatus"))
         .uponReplyInvoke([&state, name](std::optional<sdbus::Error> err, sdbus::Variant v) {
-                if (err || state.selected_bus_name != name)
-                    return;
-                if (auto s = variant_get<std::string>(v))
-                    state.status = mpris_detail_parse_playback_status(*s);
-            });
+            if (err || state.selected_bus_name != name)
+                return;
+            if (auto s = variant_get<std::string>(v))
+                state.status = mpris_detail_parse_playback_status(*s);
+        });
 
     state.player->callMethodAsync("Get")
         .onInterface(kPropertiesIface)

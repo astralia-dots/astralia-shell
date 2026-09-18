@@ -18,7 +18,8 @@ constexpr const char *kPropsIface = "org.freedesktop.DBus.Properties";
 using DBusMenuLayout =
     sdbus::Struct<int32_t, std::map<std::string, sdbus::Variant>, std::vector<sdbus::Variant>>;
 
-template <typename T> std::optional<T> variant_get(const sdbus::Variant &v) {
+template <typename T>
+std::optional<T> variant_get(const sdbus::Variant &v) {
     try {
         return v.get<T>();
     } catch (const sdbus::Error &) {
@@ -54,12 +55,12 @@ void watch_item_properties(TrayState &state, const std::string &key, sdbus::IPro
     proxy.uponSignal("PropertiesChanged")
         .onInterface(kPropsIface)
         .call([&state, key](const std::string &, const std::map<std::string, sdbus::Variant> &changed, const std::vector<std::string> &) {
-                TrayItem *item = find_item(state, key);
-                if (!item)
-                    return;
-                apply_item_props(*item, changed);
-                state.dirty = true;
-            });
+            TrayItem *item = find_item(state, key);
+            if (!item)
+                return;
+            apply_item_props(*item, changed);
+            state.dirty = true;
+        });
 }
 
 void register_item(TrayState &state, const std::string &bus_name, const std::string &object_path) {
@@ -82,16 +83,16 @@ void register_item(TrayState &state, const std::string &bus_name, const std::str
         .onInterface(kPropsIface)
         .withArguments(std::string(kItemIface))
         .uponReplyInvoke([&state, key](std::optional<sdbus::Error> err, std::map<std::string, sdbus::Variant> props) {
-                if (err) {
-                    klog("tray: GetAll failed for %s: %s", key.c_str(), err->getMessage().c_str());
-                    return;
-                }
-                TrayItem *item = find_item(state, key);
-                if (!item)
-                    return;
-                apply_item_props(*item, props);
-                state.dirty = true;
-            });
+            if (err) {
+                klog("tray: GetAll failed for %s: %s", key.c_str(), err->getMessage().c_str());
+                return;
+            }
+            TrayItem *item = find_item(state, key);
+            if (!item)
+                return;
+            apply_item_props(*item, props);
+            state.dirty = true;
+        });
 
     klog("tray: registered item %s", key.c_str());
 }
@@ -134,17 +135,19 @@ bool tray_init(TrayState &state) {
 
         state.watcher_object
             ->addVTable(sdbus::registerMethod("RegisterStatusNotifierItem").implementedAs([&state](const std::string &service) {
-                        std::string sender =
-                            state.watcher_object->getCurrentlyProcessedMessage()
-                                .getSender();
-                        std::string object_path = service.starts_with('/') ? service : "/StatusNotifierItem";
-                        register_item(state, sender, object_path);
-                    }), sdbus::registerMethod("RegisterStatusNotifierHost").implementedAs([](const std::string &) {}), sdbus::registerProperty("RegisteredStatusNotifierItems").withGetter([&state]() -> std::vector<std::string> {
-                        std::vector<std::string> out;
-                        for (const TrayItem &item : state.items)
-                            out.push_back(item.bus_name + item.object_path);
-                        return out;
-                    }), sdbus::registerProperty("IsStatusNotifierHostRegistered").withGetter([]() -> bool { return true; }))
+                std::string sender =
+                    state.watcher_object->getCurrentlyProcessedMessage()
+                        .getSender();
+                std::string object_path = service.starts_with('/') ? service : "/StatusNotifierItem";
+                register_item(state, sender, object_path);
+            }),
+                        sdbus::registerMethod("RegisterStatusNotifierHost").implementedAs([](const std::string &) {}), sdbus::registerProperty("RegisteredStatusNotifierItems").withGetter([&state]() -> std::vector<std::string> {
+                            std::vector<std::string> out;
+                            for (const TrayItem &item : state.items)
+                                out.push_back(item.bus_name + item.object_path);
+                            return out;
+                        }),
+                        sdbus::registerProperty("IsStatusNotifierHostRegistered").withGetter([]() -> bool { return true; }))
             .forInterface(kWatcherIface);
 
         state.bus->requestName(sdbus::ServiceName{kWatcherIface});
@@ -170,7 +173,9 @@ bool tray_init(TrayState &state) {
         klog("tray: registered %s", kWatcherIface);
         return true;
     } catch (const sdbus::Error &e) {
-        klog("tray: D-Bus registration failed (%s): %s - is another tray " "already running?", e.getName().c_str(), e.getMessage().c_str());
+        klog("tray: D-Bus registration failed (%s): %s - is another tray "
+             "already running?",
+             e.getName().c_str(), e.getMessage().c_str());
         state.bus.reset();
         return false;
     }
@@ -209,14 +214,14 @@ void tray_menu_request(TrayState &state, const TrayItem &item) {
             .onInterface(kMenuIface)
             .withArguments(int32_t{0}, int32_t{-1}, std::vector<std::string>{})
             .uponReplyInvoke([&state, key, owned_proxy](std::optional<sdbus::Error> err, uint32_t, DBusMenuLayout layout) {
-                    if (err) {
-                        klog("tray: GetLayout failed for %s: %s", key.c_str(), err->getMessage().c_str());
-                        return;
-                    }
-                    MenuEntry root = parse_menu_node(layout);
-                    state.menu_cache[key] = std::move(root.children);
-                    state.dirty = true;
-                });
+                if (err) {
+                    klog("tray: GetLayout failed for %s: %s", key.c_str(), err->getMessage().c_str());
+                    return;
+                }
+                MenuEntry root = parse_menu_node(layout);
+                state.menu_cache[key] = std::move(root.children);
+                state.dirty = true;
+            });
     } catch (const sdbus::Error &e) {
         klog("tray: menu request failed: %s", e.getMessage().c_str());
     }

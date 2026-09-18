@@ -2,12 +2,20 @@
 
 #include <EGL/egl.h>
 #include <cstdint>
-#include <wayland-client.h>
-#include <wayland-egl.h>
+
+#include "render/egl_surface.h"
 
 #include "service/frame_service.h"
 
-#include "wlr-layer-shell-unstable-v1-client-protocol.h"
+constexpr uint32_t kLayerShellBackground = 0;
+constexpr uint32_t kLayerShellBottom = 1;
+constexpr uint32_t kLayerShellTop = 2;
+constexpr uint32_t kLayerShellOverlay = 3;
+
+constexpr uint32_t kLayerAnchorTop = 1;
+constexpr uint32_t kLayerAnchorBottom = 2;
+constexpr uint32_t kLayerAnchorLeft = 4;
+constexpr uint32_t kLayerAnchorRight = 8;
 
 struct LayerSurfaceConfig {
     uint32_t layer;
@@ -23,7 +31,18 @@ struct LayerSurfaceConfig {
     bool empty_input_region = false;
 };
 
-zwlr_layer_surface_v1 *
-layer_surface_create(wl_surface *&out_surface, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, const LayerSurfaceConfig &cfg, const zwlr_layer_surface_v1_listener *listener, void *listener_data, wl_output *output = nullptr);
+using LayerSurfaceHandle = void *;
 
-void destroy_layer_surface(EGLDisplay display, wl_surface *&surface, zwlr_layer_surface_v1 *&layer_surface, wl_egl_window *&egl_window, EGLSurface &egl_surface, FrameClock *frame_clock = nullptr);
+using LayerSurfaceConfigureFn = void (*)(void *data, int32_t width, int32_t height);
+
+LayerSurfaceHandle layer_surface_create(NativeSurfaceHandle &out_surface, void *compositor, void *layer_shell, const LayerSurfaceConfig &cfg, LayerSurfaceConfigureFn on_configure, void *listener_data, void *output = nullptr);
+
+void layer_surface_set_size(LayerSurfaceHandle layer_surface, int32_t width, int32_t height);
+
+void layer_surface_set_margin(LayerSurfaceHandle layer_surface, int32_t top, int32_t right, int32_t bottom, int32_t left);
+
+void layer_surface_set_exclusive_zone(LayerSurfaceHandle layer_surface, int32_t zone);
+
+void layer_surface_set_keyboard_interactivity(LayerSurfaceHandle layer_surface, bool exclusive);
+
+void destroy_layer_surface(EGLDisplay display, NativeSurfaceHandle &surface, LayerSurfaceHandle &layer_surface, NativeEglWindowHandle &egl_window, EGLSurface &egl_surface, FrameClock *frame_clock = nullptr);

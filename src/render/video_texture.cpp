@@ -69,7 +69,8 @@ void video_texture_detect_caps(EGLDisplay display) {
         reinterpret_cast<PFNGLEGLIMAGETARGETTEXTURE2DOESPROC>(eglGetProcAddress("glEGLImageTargetTexture2DOES"));
     bool ok = g_eglCreateImageKHR && g_eglDestroyImageKHR && g_glEGLImageTargetTexture2DOES;
     if (!ok)
-        klog("video_texture: dma-buf extensions advertised but proc " "addresses missing, disabling zero-copy import");
+        klog("video_texture: dma-buf extensions advertised but proc "
+             "addresses missing, disabling zero-copy import");
     g_import_supported.store(ok, std::memory_order_relaxed);
 }
 

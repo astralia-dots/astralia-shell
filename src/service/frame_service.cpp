@@ -1,53 +1,31 @@
 #include "service/frame_service.h"
 
-namespace {
+#include "app/backend.h"
 
-const wl_callback_listener &listener();
+#include "wayland/frame_service.h"
 
-void arm_callback(FrameClock &clock) {
-    clock.callback = wl_surface_frame(clock.surface);
-    wl_callback_add_listener(clock.callback, &listener(), &clock);
-}
-
-void frame_done(void *data, wl_callback *cb, uint32_t) {
-    auto *clock = static_cast<FrameClock *>(data);
-    wl_callback_destroy(cb);
-    clock->callback = nullptr;
-    if (clock->redraw_requested) {
-        clock->redraw_requested = false;
-        arm_callback(*clock);
-        clock->draw();
-    }
-}
-
-const wl_callback_listener &listener() {
-    static constexpr wl_callback_listener l{.done = frame_done};
-    return l;
-}
-
-} // namespace
-
-void frame_clock_drop_callback(FrameClock &clock) {
-    if (clock.callback) {
-        wl_callback_destroy(clock.callback);
-        clock.callback = nullptr;
-    }
-    clock.redraw_requested = false;
-}
+#include "x11/frame_service.h"
 
 void request_frame(FrameClock &clock) {
-    if (clock.callback) {
-        clock.redraw_requested = true;
+#ifdef ASTRALIA_HAVE_WAYLAND
+    if (active_backend() == Backend::Wayland) {
+        backend_wayland::request_frame(clock);
         return;
     }
-    if (!clock.mapped) {
-        clock.mapped = true;
-        arm_callback(clock);
-        clock.draw();
+#endif
+#ifdef ASTRALIA_HAVE_X11
+    backend_x11::request_frame(clock);
+#endif
+}
+
+void frame_clock_drop_callback(FrameClock &clock) {
+#ifdef ASTRALIA_HAVE_WAYLAND
+    if (active_backend() == Backend::Wayland) {
+        backend_wayland::frame_clock_drop_callback(clock);
         return;
     }
-    clock.redraw_requested = true;
-    arm_callback(clock);
-    wl_surface_damage_buffer(clock.surface, 0, 0, 1, 1);
-    wl_surface_commit(clock.surface);
+#endif
+#ifdef ASTRALIA_HAVE_X11
+    backend_x11::frame_clock_drop_callback(clock);
+#endif
 }
