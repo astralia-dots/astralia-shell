@@ -7,13 +7,15 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <wayland-client.h>
+#include <wayland-egl.h>
 
 #include "config/idle_config.h"
 
+#include "ext-idle-notify-v1-client-protocol.h"
+
 #include "render/animated_image.h"
 #include "render/animation.h"
-#include "render/egl_surface.h"
-#include "render/layer_surface.h"
 #include "render/renderer.h"
 #include "render/scene.h"
 #include "render/texture.h"
@@ -21,12 +23,7 @@
 #include "service/frame_service.h"
 #include "service/output_service.h"
 
-struct wl_compositor;
-struct wl_output;
-struct wl_seat;
-struct zwlr_layer_shell_v1;
-struct ext_idle_notifier_v1;
-struct ext_idle_notification_v1;
+#include "wlr-layer-shell-unstable-v1-client-protocol.h"
 
 struct IdleState {
     ext_idle_notifier_v1 *notifier = nullptr;
@@ -37,9 +34,9 @@ struct IdleState {
 };
 
 struct IdleOverlayState {
-    NativeSurfaceHandle surface = nullptr;
-    LayerSurfaceHandle layer_surface = nullptr;
-    NativeEglWindowHandle egl_window = nullptr;
+    wl_surface *surface = nullptr;
+    zwlr_layer_surface_v1 *layer_surface = nullptr;
+    wl_egl_window *egl_window = nullptr;
     EGLSurface egl_surface = EGL_NO_SURFACE;
     EGLDisplay egl_display = nullptr;
     EGLContext egl_context = nullptr;

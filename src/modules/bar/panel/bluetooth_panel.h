@@ -3,6 +3,7 @@
 #include <EGL/egl.h>
 #include <string>
 #include <vector>
+#include <wayland-client.h>
 
 #include "render/overlay_panel.h"
 #include "render/panel_chrome.h"
@@ -10,13 +11,12 @@
 #include "render/scene.h"
 #include "render/texture_cache.h"
 
+#include "wlr-layer-shell-unstable-v1-client-protocol.h"
+
 class Renderer;
 struct BluetoothState;
 struct BluetoothDeviceInfo;
 struct KeyEvent;
-struct wl_compositor;
-struct wl_output;
-struct zwlr_layer_shell_v1;
 
 constexpr float kBtEmptyStateHeight = 72.0f;
 constexpr float kBtSectionGapSmall = 20.0f;

@@ -1,6 +1,5 @@
 #include <GLES3/gl32.h>
 
-#include "app/backend.h"
 #include "app/monitor_output.h"
 #include "app/wayland_state.h"
 
@@ -48,7 +47,7 @@ void rain_toggle(RainState &state, WaylandState &app) {
             if (!toplevel_window_create_surface(state.base, app.compositor, app.wm_base, "Rain", "astralia-shell-rain", kRainDefaultWindowWidth, kRainDefaultWindowHeight))
                 return;
             while (!state.base.configured)
-                backend_wait_dispatch();
+                wl_display_dispatch(app.display);
             if (!toplevel_window_init_egl(state.base, app.egl_display, app.egl_config, app.egl_context)) {
                 toplevel_window_destroy_surface(state.base);
                 return;

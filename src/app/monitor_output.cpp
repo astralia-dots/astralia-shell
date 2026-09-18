@@ -1,9 +1,5 @@
 #include <algorithm>
-#ifdef ASTRALIA_HAVE_WAYLAND
-#include <wayland-client.h>
-#endif
 
-#include "app/backend.h"
 #include "app/module_registry.h"
 #include "app/monitor_output.h"
 
@@ -20,10 +16,8 @@
 void monitor_output_destroy(MonitorOutput &mon) {
     for (auto &m : mon.modules)
         m->destroy(*mon.app, mon);
-#ifdef ASTRALIA_HAVE_WAYLAND
-    if (mon.output.wl && active_backend() == Backend::Wayland)
+    if (mon.output.wl)
         wl_output_release(mon.output.wl);
-#endif
 }
 
 MonitorOutput *find_monitor_by_name_wl(WaylandState &app, wl_output *wl) {
@@ -57,7 +51,7 @@ void monitor_output_wait_configured(WaylandState &app, MonitorOutput &mon) {
                 all_configured = false;
         if (all_configured)
             return;
-        backend_wait_dispatch();
+        wl_display_dispatch(app.display);
     }
 }
 
@@ -90,14 +84,14 @@ void rest_egl_current(WaylandState &app) {
 
 const std::vector<Workspace> &monitor_workspaces(const MonitorOutput &mon) {
     static const std::vector<Workspace> empty;
-    if (mon.app->compositor_backend == WaylandState::CompositorBackend::None)
+    if (mon.app->compositor_backend != WaylandState::CompositorBackend::Hyprland)
         return empty;
     auto it = mon.app->hypr.by_monitor.find(mon.output.name);
     return it != mon.app->hypr.by_monitor.end() ? it->second.workspaces : empty;
 }
 
 int monitor_active_workspace_id(const MonitorOutput &mon) {
-    if (mon.app->compositor_backend == WaylandState::CompositorBackend::None)
+    if (mon.app->compositor_backend != WaylandState::CompositorBackend::Hyprland)
         return -1;
     auto it = mon.app->hypr.by_monitor.find(mon.output.name);
     return it != mon.app->hypr.by_monitor.end() ? it->second.active_id : -1;
@@ -154,7 +148,7 @@ MonitorOutput *active_target_monitor(WaylandState &app) {
     for (auto &mon : app.outputs)
         outputs.push_back(&mon->output);
     std::string focused_name =
-        app.compositor_backend != WaylandState::CompositorBackend::None
+        app.compositor_backend == WaylandState::CompositorBackend::Hyprland
             ? app.hypr.focused_monitor
             : std::string();
     wl_output *pointer_hint = app.last_pointer_monitor ? app.last_pointer_monitor->output.wl : nullptr;
@@ -166,7 +160,7 @@ MonitorOutput *active_target_monitor(WaylandState &app) {
 void settings_retarget(WaylandState &app, SettingsState &settings, MonitorOutput &target) {
     SettingsState &s = settings;
     SettingsEnv env = settings_env(app);
-    wl_output *bound = overlay_panel_retarget(s.base, app.settings_bound_output, target.output.wl, target.output.name.c_str(), [&](wl_output *out) { return settings_create_surface(s, app.compositor, app.layer_shell, out); }, [&] { return settings_init_egl(s, app.cfg, app.renderer, app.egl_display, app.egl_config, app.egl_context, env.monitor_names_fn, env.focused_monitor_fn, env.decode_status_fn); });
+    wl_output *bound = overlay_panel_retarget(s.base, app.display, app.settings_bound_output, target.output.wl, target.output.name.c_str(), [&](wl_output *out) { return settings_create_surface(s, app.compositor, app.layer_shell, out); }, [&] { return settings_init_egl(s, app.cfg, app.renderer, app.egl_display, app.egl_config, app.egl_context, env.monitor_names_fn, env.focused_monitor_fn, env.decode_status_fn); });
     if (bound)
         app.settings_bound_output = bound;
     else

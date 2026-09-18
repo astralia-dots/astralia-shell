@@ -14,12 +14,20 @@
 #include "render/progress_bar.h"
 #include "render/text.h"
 
-void osd_layer_surface_configure(void *data, int32_t, int32_t) {
+namespace {
+
+void osd_layer_surface_configure(void *data, zwlr_layer_surface_v1 *layer_surface, uint32_t serial, uint32_t, uint32_t) {
     auto *state = static_cast<OsdState *>(data);
+    zwlr_layer_surface_v1_ack_configure(layer_surface, serial);
     state->configured = true;
 }
 
-namespace {
+void osd_layer_surface_closed(void *, zwlr_layer_surface_v1 *) {}
+
+constexpr zwlr_layer_surface_v1_listener osd_layer_surface_listener = {
+    .configure = osd_layer_surface_configure,
+    .closed = osd_layer_surface_closed,
+};
 
 void osd_paint(OsdState &state) {
     gl_make_current(state.egl_display, state.egl_surface, state.egl_context);
@@ -100,27 +108,27 @@ PangoFontDescription *osd_label_font() {
 
 bool osd_create_surface(OsdState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
     LayerSurfaceConfig cfg{
-        .layer = kLayerShellOverlay,
+        .layer = ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY,
         .name_space = "astralia-shell-osd",
 
-        .anchor = kLayerAnchorBottom,
+        .anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM,
         .width = kOsdSurfaceWidth,
         .height = kOsdSurfaceHeight,
         .margin_bottom = 30,
         .empty_input_region = true,
     };
     state.layer_surface =
-        layer_surface_create(state.surface, compositor, layer_shell, cfg, osd_layer_surface_configure, &state, output);
+        layer_surface_create(state.surface, compositor, layer_shell, cfg, &osd_layer_surface_listener, &state, output);
     if (!state.layer_surface)
         return false;
     state.output_scale.on_change = [&state](int32_t scale) {
         if (state.egl_window)
-            egl_native_window_resize(state.egl_window, kOsdSurfaceWidth * scale, kOsdSurfaceHeight * scale);
+            wl_egl_window_resize(state.egl_window, kOsdSurfaceWidth * scale, kOsdSurfaceHeight * scale, 0, 0);
         if (state.frame_clock.surface)
             request_frame(state.frame_clock);
     };
-    output_scale_watch(state.output_scale, static_cast<wl_surface *>(state.surface));
-    native_surface_commit(state.surface);
+    output_scale_watch(state.output_scale, state.surface);
+    wl_surface_commit(state.surface);
     return true;
 }
 
@@ -129,8 +137,8 @@ bool osd_init_egl(OsdState &state, Renderer &renderer, EGLDisplay display, EGLCo
     state.egl_context = context;
     state.renderer = &renderer;
     int32_t scale = state.output_scale.scale;
-    state.egl_window = egl_native_window_create(state.surface, kOsdSurfaceWidth * scale, kOsdSurfaceHeight * scale);
-    state.egl_surface = egl_surface_create(state.surface, state.egl_window, display, config);
+    state.egl_window = wl_egl_window_create(state.surface, kOsdSurfaceWidth * scale, kOsdSurfaceHeight * scale);
+    state.egl_surface = eglCreateWindowSurface(display, config, reinterpret_cast<EGLNativeWindowType>(state.egl_window), nullptr);
     if (state.egl_surface == EGL_NO_SURFACE)
         return false;
     if (!gl_make_current(display, state.egl_surface, context))

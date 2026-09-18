@@ -5,6 +5,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <wayland-client.h>
 
 #include "render/node.h"
 #include "render/overlay_panel.h"
@@ -17,9 +18,7 @@
 #include "service/input_service.h"
 #include "service/pipewire_service.h"
 
-struct wl_compositor;
-struct wl_output;
-struct zwlr_layer_shell_v1;
+#include "wlr-layer-shell-unstable-v1-client-protocol.h"
 
 constexpr float kVolumeLabelRowHeight = 20.0f;
 constexpr float kVolumeRowHeight = 24.0f;

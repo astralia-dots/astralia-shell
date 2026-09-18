@@ -4,6 +4,7 @@
 #include <cstring>
 #include <memory>
 #include <vector>
+#include <wayland-client.h>
 
 #include "app/config.h"
 #include "app/module.h"
@@ -28,17 +29,13 @@
 #include "service/tray_service.h"
 #include "service/upower_service.h"
 
+#include "ext-session-lock-v1-client-protocol.h"
+#include "hyprland-toplevel-export-v1-client-protocol.h"
+#include "text-input-unstable-v3-client-protocol.h"
+#include "wlr-layer-shell-unstable-v1-client-protocol.h"
+#include "xdg-shell-client-protocol.h"
+
 struct MonitorOutput;
-struct wl_display;
-struct wl_compositor;
-struct wl_output;
-struct wl_seat;
-struct wl_shm;
-struct zwlr_layer_shell_v1;
-struct xdg_wm_base;
-struct hyprland_toplevel_export_manager_v1;
-struct zwp_text_input_manager_v3;
-struct ext_session_lock_manager_v1;
 
 struct WaylandState {
     wl_display *display = nullptr;

@@ -20,9 +20,6 @@
 #include "service/input_service.h"
 
 struct WaylandState;
-struct wl_compositor;
-struct wl_output;
-struct zwlr_layer_shell_v1;
 
 struct ThunderBurst {
     GLuint bolt_program = 0;
@@ -103,7 +100,7 @@ bool logout_create_surface(LogoutState &state, wl_compositor *compositor, zwlr_l
 
 bool logout_init_egl(LogoutState &state, Renderer &renderer, EGLDisplay display, EGLConfig config, EGLContext context);
 
-void logout_retarget(LogoutState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, Renderer &renderer, EGLDisplay egl_display, EGLConfig egl_config, EGLContext egl_context, wl_output *target_output, const char *target_name);
+void logout_retarget(LogoutState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_display *display, Renderer &renderer, EGLDisplay egl_display, EGLConfig egl_config, EGLContext egl_context, wl_output *target_output, const char *target_name);
 
 void logout_request_frame(LogoutState &state);
 

@@ -71,9 +71,9 @@ void animate_card(PolkitState &state, bool opening) {
             if (opening)
                 return;
             state.base.open = false;
-            layer_surface_set_keyboard_interactivity(state.base.layer_surface, false);
+            zwlr_layer_surface_v1_set_keyboard_interactivity(state.base.layer_surface, ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
             overlay_panel_update_input_region(state.base);
-            native_surface_commit(state.base.surface); }, kPolkitCardScaleOwner);
+            wl_surface_commit(state.base.surface); }, kPolkitCardScaleOwner);
 }
 
 void open_card(PolkitState &state) {
@@ -81,9 +81,9 @@ void open_card(PolkitState &state) {
         return;
     state.base.open = true;
     state.base.opacity = 1.0f;
-    layer_surface_set_keyboard_interactivity(state.base.layer_surface, true);
+    zwlr_layer_surface_v1_set_keyboard_interactivity(state.base.layer_surface, ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE);
     overlay_panel_update_input_region(state.base);
-    native_surface_commit(state.base.surface);
+    wl_surface_commit(state.base.surface);
     animate_card(state, true);
 }
 
@@ -112,8 +112,8 @@ bool polkit_init_egl(PolkitState &state, Renderer &renderer, WaylandState &app, 
     return true;
 }
 
-void polkit_retarget(PolkitState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, Renderer &renderer, WaylandState &app, EGLDisplay egl_display, EGLConfig egl_config, EGLContext egl_context, wl_output *target_output, const char *target_name) {
-    wl_output *bound = overlay_panel_retarget(state.base, state.bound_output, target_output, target_name, [&](wl_output *out) { return polkit_create_surface(state, compositor, layer_shell, out); }, [&] { return polkit_init_egl(state, renderer, app, egl_display, egl_config, egl_context); });
+void polkit_retarget(PolkitState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_display *display, Renderer &renderer, WaylandState &app, EGLDisplay egl_display, EGLConfig egl_config, EGLContext egl_context, wl_output *target_output, const char *target_name) {
+    wl_output *bound = overlay_panel_retarget(state.base, display, state.bound_output, target_output, target_name, [&](wl_output *out) { return polkit_create_surface(state, compositor, layer_shell, out); }, [&] { return polkit_init_egl(state, renderer, app, egl_display, egl_config, egl_context); });
     if (bound)
         state.bound_output = bound;
 }
@@ -127,7 +127,7 @@ void polkit_sync_open_state(PolkitState &state, WaylandState &app) {
     if (pending && !state.base.open) {
         MonitorOutput *target = app_detail::active_target_monitor(app);
         if (target && (target->output.wl != state.bound_output || !state.base.layer_surface))
-            polkit_retarget(state, app.compositor, app.layer_shell, app.renderer, app, app.egl_display, app.egl_config, app.egl_context, target->output.wl, target->output.name.c_str());
+            polkit_retarget(state, app.compositor, app.layer_shell, app.display, app.renderer, app, app.egl_display, app.egl_config, app.egl_context, target->output.wl, target->output.name.c_str());
         open_card(state);
         return;
     }

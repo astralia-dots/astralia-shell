@@ -7,7 +7,6 @@
 #include <deque>
 #include <filesystem>
 #include <ft2build.h>
-#include FT_FREETYPE_H
 
 #include "app/monitor_output.h"
 #include "app/wayland_state.h"
@@ -21,6 +20,8 @@
 #include "render/gl.h"
 #include "render/layer_surface.h"
 #include "render/node.h"
+
+#include FT_FREETYPE_H
 
 void thunder_burst_draw(ThunderBurst &tb, Renderer &renderer, const ThunderParams &p) {
     if (!tb.bolt_tried) {
@@ -219,9 +220,9 @@ void update_highlight(LogoutState &state, int i) {
 void finish_close(LogoutState &state) {
     animated_image_hide(state.logo);
     state.base.open = false;
-    layer_surface_set_keyboard_interactivity(state.base.layer_surface, false);
+    zwlr_layer_surface_v1_set_keyboard_interactivity(state.base.layer_surface, ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
     overlay_panel_update_input_region(state.base);
-    native_surface_commit(state.base.surface);
+    wl_surface_commit(state.base.surface);
 }
 
 void start_burst(LogoutState &state) {
@@ -386,8 +387,8 @@ bool logout_init_egl(LogoutState &state, Renderer &renderer, EGLDisplay display,
     return true;
 }
 
-void logout_retarget(LogoutState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, Renderer &renderer, EGLDisplay egl_display, EGLConfig egl_config, EGLContext egl_context, wl_output *target_output, const char *target_name) {
-    wl_output *bound = overlay_panel_retarget(state.base, state.bound_output, target_output, target_name, [&](wl_output *out) { return logout_create_surface(state, compositor, layer_shell, out); }, [&] { return logout_init_egl(state, renderer, egl_display, egl_config, egl_context); });
+void logout_retarget(LogoutState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_display *display, Renderer &renderer, EGLDisplay egl_display, EGLConfig egl_config, EGLContext egl_context, wl_output *target_output, const char *target_name) {
+    wl_output *bound = overlay_panel_retarget(state.base, display, state.bound_output, target_output, target_name, [&](wl_output *out) { return logout_create_surface(state, compositor, layer_shell, out); }, [&] { return logout_init_egl(state, renderer, egl_display, egl_config, egl_context); });
     if (bound)
         state.bound_output = bound;
 }
@@ -439,9 +440,9 @@ void logout_toggle(LogoutState &state, bool by_widget) {
         state.selected_index = 0;
         state.base.open = true;
         state.base.opacity = 1.0f;
-        layer_surface_set_keyboard_interactivity(state.base.layer_surface, true);
+        zwlr_layer_surface_v1_set_keyboard_interactivity(state.base.layer_surface, ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE);
         overlay_panel_update_input_region(state.base);
-        native_surface_commit(state.base.surface);
+        wl_surface_commit(state.base.surface);
         state.opened_by_widget = by_widget;
         overlay_panel_request_frame(state.base);
         start_open_sequence(state);
@@ -458,7 +459,7 @@ std::vector<IpcHandler> logout_ipc_handlers(LogoutState &logout, WaylandState &s
              if (!logout.base.open) {
                  MonitorOutput *target = app_detail::active_target_monitor(state);
                  if (target && (target->output.wl != logout.bound_output || !logout.base.layer_surface))
-                     logout_retarget(logout, state.compositor, state.layer_shell, state.renderer, state.egl_display, state.egl_config, state.egl_context, target->output.wl, target->output.name.c_str());
+                     logout_retarget(logout, state.compositor, state.layer_shell, state.display, state.renderer, state.egl_display, state.egl_config, state.egl_context, target->output.wl, target->output.name.c_str());
              }
              logout_apply_logo_config(logout, state.cfg.logout_animated_logo);
              logout_toggle(logout);

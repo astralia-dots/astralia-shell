@@ -1,78 +1,50 @@
 #include "render/layer_surface.h"
 
-#include "app/backend.h"
+zwlr_layer_surface_v1 *
+layer_surface_create(wl_surface *&out_surface, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, const LayerSurfaceConfig &cfg, const zwlr_layer_surface_v1_listener *listener, void *listener_data, wl_output *output) {
+    out_surface = wl_compositor_create_surface(compositor);
+    zwlr_layer_surface_v1 *layer_surface =
+        zwlr_layer_shell_v1_get_layer_surface(layer_shell, out_surface, output, cfg.layer, cfg.name_space);
+    if (!layer_surface)
+        return nullptr;
 
-#include "wayland/layer_surface.h"
-#include "x11/layer_surface.h"
+    if (cfg.anchor)
+        zwlr_layer_surface_v1_set_anchor(layer_surface, cfg.anchor);
+    if (cfg.width || cfg.height)
+        zwlr_layer_surface_v1_set_size(layer_surface, cfg.width, cfg.height);
+    if (cfg.margin_top || cfg.margin_right || cfg.margin_bottom || cfg.margin_left)
+        zwlr_layer_surface_v1_set_margin(layer_surface, cfg.margin_top, cfg.margin_right, cfg.margin_bottom, cfg.margin_left);
+    zwlr_layer_surface_v1_set_exclusive_zone(layer_surface, cfg.exclusive_zone);
 
-LayerSurfaceHandle layer_surface_create(NativeSurfaceHandle &out_surface, void *compositor, void *layer_shell, const LayerSurfaceConfig &cfg, LayerSurfaceConfigureFn on_configure, void *listener_data, void *output) {
-#ifdef ASTRALIA_HAVE_WAYLAND
-    if (active_backend() == Backend::Wayland)
-        return backend_wayland::layer_surface_create(out_surface, compositor, layer_shell, cfg, on_configure, listener_data, output);
-#endif
-#ifdef ASTRALIA_HAVE_X11
-    return backend_x11::layer_surface_create(out_surface, compositor, layer_shell, cfg, on_configure, listener_data, output);
-#else
-    return nullptr;
-#endif
+    zwlr_layer_surface_v1_set_keyboard_interactivity(layer_surface, ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
+    zwlr_layer_surface_v1_add_listener(layer_surface, listener, listener_data);
+
+    if (cfg.empty_input_region) {
+        wl_region *empty_region = wl_compositor_create_region(compositor);
+        wl_surface_set_input_region(out_surface, empty_region);
+        wl_region_destroy(empty_region);
+    }
+
+    return layer_surface;
 }
 
-void layer_surface_set_size(LayerSurfaceHandle layer_surface, int32_t width, int32_t height) {
-#ifdef ASTRALIA_HAVE_WAYLAND
-    if (active_backend() == Backend::Wayland) {
-        backend_wayland::layer_surface_set_size(layer_surface, width, height);
-        return;
+void destroy_layer_surface(EGLDisplay display, wl_surface *&surface, zwlr_layer_surface_v1 *&layer_surface, wl_egl_window *&egl_window, EGLSurface &egl_surface, FrameClock *frame_clock) {
+    if (frame_clock)
+        frame_clock_drop_callback(*frame_clock);
+    if (egl_surface != EGL_NO_SURFACE) {
+        eglDestroySurface(display, egl_surface);
+        egl_surface = EGL_NO_SURFACE;
     }
-#endif
-#ifdef ASTRALIA_HAVE_X11
-    backend_x11::layer_surface_set_size(layer_surface, width, height);
-#endif
-}
-
-void layer_surface_set_margin(LayerSurfaceHandle layer_surface, int32_t top, int32_t right, int32_t bottom, int32_t left) {
-#ifdef ASTRALIA_HAVE_WAYLAND
-    if (active_backend() == Backend::Wayland) {
-        backend_wayland::layer_surface_set_margin(layer_surface, top, right, bottom, left);
-        return;
+    if (egl_window) {
+        wl_egl_window_destroy(egl_window);
+        egl_window = nullptr;
     }
-#endif
-#ifdef ASTRALIA_HAVE_X11
-    backend_x11::layer_surface_set_margin(layer_surface, top, right, bottom, left);
-#endif
-}
-
-void layer_surface_set_exclusive_zone(LayerSurfaceHandle layer_surface, int32_t zone) {
-#ifdef ASTRALIA_HAVE_WAYLAND
-    if (active_backend() == Backend::Wayland) {
-        backend_wayland::layer_surface_set_exclusive_zone(layer_surface, zone);
-        return;
+    if (layer_surface) {
+        zwlr_layer_surface_v1_destroy(layer_surface);
+        layer_surface = nullptr;
     }
-#endif
-#ifdef ASTRALIA_HAVE_X11
-    backend_x11::layer_surface_set_exclusive_zone(layer_surface, zone);
-#endif
-}
-
-void layer_surface_set_keyboard_interactivity(LayerSurfaceHandle layer_surface, bool exclusive) {
-#ifdef ASTRALIA_HAVE_WAYLAND
-    if (active_backend() == Backend::Wayland) {
-        backend_wayland::layer_surface_set_keyboard_interactivity(layer_surface, exclusive);
-        return;
+    if (surface) {
+        wl_surface_destroy(surface);
+        surface = nullptr;
     }
-#endif
-#ifdef ASTRALIA_HAVE_X11
-    backend_x11::layer_surface_set_keyboard_interactivity(layer_surface, exclusive);
-#endif
-}
-
-void destroy_layer_surface(EGLDisplay display, NativeSurfaceHandle &surface, LayerSurfaceHandle &layer_surface, NativeEglWindowHandle &egl_window, EGLSurface &egl_surface, FrameClock *frame_clock) {
-#ifdef ASTRALIA_HAVE_WAYLAND
-    if (active_backend() == Backend::Wayland) {
-        backend_wayland::destroy_layer_surface(display, surface, layer_surface, egl_window, egl_surface, frame_clock);
-        return;
-    }
-#endif
-#ifdef ASTRALIA_HAVE_X11
-    backend_x11::destroy_layer_surface(display, surface, layer_surface, egl_window, egl_surface, frame_clock);
-#endif
 }

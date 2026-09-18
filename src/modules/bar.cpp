@@ -33,13 +33,13 @@ BarPerMonitorState &bar_state(MonitorOutput &mon) {
 
 namespace bar_detail {
 
-void bar_autohide_set_surface_geometry(LayerSurfaceHandle layer_surface, NativeSurfaceHandle surface, NativeEglWindowHandle egl_window, int32_t width, int32_t height_px, int32_t margin_top, int32_t margin_right, int32_t margin_left, int32_t exclusive_zone, int32_t output_scale) {
-    layer_surface_set_size(layer_surface, 0, height_px);
-    layer_surface_set_margin(layer_surface, margin_top, margin_right, 0, margin_left);
-    layer_surface_set_exclusive_zone(layer_surface, exclusive_zone);
-    native_surface_commit(surface);
+void bar_autohide_set_surface_geometry(zwlr_layer_surface_v1 *layer_surface, wl_surface *surface, wl_egl_window *egl_window, int32_t width, int32_t height_px, int32_t margin_top, int32_t margin_right, int32_t margin_left, int32_t exclusive_zone, int32_t output_scale) {
+    zwlr_layer_surface_v1_set_size(layer_surface, 0, height_px);
+    zwlr_layer_surface_v1_set_margin(layer_surface, margin_top, margin_right, 0, margin_left);
+    zwlr_layer_surface_v1_set_exclusive_zone(layer_surface, exclusive_zone);
+    wl_surface_commit(surface);
     if (egl_window)
-        egl_native_window_resize(egl_window, width * output_scale, height_px * output_scale);
+        wl_egl_window_resize(egl_window, width * output_scale, height_px * output_scale, 0, 0);
 }
 
 void close_other_overlays(MonitorOutput &mon, PillId keep) {
@@ -139,8 +139,8 @@ void clock_panel_dispatch(WaylandState &app) {
 bool bar_init_egl(MonitorOutput &mon, Renderer &renderer, EGLDisplay display, EGLConfig config, EGLContext context) {
     int32_t scale = mon.output_scale.scale;
     mon.egl_window =
-        egl_native_window_create(mon.surface, mon.width * scale, bar_detail::bar_current_height(mon) * scale);
-    mon.egl_surface = egl_surface_create(mon.surface, mon.egl_window, display, config);
+        wl_egl_window_create(mon.surface, mon.width * scale, bar_detail::bar_current_height(mon) * scale);
+    mon.egl_surface = eglCreateWindowSurface(display, config, reinterpret_cast<EGLNativeWindowType>(mon.egl_window), nullptr);
     if (mon.egl_surface == EGL_NO_SURFACE)
         return false;
     if (!gl_make_current(display, mon.egl_surface, context))
@@ -186,7 +186,7 @@ void dispatch_pill_click(MonitorOutput &mon, double click_x, double click_y) {
         return;
     }
 
-    bar_detail::dispatch_pill_click(bs.capsule, p, static_cast<wl_surface *>(mon.surface));
+    bar_detail::dispatch_pill_click(bs.capsule, p, mon.surface);
 }
 
 void update_clock(MonitorOutput &mon) {
@@ -262,7 +262,7 @@ void bar_paint(MonitorOutput &mon) {
     PointerState hit_pointer = app.pointer;
     hit_pointer.y -= content_y_offset;
     PillId hovered = current_panel_pill != PillId::None ? current_panel_pill : lingering ? bs.capsule.label_linger_pill
-                                                                                         : hit_test_pills(bs.capsule, hit_pointer, static_cast<wl_surface *>(mon.surface));
+                                                                                         : hit_test_pills(bs.capsule, hit_pointer, mon.surface);
     if (hovered == PillId::None && bs.volume_peek_active)
         hovered = PillId::Volume;
 
@@ -330,24 +330,24 @@ bool BarPerMonitorModule::create_surface(WaylandState &app, MonitorOutput &mon, 
     mon_ = &mon;
     mon.autohide.enabled = autohide_effective_enabled(app.cfg, mon.output.name);
     LayerSurfaceConfig bar_cfg{
-        .layer = kLayerShellTop,
+        .layer = ZWLR_LAYER_SHELL_V1_LAYER_TOP,
         .name_space = "astralia-shell",
-        .anchor = kLayerAnchorTop | kLayerAnchorLeft | kLayerAnchorRight,
+        .anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT,
         .height = bar_detail::bar_current_height(mon),
         .margin_top = bar_detail::bar_autohide_geometry(mon.autohide.enabled, mon.autohide.collapsed, bar_detail::kBarHeight).margin_top,
         .margin_right = static_cast<int32_t>(kPanelSideMargin),
         .margin_left = static_cast<int32_t>(kPanelSideMargin),
         .exclusive_zone = bar_detail::bar_autohide_geometry(mon.autohide.enabled, mon.autohide.collapsed, bar_detail::kBarHeight).exclusive_zone,
     };
-    mon.layer_surface = layer_surface_create(mon.surface, app.compositor, app.layer_shell, bar_cfg, bar_layer_surface_configure, &mon, output);
+    mon.layer_surface = layer_surface_create(mon.surface, app.compositor, app.layer_shell, bar_cfg, &bar_layer_surface_listener, &mon, output);
     mon.output_scale.on_change = [&mon](int32_t scale) {
         if (mon.egl_window)
-            egl_native_window_resize(mon.egl_window, mon.width * scale, bar_detail::bar_current_height(mon) * scale);
+            wl_egl_window_resize(mon.egl_window, mon.width * scale, bar_detail::bar_current_height(mon) * scale, 0, 0);
         if (mon.frame_clock.surface)
             ::request_frame(mon.frame_clock);
     };
-    output_scale_watch(mon.output_scale, static_cast<wl_surface *>(mon.surface));
-    native_surface_commit(mon.surface);
+    output_scale_watch(mon.output_scale, mon.surface);
+    wl_surface_commit(mon.surface);
 
     if (!network_panel_create_surface(state.network_panel, app.compositor, app.layer_shell, output))
         klog("network_panel: failed to create layer surface on '%s'", mon.output.name.c_str());
@@ -378,7 +378,7 @@ bool BarPerMonitorModule::init_egl(WaylandState &app, MonitorOutput &mon) {
 
     state.network_panel.sync_text_input_focus = [this, &app](bool focused) {
         if (focused)
-            app.text_input.set_focused_client(static_cast<wl_surface *>(state.network_panel.base.surface), this);
+            app.text_input.set_focused_client(state.network_panel.base.surface, this);
         else
             app.text_input.clear_focused_client(this);
     };
@@ -514,7 +514,7 @@ void BarPerMonitorModule::handle_click(WaylandState &app, MonitorOutput &mon, wl
             TrayMenuOpenArgs args{
                 .compositor = app.compositor,
                 .wm_base = app.wm_base,
-                .parent_layer = static_cast<zwlr_layer_surface_v1 *>(state.tray_panel.base.layer_surface),
+                .parent_layer = state.tray_panel.base.layer_surface,
                 .display = app.display,
                 .egl_display = app.egl_display,
                 .egl_config = app.egl_config,
@@ -582,7 +582,7 @@ void BarPerMonitorModule::handle_scroll(WaylandState &app, MonitorOutput &mon, w
     } else if (surface == state.system_monitor_panel.base.surface) {
         system_monitor_panel_handle_scroll(state.system_monitor_panel, app.gpu_temp, dy);
         system_monitor_panel_dispatch(app);
-    } else if (surface == mon.surface && bar_detail::hit_test_pills(state.capsule, app.pointer, static_cast<wl_surface *>(mon.surface)) == PillId::Volume) {
+    } else if (surface == mon.surface && bar_detail::hit_test_pills(state.capsule, app.pointer, mon.surface) == PillId::Volume) {
         bar_detail::volume_pill_handle_wheel(mon, dy);
     }
 }
@@ -646,5 +646,5 @@ bool BarPerMonitorModule::wants_pointing_hand_cursor() const {
         p.y -= bar_detail::kBarTopMargin;
     const Rect &cr = bs.clock_rect;
     bool clock_hit = cr.w > 0 && p.x >= cr.x && p.x < cr.x + cr.w && p.y >= cr.y && p.y < cr.y + cr.h;
-    return clock_hit || bar_detail::workspace_row_hit_overview(bs.workspace_widget, p.x, p.y) || bar_detail::workspace_row_hit_workspace(bs.workspace_widget, p.x, p.y) > 0 || bar_detail::hit_test_pills(bs.capsule, p, static_cast<wl_surface *>(mon_->surface)) != PillId::None;
+    return clock_hit || bar_detail::workspace_row_hit_overview(bs.workspace_widget, p.x, p.y) || bar_detail::workspace_row_hit_workspace(bs.workspace_widget, p.x, p.y) > 0 || bar_detail::hit_test_pills(bs.capsule, p, mon_->surface) != PillId::None;
 }

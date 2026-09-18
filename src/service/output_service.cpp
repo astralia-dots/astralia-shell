@@ -1,19 +1,40 @@
 #include "service/output_service.h"
 
-#include "app/backend.h"
+wl_output *active_output_select(const std::vector<Output *> &outputs, const std::string &focused_name, wl_output *pointer_hint) {
+    if (!focused_name.empty()) {
+        for (Output *o : outputs)
+            if (o->name == focused_name)
+                return o->wl;
+    }
+    if (pointer_hint)
+        return pointer_hint;
+    return outputs.empty() ? nullptr : outputs.front()->wl;
+}
 
-#include "wayland/output_service.h"
+namespace {
 
-#include "x11/output_service.h"
+void output_scale_preferred(void *data, wl_surface *surface, int32_t scale) {
+    auto *state = static_cast<OutputScale *>(data);
+    if (scale <= 0 || scale == state->scale)
+        return;
+    state->scale = scale;
+    wl_surface_set_buffer_scale(surface, scale);
+    if (state->on_change)
+        state->on_change(scale);
+}
+
+const wl_surface_listener &output_scale_listener() {
+    static constexpr wl_surface_listener l{
+        .enter = [](void *, wl_surface *, wl_output *) {},
+        .leave = [](void *, wl_surface *, wl_output *) {},
+        .preferred_buffer_scale = output_scale_preferred,
+        .preferred_buffer_transform = [](void *, wl_surface *, uint32_t) {},
+    };
+    return l;
+}
+
+} // namespace
 
 void output_scale_watch(OutputScale &state, wl_surface *surface) {
-#ifdef ASTRALIA_HAVE_WAYLAND
-    if (active_backend() == Backend::Wayland) {
-        backend_wayland::output_scale_watch(state, surface);
-        return;
-    }
-#endif
-#ifdef ASTRALIA_HAVE_X11
-    backend_x11::output_scale_watch(state, surface);
-#endif
+    wl_surface_add_listener(surface, &output_scale_listener(), &state);
 }

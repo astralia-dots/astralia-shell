@@ -6,22 +6,21 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <wayland-client.h>
+#include <wayland-egl.h>
 
 #include "app/per_monitor_module.h"
 #include "app/wayland_state.h"
 
-struct wl_output;
-struct wl_surface;
-
 #include "render/animation.h"
-#include "render/egl_surface.h"
-#include "render/layer_surface.h"
 #include "render/renderer.h"
 #include "render/scene.h"
 
 #include "service/frame_service.h"
 #include "service/hyprland_service.h"
 #include "service/output_service.h"
+
+#include "wlr-layer-shell-unstable-v1-client-protocol.h"
 
 struct AutoHideState {
     bool hidden = false;
@@ -35,9 +34,9 @@ struct MonitorOutput {
     WaylandState *app = nullptr;
     Output output;
     bool activated = false;
-    NativeSurfaceHandle surface = nullptr;
-    LayerSurfaceHandle layer_surface = nullptr;
-    NativeEglWindowHandle egl_window = nullptr;
+    wl_surface *surface = nullptr;
+    zwlr_layer_surface_v1 *layer_surface = nullptr;
+    wl_egl_window *egl_window = nullptr;
     EGLSurface egl_surface = EGL_NO_SURFACE;
     int32_t width = 0;
     bool configured = false;

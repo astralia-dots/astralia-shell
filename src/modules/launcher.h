@@ -6,6 +6,8 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <wayland-client.h>
+#include <wayland-egl.h>
 
 #include "app/text_input_client.h"
 
@@ -14,8 +16,6 @@
 #include "core/async_process.h"
 
 #include "render/animation.h"
-#include "render/egl_surface.h"
-#include "render/layer_surface.h"
 #include "render/overlay_panel.h"
 #include "render/rect.h"
 #include "render/renderer.h"
@@ -29,10 +29,7 @@
 #include "service/input_service.h"
 #include "service/output_service.h"
 
-struct wl_compositor;
-struct wl_output;
-struct wl_surface;
-struct zwlr_layer_shell_v1;
+#include "wlr-layer-shell-unstable-v1-client-protocol.h"
 
 struct LauncherRowHit {
     Rect rect;
@@ -40,9 +37,9 @@ struct LauncherRowHit {
 };
 
 struct LauncherState {
-    NativeSurfaceHandle surface = nullptr;
-    LayerSurfaceHandle layer_surface = nullptr;
-    NativeEglWindowHandle egl_window = nullptr;
+    wl_surface *surface = nullptr;
+    zwlr_layer_surface_v1 *layer_surface = nullptr;
+    wl_egl_window *egl_window = nullptr;
     EGLSurface egl_surface = EGL_NO_SURFACE;
     EGLDisplay egl_display = nullptr;
     EGLContext egl_context = nullptr;
@@ -102,7 +99,7 @@ bool launcher_init_egl(LauncherState &state, Renderer &renderer, EGLDisplay disp
 
 void launcher_destroy_surface(LauncherState &state);
 
-void launcher_retarget(LauncherState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, Renderer &renderer, EGLDisplay egl_display, EGLConfig egl_config, EGLContext egl_context, wl_output *target_output, const char *target_name);
+void launcher_retarget(LauncherState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_display *display, Renderer &renderer, EGLDisplay egl_display, EGLConfig egl_config, EGLContext egl_context, wl_output *target_output, const char *target_name);
 
 void launcher_request_frame(LauncherState &state);
 

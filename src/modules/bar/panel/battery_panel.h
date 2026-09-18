@@ -3,6 +3,7 @@
 #include <EGL/egl.h>
 #include <string>
 #include <vector>
+#include <wayland-client.h>
 
 #include "render/overlay_panel.h"
 #include "render/panel_chrome.h"
@@ -14,9 +15,7 @@
 #include "service/input_service.h"
 #include "service/upower_service.h"
 
-struct wl_compositor;
-struct wl_output;
-struct zwlr_layer_shell_v1;
+#include "wlr-layer-shell-unstable-v1-client-protocol.h"
 
 constexpr float kBatteryEmptyStateHeight = 72.0f;
 constexpr float kBatteryTextRowHeight = 18.0f;

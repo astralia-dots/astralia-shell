@@ -5,6 +5,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <wayland-client.h>
 
 #include "app/text_input_client.h"
 
@@ -21,9 +22,7 @@
 #include "service/input_service.h"
 #include "service/network_service.h"
 
-struct wl_compositor;
-struct wl_output;
-struct zwlr_layer_shell_v1;
+#include "wlr-layer-shell-unstable-v1-client-protocol.h"
 
 constexpr float kNetErrorBannerHeight = 48.0f;
 constexpr float kNetworkEthernetBannerHeight = 40.0f;

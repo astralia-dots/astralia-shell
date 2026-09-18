@@ -10,10 +10,6 @@
 
 ## src/app
 
-- `backend.h`+`.cpp`: `backend_connect()` probes Wayland then X11 and caches the live connection; `active_backend()`/`active_display()` let every `src/wayland/`+`src/x11/` seam query which backend and connection are live without re-plumbing it through every call; `backend_wait_dispatch()` is the narrow blocking helper used by every `while (!configured) ...` wait loop.
-- `backend_bootstrap.h`+`.cpp`: Dispatches the one-time startup handshake to `wayland::bootstrap`/`x11::bootstrap` - registry bind+roundtrips on Wayland, `XRandR` output enumeration plus direct `keyboard_attach_seat`/`pointer_bind` calls on X11.
-- `backend_poll.h`+`.cpp`: Main-loop poll-fd/flush/dispatch dispatch; the X11 branch drains `XPending`/`XNextEvent`, routing `GenericEvent`/`XInput2` to `x11::handle_xi_device_event`, `ConfigureNotify` to `x11::toplevel_window_handle_configure_notify`, and `ClientMessage` (`WM_DELETE_WINDOW`) to `x11::toplevel_window_handle_client_message`.
-- `input_dispatch.cpp`: Backend dispatch for `keyboard_attach_seat`/`pointer_bind`/`pointer_release`/`pointer_set_cursor_shape` (declared in `service/input_service.h`); kept out of `service/input_service.cpp` so that file stays test-linked and free of Wayland/X11 headers.
 - `config.h`+`.cpp`: JSON config loader/saver with atomic write and inotify hot-reload.
 - `single_instance_lock.h`+`.cpp`: `flock()`-based single-instance lock.
 - `ipc.h`+`.cpp`: Astralia Shell's own control socket, client/server request handling; verb table from each module.
@@ -22,8 +18,8 @@
 - `module.h`: `Module` interface: per-surface overlay boundary, default no-op virtuals, plus `apply_config` and `on_output_removed` hooks.
 - `per_monitor_module.h`: `PerMonitorModule` interface, the per-surface per-monitor boundary; default no-op virtuals, unnamed params.
 - `module_registry.h`+`.cpp`: `build_app_modules`/`build_per_monitor_modules` composition root; also bridges `app/` code to the lock module without a module include.
-- `wayland_registry.h`+`.cpp`: Backend-agnostic bootstrap leftovers - `bar_layer_surface_configure`, and `bootstrap_egl`/`renderer_bootstrap_init` (the `eglGetDisplay`/`EGLContext`/GL-string-log sequence, identical for either backend since `EGLNativeDisplayType` is just the raw connection pointer). The actual `wl_registry` bind/listener wiring lives in `src/wayland/bootstrap.cpp`.
-- `wayland_state.h`: `WaylandState`, forward-declared Wayland pointer fields and every process-wide service's owned state; forward-declares `MonitorOutput`. Concrete Wayland/X11 types never leak through this header.
+- `wayland_registry.h`+`.cpp`: Wayland global registry bind/listener wiring, populates `WaylandState`'s globals; notifies the lock module of output hotplug.
+- `wayland_state.h`: `WaylandState`, shared Wayland globals and every process-wide service's owned state; forward-declares `MonitorOutput`.
 - `service.h`: `Service` interface, the process-wide boundary for cross-cutting services: `init`/`timer_tick`/`poll_sources`.
 - `service_registry.h`+`.cpp`: `build_services` composition root, one `Service` subclass per cross-cutting service.
 - `user_info.h`+`.cpp`: `getpwuid`-based username, `/etc/os-release` `PRETTY_NAME`, `sysinfo`-based uptime string, and `profile_media_path` resolution, shared across modules.
@@ -63,11 +59,10 @@
 - `node.h`+`.cpp`: `Node` retained-allocation scene graph with per-frame node pooling; kinds are rect/rounded-rect/texture/rounded-texture/video-texture/group; per-node `rotation`/`scale` about the node centre.
 - `video_texture.h`+`.cpp`: `VideoTexture` RAII `EGLImageKHR`/`GL` handle plus `DrmFrameImport` dma-buf import for zero-copy `VAAPI` playback, and the `EGL_EXT_image_dma_buf_import` cap probe.
 - `gl.h`+`.cpp`: Labelled shader compile/link helpers, reading `assets/shaders/` with an installed-then-dev-tree fallback, plus a `glGetError`-draining `gl_check`.
-- `egl_surface.h`+`.cpp`: `NativeSurfaceHandle`/`NativeEglWindowHandle` opaque types and the `egl_native_window_*`/`native_surface_*` backend dispatch; bodies live in `src/wayland/`+`src/x11/`.
-- `overlay_panel.h`+`.cpp`: Shared full-screen on-demand overlay surface: position-lock-on-toggle, live-height roll-down/collapse, and output-unplug surface release; layer-surface/EGL/commit calls all go through the backend-dispatched seams.
-- `toplevel_window.h`+`.cpp`: Shared real-window surface lifecycle for compositor-managed windows (`xdg_toplevel` on Wayland, a WM-managed `Window` on X11); backend dispatch, bodies in `src/wayland/`+`src/x11/`.
-- `popup_window.h`+`.cpp`: Shared positioned-popup surface lifecycle (`xdg_popup` parented via `zwlr_layer_surface_v1::get_popup` on Wayland, an override-redirect `Window` on X11); backend dispatch, bodies in `src/wayland/`+`src/x11/`.
-- `layer_surface.h`+`.cpp`: `LayerSurfaceConfig`/`LayerSurfaceHandle` backend dispatch for panel surfaces (`zwlr_layer_surface_v1` on Wayland, an EWMH-struts `Window` on X11); bodies in `src/wayland/`+`src/x11/`.
+- `overlay_panel.h`+`.cpp`: Shared full-screen on-demand overlay surface: position-lock-on-toggle, live-height roll-down/collapse, and output-unplug surface release.
+- `toplevel_window.h`+`.cpp`: Shared `xdg_toplevel` real-window surface lifecycle for compositor-managed windows.
+- `popup_window.h`+`.cpp`: Shared `xdg_popup` surface lifecycle parented to a layer surface via `zwlr_layer_surface_v1::get_popup`, with positioner, popup grab, `popup_done`, and reposition-on-resize.
+- `layer_surface.h`+`.cpp`: Shared layer-shell surface creation helper, deduping anchor/margin/listener setup; `destroy_layer_surface` also drops any pending frame callback.
 - `scene.h`: Thin `Scene` holder over `node.h` - a root `Node` plus `dirty`/`draw`/`rebuild` one-liners; no scene-graph logic of its own.
 - `image.h`+`.cpp`: JPEG/PNG/SVG decode (sniffed from content) and GL texture upload, no GIF; SVG rasterized via `librsvg`+Cairo; `load_image_texture_first_existing` picks the first candidate path that exists.
 - `texture_cache.h`+`.cpp`: Path-keyed decoded-texture cache built on `texture.h`.
@@ -92,11 +87,11 @@
 - `pipewire_service.h`+`.cpp`: Direct libpipewire client for OSD volume/mic triggers and volume-panel writes; also `DraggedSlider`, tag-to-node-id resolution, and drag-to-volume application.
 - `telemetry_service.h`+`.cpp`: CPU/GPU temperature and usage via hwmon/thermal-zone/`nvidia-smi`, plus CPU frequency, CPU/RAM/disk usage, and network throughput.
 - `frame_service.h`+`.cpp`: Frame-callback paint pacing shared across surfaces; first paint synchronous, later repaints deferred to `frame_done`.
-- `input_service.h`+`.cpp`: `translate_key`/`keyboard_drain_events`/`keyboard_repeat_tick`/`pointer_drain_clicks`/`pointer_drain_scrolls` - the pure, backend-agnostic parts of `KeyboardState`/`PointerState` handling; test-linked. Seat/pointer-bind dispatch lives in `app/input_dispatch.cpp`, bodies in `src/wayland/`+`src/x11/` (`wl_seat`/`xkbcommon` vs `XInput2`/`xkbcommon-x11`/`Xcursor`).
-- `text_input_service.h`: `TextInputService` class shell, fully forward-declared. Its body is backend-exclusive, not a runtime shim: `src/wayland/text_input_service.cpp` (the real `zwp_text_input_v3` glue, moved as-is) is compiled when `wayland_backend` is enabled, `src/x11/text_input_service.cpp` (all-methods-no-op stub; real `XIM` support is unimplemented) otherwise.
+- `input_service.h`+`.cpp`: All `wl_seat` input: `wl_keyboard`+xkbcommon key handling, `wl_pointer` hover/click/cursor-shape, and the shared seat-capabilities listener.
+- `text_input_service.h`+`.cpp`: `zwp_text_input_v3` client-role protocol glue for IME composition (fcitx5/ibus), focus tracking, preedit/commit/delete dispatch to the active `TextInputClient`.
 - `hyprland_service.h`+`.cpp`: Hyprland IPC client: per-monitor workspace/client state via request+event sockets, plus `hypr_tile_*` tiling actions dispatched as Lua calls.
-- `capture_service.h`+`.cpp`: Per-window live capture backend dispatch (`hyprland-toplevel-export-v1`+`wl_shm` on Wayland, `XComposite`+`XGetImage` on X11); `toplevel_export_texture` is a pure lookup shared by both. Bodies in `src/wayland/`+`src/x11/`.
-- `output_service.h`+`.cpp`: Pure-data `Output` struct plus `active_output_select` (inline, header-only, test-linked); `output_scale_watch`'s fractional-scale listener is backend dispatch, bodies in `src/wayland/`+`src/x11/` (X11's is a no-op - no live per-surface scale-change event on core X11).
+- `capture_service.h`+`.cpp`: Per-window `hyprland-toplevel-export-v1` live capture; `wl_shm` buffer alloc/reuse and GL texture upload, throttled per window.
+- `output_service.h`+`.cpp`: Pure-data `Output` struct plus output-selection logic, and per-output fractional-scale listener tracking (`OutputScale`).
 - `wallpaper_service.h`+`.cpp`: Per-monitor, per-column wallpaper path/count/fill-mode resolution; a `bool animated` selects the static or animated config maps.
 - `media_service.h`+`.cpp`: The shell's one media decoder, host side; loads `media_plugin` via `dlopen` and owns the async `.rgba` frame cache.
 - `media_plugin.h`+`.cpp`: The `shared_module` linking `libavcodec`/`libavfilter`, isolated so a missing `ffmpeg` only disables animated content, not the whole shell.
@@ -108,7 +103,7 @@
 ## src/core
 
 - `deferred_call.h`+`.cpp`: Cross-thread callback hand-off so worker threads can post to the main thread.
-- `log.h`+`.cpp`: `klog()` dual stderr + logfile logging with timestamps; `klog_set_backend()` retargets the logfile to `astralia-wayland.log`/`astralia-x11.log` once the active backend is known; `klog_install_crash_handler()` also installs a `std::set_terminate` handler that logs the uncaught exception's `what()` before aborting.
+- `log.h`+`.cpp`: `klog()` dual stderr + logfile logging with timestamps; `klog_install_crash_handler()` also installs a `std::set_terminate` handler that logs the uncaught exception's `what()` before aborting.
 - `path_home.h`+`.cpp`: `path_collapse_home`/`path_expand_home` `$HOME` <-> `~` path rewriters, shared by `config`, `settings`, and `launcher`.
 - `poll_source.h`+`.cpp`: `PollSource` interface, `FnPollSource` helper, and `sdbus_poll_source` wrapping an sdbus connection's poll data.
 - `async_process.h`+`.cpp`: Worker-thread subprocess runner, plus `spawn_detached` for fire-and-forget commands.
@@ -128,7 +123,7 @@
 - `settings.h`+`.cpp`: Settings panel core: hosts per-tab modules, responsive nav rail, shared toggle widgets, and a separately-faded active-tab scene.
 - `rain.h`+`.cpp`: Rain overlay, a real `xdg_toplevel` window; hosts the `MatrixRain`/`StilettoRain` sims and applies mode/speed config live.
 - `visualizer.h`+`.cpp`: Audio visualizer overlay window; a dedicated self-pacing render thread draws either `SphereVisualizer` or `BarVisualizer`, fed by its own PipeWire capture.
-- `lock.h`+`.cpp`: Session lock: `PAM` auth on a worker thread, three-column info card, `lock_paint` and password state machine all backend-agnostic. Surface acquire/create/destroy/release are backend dispatch (`session_lock_*`, bodies in `src/wayland/`+`src/x11/`); X11's stub always fails (`ext_session_lock_v1`-equivalent grab not yet implemented there).
+- `lock.h`+`.cpp`: `ext-session-lock-v1` session lock; one surface per output, `PAM` auth on a worker thread, three-column info card.
 - `polkit.h`+`.cpp`: Reactive singleton overlay prompting for the user's password on a polkit authentication request; centered card with `EaseOutBack`/`EaseInBack` scale-in/out, dot-masked password field shared with `lock`'s echo glyph.
 
 ## src/modules/visualizer
@@ -194,40 +189,7 @@
 
 ## src
 
-- `astralia-shell.cpp`: Orchestration, EGL bootstrap, poll loop, CLI entry point, daemonize/debug/`start-lock`/IPC-client dispatch. `backend_connect()` probes Wayland then X11; `backend_bootstrap()`/`backend_poll_*()` (`app/backend_bootstrap.h`+`backend_poll.h`) do the actual backend-specific registry/`XRandR` handshake and per-iteration flush/fd/dispatch, so this file itself has no backend branch.
-
-## src/wayland
-
-Wayland bodies (namespace `backend_wayland`) behind the seams declared in `src/render/`+`src/service/`; each mirrors the pre-split implementation with no behavior change.
-
-- `egl_surface.h`+`.cpp`: `wl_egl_window`/`eglCreateWindowSurface`-based `NativeEglWindowHandle` creation, plus `wl_surface_commit`/`wl_surface_set_input_region`.
-- `layer_surface.h`+`.cpp`: `zwlr_layer_surface_v1`-backed `LayerSurfaceHandle`; owns a small heap-allocated wrapper pairing the raw Wayland object with the plain `LayerSurfaceConfigureFn` adapter, since `zwlr_layer_surface_v1_add_listener` needs a concrete Wayland-typed listener.
-- `toplevel_window.h`+`.cpp`, `popup_window.h`+`.cpp`: `xdg_toplevel`/`xdg_popup` bodies, unchanged from before the backend split.
-- `frame_service.h`+`.cpp`: `wl_surface_frame`/`wl_callback`-paced redraw, unchanged from before the split.
-- `input_service.h`+`.cpp`: `wl_seat`/`wl_keyboard`/`wl_pointer`/`wp_cursor_shape_manager_v1` listeners, unchanged from before the split.
-- `capture_service.h`+`.cpp`: `hyprland-toplevel-export-v1` capture, unchanged from before the split.
-- `output_service.h`+`.cpp`: The real `wl_surface.preferred_buffer_scale` listener body (moved out of `service/output_service.cpp`).
-- `bootstrap.h`+`.cpp`: `wl_registry` bind/listener wiring (`registry_global`/`registry_global_remove`, output/`xdg_wm_base` listeners) - the real body behind `app/backend_bootstrap.h`'s Wayland branch; moved here from `app/wayland_registry.cpp`.
-- `session_lock.h`+`.cpp`: The real `ext_session_lock_v1`/`ext_session_lock_surface_v1` listener bodies and surface lifecycle, behind `modules/lock.cpp`'s `session_lock_*` dispatch.
-- `text_input_service.cpp`: The real `zwp_text_input_v3` `TextInputService` method bodies, moved as-is from `service/text_input_service.cpp`.
-
-## src/x11
-
-X11 bodies (namespace `backend_x11`) behind the same seams. `astralia-shell` renders and takes input under `awesome`+`picom` through this backend as of the X11 support work (`local/plan/x11-full-support.md`); live output hotplug, a real `i3lock`-style session-lock grab, and a real `XIM` IME client remain out of scope.
-
-- `egl_surface.h`+`.cpp`: An X `Window` XID is itself a valid `EGLNativeWindowType`, so `egl_native_window_create` is a no-op; `native_surface_set_input_region` is a documented no-op pending `XShapeCombineRegion`.
-- `atoms.h`+`.cpp`: `XInternAtom`-cached EWMH atoms (`_NET_WM_STRUT`, `_NET_WM_STRUT_PARTIAL`, `_NET_WM_DESKTOP`, `_NET_WM_WINDOW_TYPE`, `_NET_WM_WINDOW_TYPE_DOCK`, `_NET_WM_STATE`, `_NET_WM_STATE_ABOVE`, `_NET_WM_STATE_BELOW`, `_NET_WM_NAME`, `UTF8_STRING`, `WM_PROTOCOLS`, `WM_DELETE_WINDOW`).
-- `output_bootstrap.h`+`.cpp`: `XRandR`-based per-monitor output enumeration (`bootstrap_outputs`), a synthetic `wl_output*` identity token per connected output with an active `CRTC`, and `monitor_rect` mapping that token back to its `CRTC` rect for per-output geometry.
-- `layer_surface.h`+`.cpp`: `_NET_WM_WINDOW_TYPE_DOCK` `Window` with a 32-bit ARGB visual, WM-managed (not override-redirect) so `_NET_WM_STATE_ABOVE`/`_NET_WM_STATE_BELOW` (from `cfg.layer`) is honored for stacking; EWMH struts computed from anchor/margin/exclusive-zone against the owning monitor's `XRandR` rect (offset into the root screen's edges per EWMH's whole-screen strut convention), via `output_bootstrap.h`'s `monitor_rect`. `WM_NORMAL_HINTS`' `PPosition`/`PSize` flags mark the requested geometry as deliberate; a `Window`-to-owner table plus `layer_surface_handle_configure_notify` (routed from `app/backend_poll.cpp` alongside `toplevel_window`'s handler) re-applies that geometry if the window manager moves or resizes the surface. `layer_surface_set_keyboard_interactivity` drives `XSetInputFocus` directly.
-- `toplevel_window.h`+`.cpp`: A real (non-override-redirect) WM-managed `Window` with `WM_NORMAL_HINTS`/`_NET_WM_NAME`/`WM_CLASS`/`WM_DELETE_WINDOW` set; a `Window`-to-owner table plus `toplevel_window_handle_configure_notify`/`_handle_client_message` let `app/backend_poll.cpp` route live resize and close-button events back to it.
-- `popup_window.h`+`.cpp`: Override-redirect `Window` positioned at the anchor rect's bottom-left corner (clamped to screen), approximating the Wayland positioner's anchor/gravity/slide behavior; no live grab yet.
-- `frame_service.h`+`.cpp`: No per-surface frame-callback protocol exists on core X11 (`picom` owns presentation timing); `request_frame` redraws immediately rather than pacing through a callback.
-- `input_service.h`+`.cpp`: `XInput2`/`libxkbcommon-x11` (bridged to XCB via `XGetXCBConnection`) keymap/event setup, `handle_xi_device_event` (the `XIDeviceEvent`-to-`KeyboardState`/`PointerState` translator), and `xi_opcode()` caching the `XInputExtension` opcode for `app/backend_poll.cpp`'s `GenericEvent` routing.
-- `capture_service.h`+`.cpp`: `XCompositeNameWindowPixmap`+`XGetImage` capture, reading back the common 32-bit TrueColor BGRA layout; genuinely more capable than the Wayland path since it needs no `i3`-side protocol support (see `local/plan/x11-support.md`'s "Live-thumbnail capture gets more portable, not less").
-- `output_service.h`+`.cpp`: `output_scale_watch` no-op stub - core X11 has no live per-surface preferred-scale event.
-- `bootstrap.h`+`.cpp`: The real body behind `app/backend_bootstrap.h`'s X11 branch - calls `output_bootstrap.h`'s `bootstrap_outputs`, then `keyboard_attach_seat`/`pointer_bind` directly (no `wl_seat` registry equivalent to wait for).
-- `session_lock.h`+`.cpp`: Stub - `session_lock_acquire` always fails; a real `i3lock`-style grab is unimplemented.
-- `text_input_service.cpp`: All-methods-no-op `TextInputService` stub; compiled in place of `wayland/text_input_service.cpp` only when `wayland_backend` is disabled (real `XIM` support is unimplemented).
+- `astralia-shell.cpp`: Orchestration, Wayland/EGL bootstrap, poll loop, CLI entry point, daemonize/debug/`start-lock`/IPC-client dispatch.
 
 ## test
 
@@ -263,8 +225,7 @@ X11 bodies (namespace `backend_x11`) behind the same seams. `astralia-shell` ren
 
 ## root
 
-- `meson.build`: Build config, dependency list, test registration; `wayland_backend`/`x11_backend` (`meson_options.txt`) independently gate their dev-package `dependency()` calls and `src/wayland/`+`src/x11/` source lists, with `ASTRALIA_HAVE_WAYLAND`/`ASTRALIA_HAVE_X11` compile defines guarding every dispatch shim's matching branch; configure fails if both resolve disabled. The test binary requires `wayland_backend` (its EGL context creation is Wayland-only) and isn't built when it's disabled.
-- `meson_options.txt`: The `wayland_backend`/`x11_backend` feature options (`auto` by default).
+- `meson.build`: Build config, dependency list, test registration.
 - `convention.md`: Formatting and commenting rules.
 
 ## dist

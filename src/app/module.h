@@ -3,6 +3,7 @@
 #include <functional>
 #include <utility>
 #include <vector>
+#include <wayland-client.h>
 
 #include "app/ipc.h"
 
@@ -10,8 +11,6 @@
 
 struct WaylandState;
 struct Config;
-struct wl_output;
-struct wl_surface;
 
 class Module {
   public:

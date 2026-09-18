@@ -6,10 +6,11 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <wayland-client.h>
 #include <xkbcommon/xkbcommon-compose.h>
 #include <xkbcommon/xkbcommon.h>
 
-#include "render/egl_surface.h"
+#include "cursor-shape-v1-client-protocol.h"
 
 enum class KeyKind {
     Text,
@@ -32,19 +33,16 @@ struct KeyEvent {
     bool ctrl = false;
 };
 
-enum class PointerShape { Default,
-                          Pointer };
-
 struct KeyboardState {
     xkb_context *ctx = nullptr;
     xkb_keymap *keymap = nullptr;
     xkb_state *xkb = nullptr;
     xkb_compose_table *compose_table = nullptr;
     xkb_compose_state *compose_state = nullptr;
-    void *keyboard = nullptr;
-    NativeSurfaceHandle focused_surface = nullptr;
+    wl_keyboard *keyboard = nullptr;
+    wl_surface *focused_surface = nullptr;
     std::vector<KeyEvent> pending;
-    std::function<void(NativeSurfaceHandle, bool)> on_focus_surface;
+    std::function<void(wl_surface *, bool)> on_focus_surface;
 
     int repeat_timer_fd = -1;
     int32_t repeat_rate_hz = 25;
@@ -54,7 +52,7 @@ struct KeyboardState {
 };
 
 struct PointerClick {
-    NativeSurfaceHandle surface;
+    wl_surface *surface;
     bool pressed;
     uint32_t button = BTN_LEFT;
     double x = 0, y = 0;
@@ -62,20 +60,20 @@ struct PointerClick {
 };
 
 struct PointerScroll {
-    NativeSurfaceHandle surface;
+    wl_surface *surface;
     double dy;
 };
 
 struct PointerState {
-    void *pointer = nullptr;
-    NativeSurfaceHandle focused_surface = nullptr;
+    wl_pointer *pointer = nullptr;
+    wl_surface *focused_surface = nullptr;
     double x = -1, y = -1;
     bool dirty = false;
     std::vector<PointerClick> pending_clicks;
     std::vector<PointerScroll> pending_scrolls;
 
-    void *cursor_shape_manager = nullptr;
-    void *cursor_shape_device = nullptr;
+    wp_cursor_shape_manager_v1 *cursor_shape_manager = nullptr;
+    wp_cursor_shape_device_v1 *cursor_shape_device = nullptr;
     uint32_t last_enter_serial = 0;
     uint32_t last_button_serial = 0;
 };
@@ -87,13 +85,13 @@ struct SeatCapabilityState {
 
 std::optional<KeyEvent> translate_key(xkb_state *state, uint32_t keycode, xkb_compose_state *compose = nullptr);
 
-void keyboard_attach_seat(SeatCapabilityState &seat_state, void *seat);
+void keyboard_attach_seat(SeatCapabilityState &seat_state, wl_seat *seat);
 
 std::vector<KeyEvent> keyboard_drain_events(KeyboardState &state);
 
 void keyboard_repeat_tick(KeyboardState &state);
 
-void pointer_bind(PointerState &state, void *seat);
+void pointer_bind(PointerState &state, wl_seat *seat);
 
 void pointer_release(PointerState &state);
 
@@ -101,4 +99,4 @@ std::vector<PointerClick> pointer_drain_clicks(PointerState &state);
 
 std::vector<PointerScroll> pointer_drain_scrolls(PointerState &state);
 
-void pointer_set_cursor_shape(PointerState &state, PointerShape shape);
+void pointer_set_cursor_shape(PointerState &state, wp_cursor_shape_device_v1_shape shape);

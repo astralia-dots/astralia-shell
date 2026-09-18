@@ -1,7 +1,6 @@
 #include <chrono>
 #include <unistd.h>
 
-#include "app/backend.h"
 #include "app/module_registry.h"
 #include "app/monitor_output.h"
 #include "app/service_registry.h"
@@ -331,16 +330,15 @@ class CompositorWorkspaceService final : public Service {
     const char *name() const override { return "compositor-workspace"; }
 
     bool init(WaylandState &app) override {
-        if (active_backend() == Backend::Wayland && hypr_init(app.hypr))
+        if (hypr_init(app.hypr))
             app.compositor_backend = WaylandState::CompositorBackend::Hyprland;
-        const char *backend_name = app.compositor_backend == WaylandState::CompositorBackend::Hyprland ? "hyprland" : "none";
-        klog("compositor backend: %s", backend_name);
+        klog("compositor backend: %s", app.compositor_backend == WaylandState::CompositorBackend::Hyprland ? "hyprland" : "none");
         return true;
     }
 
     std::vector<FnPollSource> poll_sources(WaylandState &app) override {
         std::vector<FnPollSource> sources;
-        if (app.compositor_backend == WaylandState::CompositorBackend::None)
+        if (app.compositor_backend != WaylandState::CompositorBackend::Hyprland)
             return sources;
         int fd = app.hypr.event_fd;
         if (fd < 0)
@@ -368,10 +366,9 @@ class CompositorWorkspaceService final : public Service {
     }
 
     void timer_tick(WaylandState &app) override {
-        if (app.compositor_backend == WaylandState::CompositorBackend::None)
+        if (app.compositor_backend != WaylandState::CompositorBackend::Hyprland)
             return;
-        bool refreshed = hypr_refresh_clients(app.hypr);
-        if (!refreshed)
+        if (!hypr_refresh_clients(app.hypr))
             return;
         redraw_all_monitors(app);
         for (auto &m : app.overlays)
@@ -414,8 +411,8 @@ class TextInputProtocolService final : public Service {
     const char *name() const override { return "text-input"; }
 
     bool init(WaylandState &app) override {
-        app.keyboard.on_focus_surface = [&app](NativeSurfaceHandle surface, bool entered) {
-            app.text_input.on_keyboard_focus_surface(static_cast<wl_surface *>(surface), entered);
+        app.keyboard.on_focus_surface = [&app](wl_surface *surface, bool entered) {
+            app.text_input.on_keyboard_focus_surface(surface, entered);
         };
         if (!app.text_input.bind(app.text_input_manager, app.seat))
             klog("text-input: zwp_text_input_manager_v3 unavailable - IME "
@@ -434,7 +431,7 @@ class IdleService final : public Service {
 
     void timer_tick(WaylandState &app) override {
         std::string focused =
-            app.compositor_backend != WaylandState::CompositorBackend::None
+            app.compositor_backend == WaylandState::CompositorBackend::Hyprland
                 ? app.hypr.focused_monitor
                 : std::string();
         idle_tick(app.idle, focused);

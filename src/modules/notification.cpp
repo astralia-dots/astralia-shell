@@ -4,11 +4,6 @@
 #include <deque>
 #include <utility>
 #include <vector>
-#ifdef ASTRALIA_HAVE_WAYLAND
-#include <wayland-client.h>
-#endif
-
-#include "app/backend.h"
 
 #include "core/log.h"
 
@@ -36,12 +31,20 @@ const Color &notification_detail_urgency_color(uint8_t urgency) {
     return palette::accent;
 }
 
-void notification_layer_surface_configure(void *data, int32_t, int32_t) {
+namespace {
+
+void notification_layer_surface_configure(void *data, zwlr_layer_surface_v1 *layer_surface, uint32_t serial, uint32_t, uint32_t) {
     auto *view = static_cast<NotificationView *>(data);
+    zwlr_layer_surface_v1_ack_configure(layer_surface, serial);
     view->configured = true;
 }
 
-namespace {
+void notification_layer_surface_closed(void *, zwlr_layer_surface_v1 *) {}
+
+constexpr zwlr_layer_surface_v1_listener notification_layer_surface_listener = {
+    .configure = notification_layer_surface_configure,
+    .closed = notification_layer_surface_closed,
+};
 
 PangoFontDescription *font_app_name() {
     static PangoFontDescription *d =
@@ -156,9 +159,9 @@ void notification_start_progress(NotificationRenderModel &service, uint32_t id, 
 
 bool notification_view_create_surface(NotificationView &view, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
     LayerSurfaceConfig cfg{
-        .layer = kLayerShellTop,
+        .layer = ZWLR_LAYER_SHELL_V1_LAYER_TOP,
         .name_space = "astralia-shell-notification",
-        .anchor = kLayerAnchorBottom | kLayerAnchorRight,
+        .anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT,
         .width = kNotificationSurfaceWidth,
         .height = kNotificationSurfaceHeight,
         .margin_right = 10,
@@ -166,18 +169,18 @@ bool notification_view_create_surface(NotificationView &view, wl_compositor *com
         .empty_input_region = true,
     };
     view.layer_surface =
-        layer_surface_create(view.surface, compositor, layer_shell, cfg, notification_layer_surface_configure, &view, output);
+        layer_surface_create(view.surface, compositor, layer_shell, cfg, &notification_layer_surface_listener, &view, output);
     if (!view.layer_surface)
         return false;
     view.compositor = compositor;
     view.output_scale.on_change = [&view](int32_t scale) {
         if (view.egl_window)
-            egl_native_window_resize(view.egl_window, kNotificationSurfaceWidth * scale, kNotificationSurfaceHeight * scale);
+            wl_egl_window_resize(view.egl_window, kNotificationSurfaceWidth * scale, kNotificationSurfaceHeight * scale, 0, 0);
         if (view.frame_clock.surface)
             request_frame(view.frame_clock);
     };
-    output_scale_watch(view.output_scale, static_cast<wl_surface *>(view.surface));
-    native_surface_commit(view.surface);
+    output_scale_watch(view.output_scale, view.surface);
+    wl_surface_commit(view.surface);
     return true;
 }
 
@@ -187,8 +190,8 @@ bool notification_view_init_egl(NotificationView &view, NotificationRenderModel 
     view.renderer = &renderer;
     int32_t scale = view.output_scale.scale;
     view.egl_window =
-        egl_native_window_create(view.surface, kNotificationSurfaceWidth * scale, kNotificationSurfaceHeight * scale);
-    view.egl_surface = egl_surface_create(view.surface, view.egl_window, display, config);
+        wl_egl_window_create(view.surface, kNotificationSurfaceWidth * scale, kNotificationSurfaceHeight * scale);
+    view.egl_surface = eglCreateWindowSurface(display, config, reinterpret_cast<EGLNativeWindowType>(view.egl_window), nullptr);
     if (view.egl_surface == EGL_NO_SURFACE)
         return false;
     if (!gl_make_current(display, view.egl_surface, context))
@@ -354,19 +357,14 @@ void notification_paint(NotificationView &view, NotificationRenderModel &service
         return std::none_of(service.entries.begin(), service.entries.end(), [&kv](const NotificationEntry &e) { return e.id == kv.first; });
     });
 
-#ifdef ASTRALIA_HAVE_WAYLAND
     if (view.compositor && hitboxes != view.close_hitboxes) {
         view.close_hitboxes = hitboxes;
-        if (active_backend() == Backend::Wayland) {
-            auto *compositor = static_cast<wl_compositor *>(view.compositor);
-            wl_region *region = wl_compositor_create_region(compositor);
-            for (const auto &[id, r] : hitboxes)
-                wl_region_add(region, static_cast<int>(r.x), static_cast<int>(r.y), static_cast<int>(r.w), static_cast<int>(r.h));
-            wl_surface_set_input_region(static_cast<wl_surface *>(view.surface), region);
-            wl_region_destroy(region);
-        }
+        wl_region *region = wl_compositor_create_region(view.compositor);
+        for (const auto &[id, r] : hitboxes)
+            wl_region_add(region, static_cast<int>(r.x), static_cast<int>(r.y), static_cast<int>(r.w), static_cast<int>(r.h));
+        wl_surface_set_input_region(view.surface, region);
+        wl_region_destroy(region);
     }
-#endif
 
     view.scene.draw(*view.renderer);
     if (!eglSwapBuffers(view.egl_display, view.egl_surface))

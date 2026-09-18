@@ -5,6 +5,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <wayland-client.h>
 
 #include "render/overlay_panel.h"
 #include "render/panel_chrome.h"
@@ -17,13 +18,8 @@
 #include "service/input_service.h"
 #include "service/tray_service.h"
 
-struct wl_compositor;
-struct wl_display;
-struct wl_output;
-struct wl_seat;
-struct xdg_wm_base;
-struct zwlr_layer_shell_v1;
-struct zwlr_layer_surface_v1;
+#include "wlr-layer-shell-unstable-v1-client-protocol.h"
+#include "xdg-shell-client-protocol.h"
 
 constexpr float kTrayMenuWidth = 220.0f;
 constexpr float kTrayMenuPadding = 4.0f;

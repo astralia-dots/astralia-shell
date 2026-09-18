@@ -354,14 +354,15 @@ MediaDecodeStatus wallpaper_column_decode_status(const WallpaperColumn &col) {
     return media_decode_status(col.decode);
 }
 
-void wallpaper_layer_surface_configure(void *data, int32_t width, int32_t height) {
+void wallpaper_layer_surface_configure(void *data, zwlr_layer_surface_v1 *layer_surface, uint32_t serial, uint32_t width, uint32_t height) {
     auto *wp = static_cast<WallpaperState *>(data);
-    bool changed = wp->width != width || wp->height != height;
-    wp->width = width;
-    wp->height = height;
+    zwlr_layer_surface_v1_ack_configure(layer_surface, serial);
+    bool changed = wp->width != static_cast<int32_t>(width) || wp->height != static_cast<int32_t>(height);
+    wp->width = static_cast<int32_t>(width);
+    wp->height = static_cast<int32_t>(height);
     if (changed && wp->egl_window) {
         int32_t scale = wp->output_scale.scale;
-        egl_native_window_resize(wp->egl_window, wp->width * scale, wp->height * scale);
+        wl_egl_window_resize(wp->egl_window, wp->width * scale, wp->height * scale, 0, 0);
         if (wp->frame_clock.surface)
             request_frame(wp->frame_clock);
     }
@@ -369,6 +370,13 @@ void wallpaper_layer_surface_configure(void *data, int32_t width, int32_t height
     if (changed && wp->on_resize)
         wp->on_resize();
 }
+
+void wallpaper_layer_surface_closed(void *, zwlr_layer_surface_v1 *) {}
+
+constexpr zwlr_layer_surface_v1_listener wallpaper_layer_surface_listener = {
+    .configure = wallpaper_layer_surface_configure,
+    .closed = wallpaper_layer_surface_closed,
+};
 
 void wallpaper_draw_transitions(WallpaperState &wp) {
     if (wp.columns.empty())
@@ -449,24 +457,24 @@ void wallpaper_draw_columns(const WallpaperState &wp, Node *parent, int32_t widt
 
 bool wallpaper_create_surface(WallpaperState &wp, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
     LayerSurfaceConfig cfg{
-        .layer = kLayerShellBackground,
+        .layer = ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND,
         .name_space = kWallpaperLayerNamespace,
-        .anchor = kLayerAnchorTop | kLayerAnchorBottom | kLayerAnchorLeft | kLayerAnchorRight,
+        .anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT,
     };
     wp.layer_surface =
-        layer_surface_create(wp.surface, compositor, layer_shell, cfg, wallpaper_layer_surface_configure, &wp, output);
+        layer_surface_create(wp.surface, compositor, layer_shell, cfg, &wallpaper_layer_surface_listener, &wp, output);
     if (!wp.layer_surface)
         return false;
     wp.output_scale.on_change = [&wp](int32_t scale) {
         if (wp.egl_window)
-            egl_native_window_resize(wp.egl_window, wp.width * scale, wp.height * scale);
+            wl_egl_window_resize(wp.egl_window, wp.width * scale, wp.height * scale, 0, 0);
         if (wp.frame_clock.surface)
             request_frame(wp.frame_clock);
         if (wp.on_resize)
             wp.on_resize();
     };
-    output_scale_watch(wp.output_scale, static_cast<wl_surface *>(wp.surface));
-    native_surface_commit(wp.surface);
+    output_scale_watch(wp.output_scale, wp.surface);
+    wl_surface_commit(wp.surface);
     return true;
 }
 
@@ -476,8 +484,8 @@ bool wallpaper_init_egl(WallpaperState &wp, Renderer &renderer, EGLDisplay displ
     wp.renderer = &renderer;
     int32_t scale = wp.output_scale.scale;
     wp.egl_window =
-        egl_native_window_create(wp.surface, wp.width * scale, wp.height * scale);
-    wp.egl_surface = egl_surface_create(wp.surface, wp.egl_window, display, config);
+        wl_egl_window_create(wp.surface, wp.width * scale, wp.height * scale);
+    wp.egl_surface = eglCreateWindowSurface(display, config, reinterpret_cast<EGLNativeWindowType>(wp.egl_window), nullptr);
     if (wp.egl_surface == EGL_NO_SURFACE)
         return false;
     if (!gl_make_current(display, wp.egl_surface, context))

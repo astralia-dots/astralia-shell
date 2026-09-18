@@ -15,26 +15,24 @@
 
 namespace {
 
-std::string klog_state_dir() {
+FILE *klog_open_file() {
     const char *state_home = getenv("XDG_STATE_HOME");
     std::string base = state_home && *state_home ? std::string(state_home) : std::string(getenv("HOME") ? getenv("HOME") : "") + "/.local/state";
 
+    std::string dir;
     for (size_t pos = 1; pos <= base.size(); ++pos) {
         if (pos == base.size() || base[pos] == '/') {
             mkdir(base.substr(0, pos).c_str(), 0755);
         }
     }
-    std::string dir = base + "/astralia";
+    dir = base + "/astralia";
     mkdir(dir.c_str(), 0755);
-    return dir;
-}
 
-FILE *klog_open_file(const char *name) {
-    return fopen((klog_state_dir() + "/" + name + ".log").c_str(), "a");
+    return fopen((dir + "/astralia.log").c_str(), "a");
 }
 
 FILE *&klog_file() {
-    static FILE *f = klog_open_file("astralia");
+    static FILE *f = klog_open_file();
     return f;
 }
 
@@ -84,18 +82,6 @@ void klog_install_crash_handler() {
     sigemptyset(&sa.sa_mask);
     for (int sig : {SIGSEGV, SIGABRT, SIGBUS, SIGILL, SIGFPE})
         sigaction(sig, &sa, nullptr);
-}
-
-void klog_set_backend(const char *label) {
-    std::string name = std::string("astralia-") + label;
-    FILE *next = klog_open_file(name.c_str());
-    if (!next)
-        return;
-    FILE *&f = klog_file();
-    FILE *prev = f;
-    f = next;
-    if (prev)
-        fclose(prev);
 }
 
 void klog(const char *fmt, ...) {

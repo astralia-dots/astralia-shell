@@ -1,6 +1,5 @@
 #include <chrono>
 
-#include "app/backend.h"
 #include "app/module_registry.h"
 #include "app/monitor_output.h"
 #include "app/text_input_client.h"
@@ -49,7 +48,7 @@ class LauncherModule final : public Module, public TextInputClient {
         state_.bound_output = output_;
         state_.sync_text_input_focus = [this, &app](bool focused) {
             if (focused)
-                app.text_input.set_focused_client(static_cast<wl_surface *>(state_.surface), this);
+                app.text_input.set_focused_client(state_.surface, this);
             else
                 app.text_input.clear_focused_client(this);
         };
@@ -74,7 +73,7 @@ class LauncherModule final : public Module, public TextInputClient {
     }
 
     bool configured() const override { return !want_ || state_.configured; }
-    wl_surface *surface() const override { return static_cast<wl_surface *>(state_.surface); }
+    wl_surface *surface() const override { return state_.surface; }
     void request_frame() override { launcher_request_frame(state_); }
 
     bool tick() override {
@@ -122,7 +121,7 @@ class LauncherModule final : public Module, public TextInputClient {
             if (!state_.open) {
                 MonitorOutput *target = app_detail::active_target_monitor(app);
                 if (target && (target->output.wl != state_.bound_output || !state_.layer_surface))
-                    launcher_retarget(state_, app.compositor, app.layer_shell, app.renderer, app.egl_display, app.egl_config, app.egl_context, target->output.wl, target->output.name.c_str());
+                    launcher_retarget(state_, app.compositor, app.layer_shell, app.display, app.renderer, app.egl_display, app.egl_config, app.egl_context, target->output.wl, target->output.name.c_str());
             }
             launcher_toggle(state_, global);
         };
@@ -178,7 +177,7 @@ class LogoutModule final : public Module {
     bool configured() const override {
         return !want_ || state_.base.configured;
     }
-    wl_surface *surface() const override { return static_cast<wl_surface *>(state_.base.surface); }
+    wl_surface *surface() const override { return state_.base.surface; }
     void request_frame() override { logout_request_frame(state_); }
 
     bool timer_tick(WaylandState &) override { return false; }
@@ -219,7 +218,7 @@ class LogoutModule final : public Module {
         if (!state_.base.open) {
             MonitorOutput *target = app_detail::active_target_monitor(app);
             if (target && (target->output.wl != state_.bound_output || !state_.base.layer_surface))
-                logout_retarget(state_, app.compositor, app.layer_shell, app.renderer, app.egl_display, app.egl_config, app.egl_context, target->output.wl, target->output.name.c_str());
+                logout_retarget(state_, app.compositor, app.layer_shell, app.display, app.renderer, app.egl_display, app.egl_config, app.egl_context, target->output.wl, target->output.name.c_str());
         }
         logout_apply_logo_config(state_, app.cfg.logout_animated_logo);
         logout_toggle(state_, true);
@@ -253,7 +252,7 @@ class DashboardModule final : public Module {
     bool configured() const override {
         return !want_ || state_.base.configured;
     }
-    wl_surface *surface() const override { return static_cast<wl_surface *>(state_.base.surface); }
+    wl_surface *surface() const override { return state_.base.surface; }
     void request_frame() override {
         dashboard_request_frame(state_, static_cast<float>(bar_detail::kBarHeight), static_cast<float>(bar_detail::kBarTopMargin));
     }
@@ -317,7 +316,7 @@ class DashboardModule final : public Module {
         if (!state_.base.open) {
             MonitorOutput *target = app_detail::active_target_monitor(app);
             if (target && (target->output.wl != state_.bound_output || !state_.base.layer_surface))
-                dashboard_retarget(state_, app.compositor, app.layer_shell, app.renderer, app, app.egl_display, app.egl_config, app.egl_context, target->output.wl, target->output.name.c_str());
+                dashboard_retarget(state_, app.compositor, app.layer_shell, app.display, app.renderer, app, app.egl_display, app.egl_config, app.egl_context, target->output.wl, target->output.name.c_str());
             cpu_temp_poll(app.cpu_temp);
             system_stats_poll(app.system_stats);
             gpu_temp_poll(app.gpu_temp);
@@ -355,7 +354,7 @@ class OverviewModule final : public Module {
     bool configured() const override {
         return !want_ || state_.base.configured;
     }
-    wl_surface *surface() const override { return static_cast<wl_surface *>(state_.base.surface); }
+    wl_surface *surface() const override { return state_.base.surface; }
     void request_frame() override { overview_request_frame(state_); }
 
     int poll_timeout_ms() const override {
@@ -408,7 +407,7 @@ class OverviewModule final : public Module {
         if (!state_.base.open) {
             MonitorOutput *target = app_detail::active_target_monitor(app);
             if (target && (target->output.wl != state_.bound_output || !state_.base.layer_surface))
-                overview_retarget(state_, app.compositor, app.layer_shell, app.renderer, app.egl_display, app.egl_config, app.egl_context, target->output.wl, target->output.name.c_str());
+                overview_retarget(state_, app.compositor, app.layer_shell, app.display, app.renderer, app.egl_display, app.egl_config, app.egl_context, target->output.wl, target->output.name.c_str());
         }
         overview_toggle(state_, app, true);
     }
@@ -452,7 +451,7 @@ class SettingsModule final : public Module, public TextInputClient {
         app.settings_enabled = true;
         state_.sync_text_input_focus = [this, &app](bool focused) {
             if (focused)
-                app.text_input.set_focused_client(static_cast<wl_surface *>(state_.base.surface), this);
+                app.text_input.set_focused_client(state_.base.surface, this);
             else
                 app.text_input.clear_focused_client(this);
         };
@@ -478,7 +477,7 @@ class SettingsModule final : public Module, public TextInputClient {
     bool configured() const override {
         return !want_ || state_.base.configured;
     }
-    wl_surface *surface() const override { return static_cast<wl_surface *>(state_.base.surface); }
+    wl_surface *surface() const override { return state_.base.surface; }
     void request_frame() override { settings_request_frame(state_); }
 
     bool timer_tick(WaylandState &) override {
@@ -528,7 +527,7 @@ class RainModule final : public Module {
         return true;
     }
     bool configured() const override { return true; }
-    wl_surface *surface() const override { return static_cast<wl_surface *>(state_.base.surface); }
+    wl_surface *surface() const override { return state_.base.surface; }
     void request_frame() override { rain_request_frame(state_); }
 
     void handle_key_event(WaylandState &app, const KeyEvent &event) override {
@@ -557,7 +556,7 @@ class VisualizerModule final : public Module {
     bool create_surface(WaylandState &, wl_output *) override { return true; }
     bool init_egl(WaylandState &) override { return true; }
     bool configured() const override { return true; }
-    wl_surface *surface() const override { return static_cast<wl_surface *>(state_.base.surface); }
+    wl_surface *surface() const override { return state_.base.surface; }
     void request_frame() override {}
 
     void handle_key_event(WaylandState &app, const KeyEvent &event) override {
@@ -628,7 +627,7 @@ class LockModule final : public Module {
         lock_handle_key(state_, event);
     }
     void handle_click(WaylandState &app, double x, double y) override {
-        lock_handle_click(state_, static_cast<wl_surface *>(app.pointer.focused_surface), x, y);
+        lock_handle_click(state_, app.pointer.focused_surface, x, y);
     }
 
     std::vector<IpcHandler> ipc_handlers(WaylandState &app) override {
@@ -668,7 +667,7 @@ class PolkitModule final : public Module {
     bool configured() const override {
         return !want_ || state_.base.configured;
     }
-    wl_surface *surface() const override { return static_cast<wl_surface *>(state_.base.surface); }
+    wl_surface *surface() const override { return state_.base.surface; }
     void request_frame() override { polkit_request_frame(state_); }
 
     void handle_key_event(WaylandState &app, const KeyEvent &event) override {
@@ -705,7 +704,7 @@ SettingsEnv settings_env(WaylandState &app) {
             return names;
         },
         [&app] {
-            return app.compositor_backend != WaylandState::CompositorBackend::None ? app.hypr.focused_monitor : std::string();
+            return app.compositor_backend == WaylandState::CompositorBackend::Hyprland ? app.hypr.focused_monitor : std::string();
         },
         [&app](const std::string &name, int column) -> MediaDecodeStatus {
             for (auto &mon : app.outputs) {
@@ -890,7 +889,7 @@ void NotificationViewPerMonitorModule::resync(WaylandState &app, MonitorOutput &
     if (want && !have) {
         if (notification_view_create_surface(state_, app.compositor, app.layer_shell, mon.output.wl)) {
             while (!state_.configured)
-                backend_wait_dispatch();
+                wl_display_dispatch(app.display);
             if (notification_view_init_egl(state_, app.notification, app.renderer, app.egl_display, app.egl_config, app.egl_context))
                 eglMakeCurrent(app.egl_display, mon.egl_surface, mon.egl_surface, app.egl_context);
         }

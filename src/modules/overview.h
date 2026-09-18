@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <wayland-client.h>
 
 #include "app/ipc.h"
 
@@ -16,10 +17,9 @@
 #include "service/capture_service.h"
 #include "service/input_service.h"
 
+#include "wlr-layer-shell-unstable-v1-client-protocol.h"
+
 struct WaylandState;
-struct wl_compositor;
-struct wl_output;
-struct zwlr_layer_shell_v1;
 
 struct OverviewWindowTile {
     std::string address;
@@ -71,7 +71,7 @@ bool overview_create_surface(OverviewState &state, wl_compositor *compositor, zw
 
 bool overview_init_egl(OverviewState &state, Renderer &renderer, EGLDisplay display, EGLConfig config, EGLContext context);
 
-void overview_retarget(OverviewState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, Renderer &renderer, EGLDisplay egl_display, EGLConfig egl_config, EGLContext egl_context, wl_output *target_output, const char *target_name);
+void overview_retarget(OverviewState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_display *display, Renderer &renderer, EGLDisplay egl_display, EGLConfig egl_config, EGLContext egl_context, wl_output *target_output, const char *target_name);
 
 void overview_request_frame(OverviewState &state);
 

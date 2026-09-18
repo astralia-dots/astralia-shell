@@ -31,7 +31,7 @@ void clock_pill_clicked(MonitorOutput &mon) {
     BarPerMonitorState &bs = bar_state(mon);
     close_other_overlays(mon, PillId::None);
     if (!bs.clock_panel.base.open) {
-        overlay_panel_ensure(bs.clock_panel.base, [&] { return clock_panel_create_surface(bs.clock_panel, mon.app->compositor, mon.app->layer_shell, mon.output.wl); }, [&] { return clock_panel_init_egl(bs.clock_panel, mon.app->renderer, mon.app->egl_display, mon.app->egl_config, mon.app->egl_context); });
+        overlay_panel_ensure(bs.clock_panel.base, mon.app->display, [&] { return clock_panel_create_surface(bs.clock_panel, mon.app->compositor, mon.app->layer_shell, mon.output.wl); }, [&] { return clock_panel_init_egl(bs.clock_panel, mon.app->renderer, mon.app->egl_display, mon.app->egl_config, mon.app->egl_context); });
         app_detail::rest_egl_current(*mon.app);
     }
     clock_panel_toggle(bs.clock_panel, static_cast<float>(mon.width) / 2.0f + kPanelSideMargin);

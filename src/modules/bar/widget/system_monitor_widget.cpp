@@ -12,7 +12,7 @@ Pill cpu_pill(MonitorOutput &mon) {
             if (!bs.system_monitor_panel.base.open) {
                 update_pill_expand(bs.capsule, mon.animations, PillId::Cpu, true, true);
                 bar_paint(mon);
-                overlay_panel_ensure(bs.system_monitor_panel.base, [&] { return system_monitor_panel_create_surface(bs.system_monitor_panel, mon.app->compositor, mon.app->layer_shell, mon.output.wl); }, [&] { return system_monitor_panel_init_egl(bs.system_monitor_panel, mon.app->renderer, mon.app->cpu_temp, mon.app->gpu_temp, mon.app->system_stats, mon.app->egl_display, mon.app->egl_config, mon.app->egl_context); });
+                overlay_panel_ensure(bs.system_monitor_panel.base, mon.app->display, [&] { return system_monitor_panel_create_surface(bs.system_monitor_panel, mon.app->compositor, mon.app->layer_shell, mon.output.wl); }, [&] { return system_monitor_panel_init_egl(bs.system_monitor_panel, mon.app->renderer, mon.app->cpu_temp, mon.app->gpu_temp, mon.app->system_stats, mon.app->egl_display, mon.app->egl_config, mon.app->egl_context); });
                 app_detail::rest_egl_current(*mon.app);
             }
             system_monitor_panel_toggle(bs.system_monitor_panel, pill_center_x(bs.capsule, PillId::Cpu));

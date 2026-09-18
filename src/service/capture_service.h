@@ -5,13 +5,16 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <wayland-client.h>
 
 #include "render/texture.h"
 
+#include "hyprland-toplevel-export-v1-client-protocol.h"
+
 struct ToplevelExportCapture {
-    void *shm = nullptr;
-    void *frame = nullptr;
-    void *buffer = nullptr;
+    wl_shm *shm = nullptr;
+    hyprland_toplevel_export_frame_v1 *frame = nullptr;
+    wl_buffer *buffer = nullptr;
     void *shm_data = nullptr;
     size_t shm_size = 0;
     uint32_t buf_width = 0;
@@ -27,14 +30,13 @@ struct ToplevelExportCapture {
     bool in_flight = false;
     Texture tex;
     std::chrono::steady_clock::time_point last_capture{};
-    void *x11_pixmap = nullptr;
 };
 
 struct ToplevelExportState {
     std::unordered_map<std::string, ToplevelExportCapture> captures;
 };
 
-void toplevel_export_request(ToplevelExportState &state, void *manager, void *shm, const std::string &address, int min_interval_ms);
+void toplevel_export_request(ToplevelExportState &state, hyprland_toplevel_export_manager_v1 *manager, wl_shm *shm, const std::string &address, int min_interval_ms);
 
 const Texture *toplevel_export_texture(const ToplevelExportState &state, const std::string &address);
 
