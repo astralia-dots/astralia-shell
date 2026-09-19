@@ -6,6 +6,7 @@
 #include "app/monitor_output.h"
 #include "app/wayland_state.h"
 
+#include "core/async_process.h"
 #include "core/log.h"
 
 #include "modules/overview.h"
@@ -475,6 +476,10 @@ void overview_handle_key_event(OverviewState &state, WaylandState &app, const Ke
         break;
     }
     case KeyKind::Tab:
+        if (!state.global_mode && app.hypr.monitors.size() < 2) {
+            spawn_detached("notify-send 'Overview' 'This device only has one display.'");
+            break;
+        }
         state.global_mode = !state.global_mode;
         state.dragging = false;
         state.indicator_tracking = false;
