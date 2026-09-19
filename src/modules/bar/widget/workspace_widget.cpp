@@ -49,11 +49,11 @@ float draw_workspace_row(Node *root, WorkspaceWidgetState &wstate, AnimationMana
 
     bool has_icon = overview_icon.id != 0;
     float icon_w = has_icon ? static_cast<float>(overview_icon.width) : 0.0f;
-    float row_w = ws_row_w + kPillPad * 2 + (has_icon ? kWorkspaceOverviewGap + icon_w : 0.0f);
+    float row_w = ws_row_w + height + (has_icon ? kWorkspaceOverviewGap + icon_w : 0.0f);
 
-    node_add_rrect(root, x, 0, row_w, height, metrics::radius_md, metrics::border_thin, pill_bg, rgba(palette::accent));
+    node_add_rrect(root, x, 0, row_w, height, height / 2.0f, metrics::border_thin, pill_bg, rgba(palette::accent));
 
-    float wx = x + kPillPad;
+    float wx = x + height / 2.0f;
     float wy = (height - kWorkspacePillHeight) / 2.0f;
     for (const Workspace &ws : ws_list) {
         bool is_active = ws.id == active_id;

@@ -21,7 +21,7 @@ void update_clock(Texture &clock_texture) {
 Rect draw_clock_pill(Node *root, float height, int32_t surface_width, const Texture &clock_texture, const float tint[4], const float pill_bg[4]) {
     if (!clock_texture.id)
         return {};
-    float clock_pill_w = clock_texture.width + kPillPad * 2;
+    float clock_pill_w = clock_texture.width + height;
     float clock_x = (surface_width - clock_pill_w) / 2.0f;
     draw_static_pill_row(root, clock_x, height, {&clock_texture}, tint, pill_bg);
     return {clock_x, 0.0f, clock_pill_w, height};

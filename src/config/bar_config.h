@@ -5,7 +5,7 @@
 
 namespace bar_detail {
 // bar height
-constexpr int32_t kBarHeight = 35;
+constexpr int32_t kBarHeight = 40;
 
 // pill layout & timing
 constexpr float kPillPad = 10.0f;

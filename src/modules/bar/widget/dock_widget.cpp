@@ -12,9 +12,9 @@ float draw_dock_capsule(Node *root, DockWidgetState &st, AnimationManager &anima
         return x;
 
     float row_w = dock_row_width(entries);
-    float capsule_w = row_w + kPillPad * 2.0f;
-    node_add_rrect(root, x, 0.0f, capsule_w, height, metrics::radius_md, metrics::border_thin, pill_bg, rgba(palette::accent));
-    draw_dock_row(root, st.icons, st.row, animations, x + kPillPad, height / 2.0f, entries, kDockWidgetAnimOwnerBase);
+    float capsule_w = row_w + height;
+    node_add_rrect(root, x, 0.0f, capsule_w, height, height / 2.0f, metrics::border_thin, pill_bg, rgba(palette::accent));
+    draw_dock_row(root, st.icons, st.row, animations, x + height / 2.0f, height / 2.0f, entries, kDockWidgetAnimOwnerBase);
     return x + capsule_w + kCapsuleGap;
 }
 

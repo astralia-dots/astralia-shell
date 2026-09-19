@@ -18,10 +18,10 @@ float draw_static_pill_row(Node *root, float x, float height, const std::vector<
     for (const Texture *tex : textures) {
         if (!tex || !tex->id)
             continue;
-        float pill_w = tex->width + kPillPad * 2;
-        node_add_rrect(root, x, 0, pill_w, height, metrics::radius_md, metrics::border_thin, pill_bg, rgba(palette::accent));
+        float pill_w = tex->width + height;
+        node_add_rrect(root, x, 0, pill_w, height, height / 2.0f, metrics::border_thin, pill_bg, rgba(palette::accent));
         float ty = (height - tex->height) / 2.0f;
-        node_add_texture(root, x + kPillPad, ty, *tex, tint);
+        node_add_texture(root, x + height / 2.0f, ty, *tex, tint);
         x += pill_w + kCapsuleGap;
     }
     return x;
@@ -103,8 +103,7 @@ float pills_row_width(WidgetCapsuleState &capsule, AnimationManager &animations,
         if (t > 0.0f && !p.label.empty()) {
             const Texture &label_tex = ensure_label_texture(capsule, p);
             if (label_tex.id) {
-                float expanded_w =
-                    p.icon->width + kPillPad * 2 + kPillPad + label_tex.width;
+                float expanded_w = height + p.icon->width + kPillPad + label_tex.width;
                 pw = collapsed_w + (expanded_w - collapsed_w) * t;
             }
         }
@@ -133,20 +132,19 @@ float draw_pills(Node *root, WidgetCapsuleState &capsule, AnimationManager &anim
         float collapsed_w = std::max(p.icon->width + kPillPad * 2, height);
         float expanded_w = collapsed_w;
         if (label_tex)
-            expanded_w =
-                p.icon->width + kPillPad * 2 + kPillPad + label_tex->width;
+            expanded_w = height + p.icon->width + kPillPad + label_tex->width;
         float pill_w = collapsed_w + (expanded_w - collapsed_w) * t;
 
         Node *pill_group = node_add_group(root, x, 0, pill_w, height, true);
-        node_add_rrect(pill_group, 0, 0, pill_w, height, metrics::radius_md, metrics::border_thin, pill_bg, p.border_color ? p.border_color : rgba(palette::accent));
+        node_add_rrect(pill_group, 0, 0, pill_w, height, height / 2.0f, metrics::border_thin, pill_bg, p.border_color ? p.border_color : rgba(palette::accent));
         float icon_collapsed_x = (collapsed_w - p.icon->width) / 2.0f;
-        float icon_expanded_x = kPillPad;
+        float icon_expanded_x = height / 2.0f;
         float icon_x =
             icon_collapsed_x + (icon_expanded_x - icon_collapsed_x) * t;
         float iy = (height - p.icon->height) / 2.0f;
         node_add_texture(pill_group, icon_x, iy, *p.icon, tint);
         if (label_tex) {
-            float lx = kPillPad + p.icon->width + kPillPad;
+            float lx = height / 2.0f + p.icon->width + kPillPad;
             float ly = (height - label_tex->height) / 2.0f;
             capsule.pill_label_tint[idx] = {tint[0], tint[1], tint[2], t};
             node_add_texture(pill_group, lx, ly, *label_tex, rgba(capsule.pill_label_tint[idx]));
