@@ -9,6 +9,7 @@
 
 #include "config/overview_config.h"
 
+#include "render/dock_row.h"
 #include "render/overlay_panel.h"
 #include "render/rect.h"
 #include "render/renderer.h"
@@ -23,6 +24,7 @@ struct WaylandState;
 
 struct OverviewWindowTile {
     std::string address;
+    std::string window_class;
     Rect rect;
     int workspace_id = -1;
 };
@@ -38,11 +40,13 @@ struct OverviewState {
     Renderer *renderer = nullptr;
     Scene scene;
     ToplevelExportState capture;
+    DockIconCache icons;
     std::unordered_map<int, Texture> workspace_number_tex;
     bool opened_by_widget = false;
     wl_output *bound_output = nullptr;
     WaylandState *app_ptr = nullptr;
 
+    bool global_mode = false;
     int workspace_group = 0;
     int selected_workspace = -1;
     std::vector<OverviewWindowTile> tiles;

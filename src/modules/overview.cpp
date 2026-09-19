@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cmath>
 #include <functional>
+#include <numeric>
 
 #include "app/monitor_output.h"
 #include "app/wayland_state.h"
@@ -33,22 +34,24 @@ const HyprMonitor *find_monitor_by_id(const HyprlandState &hypr, int id) {
     return nullptr;
 }
 
+double logical_w(const HyprMonitor &m) {
+    bool rotated = (m.transform % 2) == 1;
+    return (rotated ? m.height : m.width) / (m.scale > 0.0 ? m.scale : 1.0);
+}
+
+double logical_h(const HyprMonitor &m) {
+    bool rotated = (m.transform % 2) == 1;
+    return (rotated ? m.width : m.height) / (m.scale > 0.0 ? m.scale : 1.0);
+}
+
 double source_work_area_w(const HyprMonitor &m) {
     bool rotated = (m.transform % 2) == 1;
-    double base = rotated ? m.height : m.width;
-    double reserved_lo = rotated ? m.reserved[1] : m.reserved[0];
-    double reserved_hi = rotated ? m.reserved[3] : m.reserved[2];
-    double scale = m.scale > 0.0 ? m.scale : 1.0;
-    return base / scale - reserved_lo - reserved_hi;
+    return logical_w(m) - (rotated ? m.reserved[1] : m.reserved[0]) - (rotated ? m.reserved[3] : m.reserved[2]);
 }
 
 double source_work_area_h(const HyprMonitor &m) {
     bool rotated = (m.transform % 2) == 1;
-    double base = rotated ? m.width : m.height;
-    double reserved_lo = rotated ? m.reserved[0] : m.reserved[1];
-    double reserved_hi = rotated ? m.reserved[2] : m.reserved[3];
-    double scale = m.scale > 0.0 ? m.scale : 1.0;
-    return base / scale - reserved_lo - reserved_hi;
+    return logical_h(m) - (rotated ? m.reserved[0] : m.reserved[1]) - (rotated ? m.reserved[2] : m.reserved[3]);
 }
 
 int workspaces_shown() { return kOverviewRows * kOverviewColumns; }
@@ -60,44 +63,147 @@ int active_workspace_id(const HyprlandState &hypr, const std::string &monitor_na
     return it->second.active_id;
 }
 
-struct GridLayout {
-    Rect root;
-    Rect background;
-    Rect grid;
+int workspace_id_at(int workspace_group, int row, int col) {
+    return workspace_group * workspaces_shown() + row * kOverviewColumns + col + 1;
+}
+
+struct LayoutCell {
+    int workspace_id = -1;
+    Rect rect;
+};
+
+struct Layout {
+    std::vector<Rect> panels;
+    float scale = 0.0f;
+    std::vector<LayoutCell> cells;
+};
+
+struct Block {
+    int group = 0;
+    float x = 0.0f, y = 0.0f;
     float cell_w = 0.0f, cell_h = 0.0f;
 };
 
-GridLayout compute_grid_layout(const HyprMonitor &target, int surface_w, int surface_h, float slide_y) {
-    GridLayout g;
-    double src_w = std::max(1.0, source_work_area_w(target));
-    double src_h = std::max(1.0, source_work_area_h(target));
-    g.cell_w = std::round(static_cast<float>(src_w * kOverviewScale));
-    g.cell_h = std::round(static_cast<float>(src_h * kOverviewScale));
+std::string bound_output_name(const OverviewState &state, const WaylandState &app) {
+    for (auto &mon : app.outputs)
+        if (mon->output.wl == state.bound_output)
+            return mon->output.name;
+    return {};
+}
+
+const HyprMonitor *bound_monitor(const OverviewState &state, const WaylandState &app) {
+    return find_monitor_by_name(app.hypr, bound_output_name(state, app));
+}
+
+int page_group(const HyprlandState &hypr, const HyprMonitor &m) {
+    return (active_workspace_id(hypr, m.name) - 1) / workspaces_shown();
+}
+
+Block make_block(const HyprMonitor &m, int group, float scale, float x, float y) {
+    Block b;
+    b.group = group;
+    b.x = x;
+    b.y = y;
+    b.cell_w = std::round(static_cast<float>(std::max(1.0, source_work_area_w(m)) * scale));
+    b.cell_h = std::round(static_cast<float>(std::max(1.0, source_work_area_h(m)) * scale));
+    return b;
+}
+
+std::vector<float> separation_steps(const std::vector<HyprMonitor> &monitors, double HyprMonitor::*pos, double (*extent)(const HyprMonitor &)) {
+    std::vector<size_t> order(monitors.size());
+    std::iota(order.begin(), order.end(), size_t{0});
+    std::sort(order.begin(), order.end(), [&](size_t a, size_t b) { return monitors[a].*pos < monitors[b].*pos; });
+    std::vector<float> steps(monitors.size(), 0.0f);
+    for (size_t i = 1; i < order.size(); ++i)
+        for (size_t j = 0; j < i; ++j) {
+            const HyprMonitor &before = monitors[order[j]];
+            const HyprMonitor &after = monitors[order[i]];
+            if (before.*pos + extent(before) <= after.*pos + 0.5)
+                steps[order[i]] = std::max(steps[order[i]], steps[order[j]] + 1.0f);
+        }
+    return steps;
+}
+
+float global_blocks(const HyprlandState &hypr, int surface_w, int surface_h, std::vector<Block> &blocks) {
+    if (hypr.monitors.empty())
+        return 0.0f;
     float spacing = std::round(kOverviewWorkspaceSpacing);
+    float gap_x = spacing * (kOverviewColumns - 1) + kOverviewBackgroundPadding * 2.0f + kOverviewGlobalBlockSpacing;
+    float gap_y = spacing * (kOverviewRows - 1) + kOverviewBackgroundPadding * 2.0f + kOverviewGlobalBlockSpacing;
+    float frame = 2.0f * (kOverviewBackgroundPadding + kOverviewElevationMargin);
 
-    float grid_w = g.cell_w * kOverviewColumns + spacing * (kOverviewColumns - 1);
-    float grid_h = g.cell_h * kOverviewRows + spacing * (kOverviewRows - 1);
-    float bg_w = grid_w + kOverviewBackgroundPadding * 2.0f;
-    float bg_h = grid_h + kOverviewBackgroundPadding * 2.0f;
-    float root_w = bg_w + kOverviewElevationMargin * 2.0f;
-    float root_h = bg_h + kOverviewElevationMargin * 2.0f;
+    const std::vector<HyprMonitor> &ms = hypr.monitors;
+    std::vector<float> steps_x = separation_steps(ms, &HyprMonitor::x, logical_w);
+    std::vector<float> steps_y = separation_steps(ms, &HyprMonitor::y, logical_h);
+    double min_x = ms[0].x, min_y = ms[0].y;
+    for (const HyprMonitor &m : ms) {
+        min_x = std::min(min_x, m.x);
+        min_y = std::min(min_y, m.y);
+    }
 
-    g.root = {std::round((surface_w - root_w) / 2.0f), std::round((surface_h - root_h) / 2.0f) + slide_y, root_w, root_h};
-    g.background = {g.root.x + kOverviewElevationMargin,
-                    g.root.y + kOverviewElevationMargin, bg_w, bg_h};
-    g.grid = {g.background.x + kOverviewBackgroundPadding, g.background.y + kOverviewBackgroundPadding, grid_w, grid_h};
+    float scale = kOverviewGlobalScale;
+    for (size_t i = 0; i < ms.size(); ++i) {
+        float fixed_x = steps_x[i] * gap_x + spacing * (kOverviewColumns - 1) + frame;
+        float fixed_y = steps_y[i] * gap_y + spacing * (kOverviewRows - 1) + frame;
+        float per_x = static_cast<float>((ms[i].x - min_x + std::max(1.0, source_work_area_w(ms[i]))) * kOverviewColumns);
+        float per_y = static_cast<float>((ms[i].y - min_y + std::max(1.0, source_work_area_h(ms[i]))) * kOverviewRows);
+        scale = std::min({scale, (surface_w - fixed_x) / per_x, (surface_h - fixed_y) / per_y});
+    }
+    scale = std::max(scale, 0.01f);
+
+    for (size_t i = 0; i < ms.size(); ++i) {
+        float x = static_cast<float>((ms[i].x - min_x) * kOverviewColumns * scale) + steps_x[i] * gap_x;
+        float y = static_cast<float>((ms[i].y - min_y) * kOverviewRows * scale) + steps_y[i] * gap_y;
+        blocks.push_back(make_block(ms[i], page_group(hypr, ms[i]), scale, x, y));
+    }
+    return scale;
+}
+
+Layout compute_layout(const OverviewState &state, const WaylandState &app) {
+    Layout g;
+    std::vector<Block> blocks;
+    if (state.global_mode) {
+        g.scale = global_blocks(app.hypr, state.base.width, state.base.height, blocks);
+    } else if (const HyprMonitor *target = bound_monitor(state, app)) {
+        g.scale = kOverviewScale;
+        blocks.push_back(make_block(*target, state.workspace_group, g.scale, 0.0f, 0.0f));
+    }
+    if (blocks.empty())
+        return g;
+
+    float spacing = std::round(kOverviewWorkspaceSpacing);
+    float grid_w = 0.0f, grid_h = 0.0f;
+    for (const Block &b : blocks) {
+        grid_w = std::max(grid_w, b.x + b.cell_w * kOverviewColumns + spacing * (kOverviewColumns - 1));
+        grid_h = std::max(grid_h, b.y + b.cell_h * kOverviewRows + spacing * (kOverviewRows - 1));
+    }
+    float pad = kOverviewBackgroundPadding;
+    float root_w = grid_w + pad * 2.0f + kOverviewElevationMargin * 2.0f;
+    float root_h = grid_h + pad * 2.0f + kOverviewElevationMargin * 2.0f;
+    float origin_x = std::round((state.base.width - root_w) / 2.0f) + kOverviewElevationMargin;
+    float origin_y = std::round((state.base.height - root_h) / 2.0f) + state.slide_y + kOverviewElevationMargin;
+
+    for (const Block &b : blocks) {
+        g.panels.push_back({origin_x + b.x, origin_y + b.y, b.cell_w * kOverviewColumns + spacing * (kOverviewColumns - 1) + pad * 2.0f, b.cell_h * kOverviewRows + spacing * (kOverviewRows - 1) + pad * 2.0f});
+        for (int row = 0; row < kOverviewRows; ++row)
+            for (int col = 0; col < kOverviewColumns; ++col)
+                g.cells.push_back({workspace_id_at(b.group, row, col), {origin_x + b.x + pad + static_cast<float>(col) * (b.cell_w + spacing), origin_y + b.y + pad + static_cast<float>(row) * (b.cell_h + spacing), b.cell_w, b.cell_h}});
+    }
     return g;
 }
 
-Rect cell_rect(const GridLayout &g, int row, int col) {
-    float spacing = std::round(kOverviewWorkspaceSpacing);
-    return {g.grid.x + static_cast<float>(col) * (g.cell_w + spacing),
-            g.grid.y + static_cast<float>(row) * (g.cell_h + spacing), g.cell_w,
-            g.cell_h};
+const LayoutCell *find_cell(const Layout &g, int workspace_id) {
+    for (const LayoutCell &c : g.cells)
+        if (c.workspace_id == workspace_id)
+            return &c;
+    return nullptr;
 }
 
-int workspace_id_at(int workspace_group, int row, int col) {
-    return workspace_group * workspaces_shown() + row * kOverviewColumns + col + 1;
+const LayoutCell *cell_at(const Layout &g, double px, double py) {
+    for (const LayoutCell &c : g.cells)
+        if (px >= c.rect.x && px < c.rect.x + c.rect.w && py >= c.rect.y && py < c.rect.y + c.rect.h)
+            return &c;
+    return nullptr;
 }
 
 uint64_t tile_anim_owner(const std::string &address, int component) {
@@ -118,15 +224,12 @@ bool rect_equal(const Rect &a, const Rect &b) {
     return a.x == b.x && a.y == b.y && a.w == b.w && a.h == b.h;
 }
 
-void rebuild_tiles(OverviewState &state, WaylandState &app, const GridLayout &g, const HyprMonitor &target) {
+void rebuild_tiles(OverviewState &state, WaylandState &app, const Layout &g, const HyprMonitor *fallback) {
     state.tiles.clear();
-    int shown = workspaces_shown();
-    int min_ws = state.workspace_group * shown + 1;
-    int max_ws = (state.workspace_group + 1) * shown;
 
     std::vector<const HyprClient *> visible;
     for (const HyprClient &c : app.hypr.clients)
-        if (c.workspace_id >= min_ws && c.workspace_id <= max_ws)
+        if (find_cell(g, c.workspace_id))
             visible.push_back(&c);
 
     std::sort(visible.begin(), visible.end(), [](const HyprClient *a, const HyprClient *b) {
@@ -144,12 +247,11 @@ void rebuild_tiles(OverviewState &state, WaylandState &app, const GridLayout &g,
     for (const HyprClient *c : visible) {
         const HyprMonitor *src = find_monitor_by_id(app.hypr, c->monitor_id);
         if (!src)
-            src = &target;
+            src = fallback;
+        if (!src)
+            continue;
 
-        int local = (c->workspace_id - 1) % shown;
-        int row = local / kOverviewColumns;
-        int col = local % kOverviewColumns;
-        Rect cell = cell_rect(g, row, col);
+        Rect cell = find_cell(g, c->workspace_id)->rect;
 
         double src_w = std::max(1.0, source_work_area_w(*src));
         double src_h = std::max(1.0, source_work_area_h(*src));
@@ -170,6 +272,7 @@ void rebuild_tiles(OverviewState &state, WaylandState &app, const GridLayout &g,
         OverviewWindowTile tile;
         tile.address = c->address;
         tile.workspace_id = c->workspace_id;
+        tile.window_class = c->window_class;
         tile.rect = {static_cast<float>(cell.x + base_x), static_cast<float>(cell.y + base_y), static_cast<float>(base_w), static_cast<float>(base_h)};
         state.tiles.push_back(tile);
 
@@ -230,11 +333,7 @@ void overview_toggle(OverviewState &state, WaylandState &app, bool by_widget) {
     if (opening) {
         hypr_refresh(app.hypr);
         state.opened_by_widget = by_widget;
-        std::string monitor_name;
-        for (auto &mon : app.outputs)
-            if (mon->output.wl == state.bound_output)
-                monitor_name = mon->output.name;
-        int active_id = active_workspace_id(app.hypr, monitor_name);
+        int active_id = active_workspace_id(app.hypr, bound_output_name(state, app));
         state.selected_workspace = active_id;
         state.workspace_group = (active_id - 1) / workspaces_shown();
         state.slide_y = static_cast<float>(state.base.height);
@@ -279,29 +378,20 @@ void overview_handle_click(OverviewState &state, WaylandState &app, double px, d
         return;
     }
 
-    std::string monitor_name;
-    for (auto &mon : app.outputs)
-        if (mon->output.wl == state.bound_output)
-            monitor_name = mon->output.name;
-    const HyprMonitor *target = find_monitor_by_name(app.hypr, monitor_name);
-    if (!target) {
+    Layout g = compute_layout(state, app);
+    if (g.cells.empty()) {
         overview_toggle(state, app);
         return;
     }
-    GridLayout g = compute_grid_layout(*target, state.base.width, state.base.height, state.slide_y);
-    for (int row = 0; row < kOverviewRows; ++row) {
-        for (int col = 0; col < kOverviewColumns; ++col) {
-            Rect cell = cell_rect(g, row, col);
-            if (!point_in_rect(px, py, cell))
-                continue;
-            int ws = workspace_id_at(state.workspace_group, row, col);
-            state.selected_workspace = ws;
-            hypr_tile_focus_workspace(app.hypr, ws);
-            return;
-        }
+    if (const LayoutCell *cell = cell_at(g, px, py)) {
+        state.selected_workspace = cell->workspace_id;
+        hypr_tile_focus_workspace(app.hypr, cell->workspace_id, state.global_mode);
+        return;
     }
 
-    if (!point_in_rect(px, py, g.root))
+    float m = kOverviewElevationMargin;
+    bool inside = std::any_of(g.panels.begin(), g.panels.end(), [&](const Rect &p) { return point_in_rect(px, py, {p.x - m, p.y - m, p.w + 2.0f * m, p.h + 2.0f * m}); });
+    if (!inside)
         overview_toggle(state, app);
 }
 
@@ -315,19 +405,7 @@ bool overview_point_is_clickable(OverviewState &state, WaylandState &app, double
         if (point_in_rect(px, py, drawn))
             return true;
     }
-    std::string monitor_name;
-    for (auto &mon : app.outputs)
-        if (mon->output.wl == state.bound_output)
-            monitor_name = mon->output.name;
-    const HyprMonitor *target = find_monitor_by_name(app.hypr, monitor_name);
-    if (!target)
-        return false;
-    GridLayout g = compute_grid_layout(*target, state.base.width, state.base.height, state.slide_y);
-    for (int row = 0; row < kOverviewRows; ++row)
-        for (int col = 0; col < kOverviewColumns; ++col)
-            if (point_in_rect(px, py, cell_rect(g, row, col)))
-                return true;
-    return false;
+    return cell_at(compute_layout(state, app), px, py) != nullptr;
 }
 
 void overview_handle_pointer_move(OverviewState &state, WaylandState &app, double px, double py) {
@@ -336,25 +414,9 @@ void overview_handle_pointer_move(OverviewState &state, WaylandState &app, doubl
     state.drag_pointer_x = px;
     state.drag_pointer_y = py;
 
-    std::string monitor_name;
-    for (auto &mon : app.outputs)
-        if (mon->output.wl == state.bound_output)
-            monitor_name = mon->output.name;
-    const HyprMonitor *target = find_monitor_by_name(app.hypr, monitor_name);
-    state.drag_target_workspace = -1;
-    if (!target)
-        return;
-    GridLayout g = compute_grid_layout(*target, state.base.width, state.base.height, state.slide_y);
-    for (int row = 0; row < kOverviewRows; ++row) {
-        for (int col = 0; col < kOverviewColumns; ++col) {
-            Rect cell = cell_rect(g, row, col);
-            if (point_in_rect(px, py, cell)) {
-                state.drag_target_workspace =
-                    workspace_id_at(state.workspace_group, row, col);
-                return;
-            }
-        }
-    }
+    Layout g = compute_layout(state, app);
+    const LayoutCell *cell = cell_at(g, px, py);
+    state.drag_target_workspace = cell ? cell->workspace_id : -1;
 }
 
 void overview_handle_pointer_release(OverviewState &state, WaylandState &app) {
@@ -362,27 +424,14 @@ void overview_handle_pointer_release(OverviewState &state, WaylandState &app) {
         return;
     state.dragging = false;
 
-    std::string monitor_name;
-    for (auto &mon : app.outputs)
-        if (mon->output.wl == state.bound_output)
-            monitor_name = mon->output.name;
-    const HyprMonitor *target = find_monitor_by_name(app.hypr, monitor_name);
-    if (!target)
+    Layout g = compute_layout(state, app);
+    const LayoutCell *cell = cell_at(g, state.drag_pointer_x, state.drag_pointer_y);
+    if (!cell)
         return;
-    GridLayout g = compute_grid_layout(*target, state.base.width, state.base.height, state.slide_y);
-    for (int row = 0; row < kOverviewRows; ++row) {
-        for (int col = 0; col < kOverviewColumns; ++col) {
-            Rect cell = cell_rect(g, row, col);
-            if (!point_in_rect(state.drag_pointer_x, state.drag_pointer_y, cell))
-                continue;
-            int target_ws = workspace_id_at(state.workspace_group, row, col);
-            if (target_ws != state.drag_from_workspace) {
-                hypr_tile_move_window(app.hypr, target_ws, false, state.drag_address);
-            } else {
-                hypr_tile_focus_workspace(app.hypr, target_ws);
-            }
-            return;
-        }
+    if (cell->workspace_id != state.drag_from_workspace) {
+        hypr_tile_move_window(app.hypr, cell->workspace_id, false, state.drag_address, state.global_mode);
+    } else {
+        hypr_tile_focus_workspace(app.hypr, cell->workspace_id, state.global_mode);
     }
 }
 
@@ -390,16 +439,18 @@ void overview_handle_key_event(OverviewState &state, WaylandState &app, const Ke
     if (!state.base.open)
         return;
     int shown = workspaces_shown();
+    if (state.global_mode)
+        state.workspace_group = (state.selected_workspace - 1) / shown;
 
     auto switch_to = [&](int ws, bool shift, bool alt) {
         state.selected_workspace = ws;
         state.workspace_group = (ws - 1) / shown;
         if (shift)
-            hypr_tile_swap_workspace(app.hypr, ws);
+            hypr_tile_swap_workspace(app.hypr, ws, state.global_mode);
         else if (alt)
-            hypr_tile_move_workspace_in(app.hypr, ws);
+            hypr_tile_move_workspace_in(app.hypr, ws, state.global_mode);
         else
-            hypr_tile_focus_workspace(app.hypr, ws);
+            hypr_tile_focus_workspace(app.hypr, ws, state.global_mode);
     };
 
     switch (event.kind) {
@@ -423,6 +474,12 @@ void overview_handle_key_event(OverviewState &state, WaylandState &app, const Ke
         switch_to(workspace_id_at(state.workspace_group, row, col), event.shift, event.alt);
         break;
     }
+    case KeyKind::Tab:
+        state.global_mode = !state.global_mode;
+        state.dragging = false;
+        state.indicator_tracking = false;
+        state.workspace_group = (state.selected_workspace - 1) / shown;
+        break;
     case KeyKind::Escape:
         overview_toggle(state, app);
         break;
@@ -434,12 +491,7 @@ void overview_handle_key_event(OverviewState &state, WaylandState &app, const Ke
         } else if (event.ctrl && (event.text == "d" || event.text == "D")) {
             hypr_tile_close_workspace(app.hypr, HyprCloseScope::All);
         } else if (event.text == "D") {
-            std::string monitor_name;
-            for (auto &mon : app.outputs)
-                if (mon->output.wl == state.bound_output)
-                    monitor_name = mon->output.name;
-            const HyprMonitor *target =
-                find_monitor_by_name(app.hypr, monitor_name);
+            const HyprMonitor *target = bound_monitor(state, app);
             if (target)
                 hypr_tile_close_workspace(app.hypr, HyprCloseScope::Monitor, target->id);
         } else if (event.text == "d") {
@@ -465,90 +517,82 @@ void overview_paint(OverviewState &state, WaylandState &app) {
     state.scene.rebuild();
 
     if (state.base.open && app.compositor_backend == WaylandState::CompositorBackend::Hyprland) {
-        std::string monitor_name;
-        for (auto &mon : app.outputs)
-            if (mon->output.wl == state.bound_output)
-                monitor_name = mon->output.name;
-        const HyprMonitor *target =
-            find_monitor_by_name(app.hypr, monitor_name);
+        Layout g = compute_layout(state, app);
 
-        if (target) {
-            GridLayout g = compute_grid_layout(*target, state.base.width, state.base.height, state.slide_y);
-            rebuild_tiles(state, app, g, *target);
+        if (!g.cells.empty()) {
+            rebuild_tiles(state, app, g, bound_monitor(state, app));
+            if (state.dragging)
+                std::stable_partition(state.tiles.begin(), state.tiles.end(), [&](const OverviewWindowTile &t) { return t.address != state.drag_address; });
 
-            Node *bg = state.scene.root.claim_child();
-            bg->kind = NodeKind::RoundedRect;
-            bg->x = g.background.x;
-            bg->y = g.background.y;
-            bg->w = g.background.w;
-            bg->h = g.background.h;
-            bg->radius =
-                kOverviewScreenRounding * kOverviewScale + kOverviewBackgroundPadding;
-            bg->border_width = kOverviewBackgroundBorderWidth;
             static const float bg_fill[4] = {
                 palette::field_bg.r, palette::field_bg.g, palette::field_bg.b,
                 palette::field_bg.a * kOverviewBackgroundOpacity};
             static const float bg_border[4] = {
                 palette::accent.r, palette::accent.g, palette::accent.b,
                 palette::accent.a};
-            bg->fill = bg_fill;
-            bg->border = bg_border;
+            for (const Rect &panel : g.panels) {
+                Node *bg = state.scene.root.claim_child();
+                bg->kind = NodeKind::RoundedRect;
+                bg->x = panel.x;
+                bg->y = panel.y;
+                bg->w = panel.w;
+                bg->h = panel.h;
+                bg->radius = kOverviewScreenRounding * g.scale + kOverviewBackgroundPadding;
+                bg->border_width = kOverviewBackgroundBorderWidth;
+                bg->fill = bg_fill;
+                bg->border = bg_border;
+            }
 
-            int active_id = active_workspace_id(app.hypr, monitor_name);
-            int active_local = (active_id - 1) % workspaces_shown();
-            int active_row = active_local / kOverviewColumns;
-            int active_col = active_local % kOverviewColumns;
-            bool active_in_page =
-                (active_id - 1) / workspaces_shown() == state.workspace_group;
-            if (!active_in_page)
+            int active_id = active_workspace_id(app.hypr, state.global_mode ? app.hypr.focused_monitor : bound_output_name(state, app));
+            int active_page = (active_id - 1) / workspaces_shown();
+            const LayoutCell *active_cell = find_cell(g, active_id);
+            if (!active_cell)
                 state.indicator_tracking = false;
 
-            for (int row = 0; row < kOverviewRows; ++row) {
-                for (int col = 0; col < kOverviewColumns; ++col) {
-                    Rect cell = cell_rect(g, row, col);
-                    int ws = workspace_id_at(state.workspace_group, row, col);
-                    bool hovered_while_dragging =
-                        state.dragging && state.drag_target_workspace == ws;
+            for (const LayoutCell &layout_cell : g.cells) {
+                const Rect &cell = layout_cell.rect;
+                int ws = layout_cell.workspace_id;
+                bool hovered_while_dragging =
+                    state.dragging && state.drag_target_workspace == ws;
 
-                    Node *cellnode = state.scene.root.claim_child();
-                    cellnode->kind = NodeKind::RoundedRect;
-                    cellnode->x = cell.x;
-                    cellnode->y = cell.y;
-                    cellnode->w = cell.w;
-                    cellnode->h = cell.h;
-                    cellnode->radius = kOverviewScreenRounding * kOverviewScale;
-                    cellnode->border_width = kOverviewWorkspaceBorderWidth;
-                    static const float cell_fill[4] = {
-                        palette::field_bg.r, palette::field_bg.g,
-                        palette::field_bg.b, palette::field_bg.a};
-                    static const float cell_border[4] = {
-                        palette::text.r, palette::text.g, palette::text.b,
-                        0.18f};
-                    static const float cell_border_hover[4] = {
-                        palette::text.r, palette::text.g, palette::text.b,
-                        0.08f};
-                    cellnode->fill = cell_fill;
-                    cellnode->border = hovered_while_dragging ? cell_border_hover : cell_border;
+                Node *cellnode = state.scene.root.claim_child();
+                cellnode->kind = NodeKind::RoundedRect;
+                cellnode->x = cell.x;
+                cellnode->y = cell.y;
+                cellnode->w = cell.w;
+                cellnode->h = cell.h;
+                cellnode->radius = kOverviewScreenRounding * g.scale;
+                cellnode->border_width = kOverviewWorkspaceBorderWidth;
+                static const float cell_fill[4] = {
+                    palette::field_bg.r, palette::field_bg.g,
+                    palette::field_bg.b, palette::field_bg.a};
+                static const float cell_border[4] = {
+                    palette::text.r, palette::text.g, palette::text.b,
+                    0.18f};
+                static const float cell_border_hover[4] = {
+                    palette::text.r, palette::text.g, palette::text.b,
+                    0.08f};
+                cellnode->fill = cell_fill;
+                cellnode->border = hovered_while_dragging ? cell_border_hover : cell_border;
 
-                    Texture &num_tex = state.workspace_number_tex[ws];
-                    if (!num_tex.id) {
-                        RasterizedText num = rasterize_text_large(std::to_string(ws), state.base.output_scale.scale);
-                        if (num.width > 0)
-                            num_tex = make_texture_from_raster(num);
-                    }
-                    if (num_tex.id) {
-                        static const float num_tint[4] = {
-                            palette::text.r, palette::text.g, palette::text.b,
-                            1.0f - kOverviewWorkspaceNumberTextFade};
-                        Node *label = state.scene.root.claim_child();
-                        label->kind = NodeKind::Texture;
-                        label->x = cell.x + (cell.w - num_tex.width) / 2.0f;
-                        label->y = cell.y + (cell.h - num_tex.height) / 2.0f;
-                        label->w = static_cast<float>(num_tex.width);
-                        label->h = static_cast<float>(num_tex.height);
-                        label->tex = &num_tex;
-                        label->tint = num_tint;
-                    }
+                Texture &num_tex = state.workspace_number_tex[ws];
+                if (!num_tex.id) {
+                    RasterizedText num = rasterize_text_large(std::to_string(ws), state.base.output_scale.scale);
+                    if (num.width > 0)
+                        num_tex = make_texture_from_raster(num);
+                }
+                if (num_tex.id && num_tex.width <= cell.w && num_tex.height <= cell.h) {
+                    static const float num_tint[4] = {
+                        palette::text.r, palette::text.g, palette::text.b,
+                        1.0f - kOverviewWorkspaceNumberTextFade};
+                    Node *label = state.scene.root.claim_child();
+                    label->kind = NodeKind::Texture;
+                    label->x = cell.x + (cell.w - num_tex.width) / 2.0f;
+                    label->y = cell.y + (cell.h - num_tex.height) / 2.0f;
+                    label->w = static_cast<float>(num_tex.width);
+                    label->h = static_cast<float>(num_tex.height);
+                    label->tex = &num_tex;
+                    label->tint = num_tint;
                 }
             }
 
@@ -571,7 +615,7 @@ void overview_paint(OverviewState &state, WaylandState &app) {
                     n->y = r.y;
                     n->w = r.w;
                     n->h = r.h;
-                    n->radius = kOverviewWindowRounding * kOverviewScale;
+                    n->radius = kOverviewWindowRounding * g.scale;
                     n->tex = tex;
                     static const float white[4] = {1, 1, 1, 1};
                     n->tint = white;
@@ -582,7 +626,7 @@ void overview_paint(OverviewState &state, WaylandState &app) {
                     n->y = r.y;
                     n->w = r.w;
                     n->h = r.h;
-                    n->radius = kOverviewWindowRounding * kOverviewScale;
+                    n->radius = kOverviewWindowRounding * g.scale;
                     n->border_width = kOverviewWindowPreviewBorderWidth;
                     static const float fill[4] = {
                         palette::field_bg.r, palette::field_bg.g,
@@ -593,6 +637,13 @@ void overview_paint(OverviewState &state, WaylandState &app) {
                     n->fill = fill;
                     n->border = border;
                 }
+
+                const Texture *icon = state.icons.lookup(tile.window_class);
+                if (icon) {
+                    static const float icon_tint[4] = {1, 1, 1, 1};
+                    float size = std::round(std::min(r.w, r.h) * kOverviewIconToWindowRatio);
+                    node_add_texture_rect(&state.scene.root, r.x + r.w - size - kOverviewIconInset, r.y + r.h - size - kOverviewIconInset, size, size, *icon, icon_tint);
+                }
             }
 
             std::vector<std::string> live_addresses;
@@ -600,13 +651,13 @@ void overview_paint(OverviewState &state, WaylandState &app) {
                 live_addresses.push_back(c.address);
             toplevel_export_prune(state.capture, live_addresses);
 
-            if (active_in_page && state.slide_y == 0.0f) {
-                Rect cell = cell_rect(g, active_row, active_col);
-                if (!state.indicator_tracking || state.indicator_page != state.workspace_group) {
+            if (active_cell && state.slide_y == 0.0f) {
+                Rect cell = active_cell->rect;
+                if (!state.indicator_tracking || state.indicator_page != active_page) {
                     state.indicator_anim = cell;
                     state.indicator_target = cell;
                     state.indicator_tracking = true;
-                    state.indicator_page = state.workspace_group;
+                    state.indicator_page = active_page;
                 } else if (state.indicator_target.x != cell.x || state.indicator_target.y != cell.y) {
                     state.base.animations.animate(state.indicator_anim.x, cell.x, kOverviewAnimFastMs, Easing::EaseOutCubic, [&state](float v) { state.indicator_anim.x = v; }, {}, kOverviewIndicatorXOwner);
                     state.base.animations.animate(state.indicator_anim.y, cell.y, kOverviewAnimFastMs, Easing::EaseOutCubic, [&state](float v) { state.indicator_anim.y = v; }, {}, kOverviewIndicatorYOwner);
@@ -619,7 +670,7 @@ void overview_paint(OverviewState &state, WaylandState &app) {
                 indicator->y = state.indicator_anim.y;
                 indicator->w = cell.w;
                 indicator->h = cell.h;
-                indicator->radius = kOverviewScreenRounding * kOverviewScale;
+                indicator->radius = kOverviewScreenRounding * g.scale;
                 indicator->border_width = kOverviewFocusedIndicatorBorderWidth;
                 static const float transparent[4] = {0, 0, 0, 0};
                 static const float indicator_border[4] = {

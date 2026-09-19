@@ -101,6 +101,7 @@ Drop an entry once newer knowledge fully supersedes it.
 - **Control center's font/border/glow constants already matched the intended design numerically; the visual diff wasn't a config gap.** It was a Pango/Cairo rasterization-path difference — root-caused as icon/text font hinting, see below.
 - **An on-demand panel's own geometry should lock at open, not track live content.** Recomputing height every frame let content changes desync the close animation's start value.
 - **A `border_width` ported 1:1 from a QML `Rectangle` looks thinner here than in Qt.** The fixed 1px SDF antialiasing band eats more of its opacity; match `metrics::border_thin` (`2.0f`).
+- **`rrect.frag`'s distance must include the interior `min(max(q.x, q.y), 0.0)` term.** Without it `d` clamps at `-radius`, so a border wider than the radius filled the whole rect; global `overview` (radius `1.84`, border `2`) hit it.
 - **Font hinting must differ between icon glyphs and text, not share one `cairo_font_options_t`.** `HINT_STYLE_NONE`+`HINT_METRICS_OFF` preserves Tabler stroke thickness while hinted text stays crisp; resolves the Control center diff above.
 - **A module's background opacity can diverge from the process-wide `overlay` token.** The launcher menu fill intentionally uses its own `menuBgAlpha` (`0.8`) instead of the shared `overlay` (`0.92`).
 - **The launcher row subtitle is the entry's own full home-relative `path`, for every entry carrying one.** Not the parent directory, not gated on kind — apps simply have no `path`.
@@ -330,3 +331,6 @@ Drop an entry once newer knowledge fully supersedes it.
 - **`redraw_all_monitors` pokes only per-monitor modules, never `app.overlays`.** An open app overlay reacting live to an event needs its own `request_frame()` loop over `app.overlays`.
 - **The bar's per-monitor workspace pills carry Hyprland's absolute workspace id.** Switching from a pill must call `hypr_tile_focus_workspace` with `global=true`, or `resolve_workspace` remaps it.
 - **A bar widget that only emits scene nodes isn't clickable until its hit rects are recorded and routed.** `dispatch_pill_click` scans only the fixed `PillId` array; the workspace row stores and checks its own rects.
+- **A workspace grid spanning monitors must pass `global=true` to every `hypr_tile_*` call.** `resolve_workspace` otherwise remaps ids `1..10` onto the focused monitor's page.
+- **`overview` paints and hit-tests from one `Layout` cell list, never row/column loops.** Local and global modes then share geometry, so click, drop, and hover can't drift from paint.
+- **Global-mode block origins are monitor `x`/`y` times cells-per-block, plus a gap per monitor chain-separated before it.** A block is 5x2 cells, so raw positions overlap; a gap per distinct coordinate skewed a centered monitor.

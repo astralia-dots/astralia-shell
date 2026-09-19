@@ -34,7 +34,7 @@
 - `notification_config.h`: Notification card padding/size/timing constants.
 - `logout_config.h`: Ring-menu geometry, entry/exit hold/slash/burst/implode timings, `thunder_burst` constants, `{8/3}` star step, animation owner ids, and the 8-button action table.
 - `dashboard_config.h`: Dashboard card-stack geometry and gauge/temp-warn color constants.
-- `overview_config.h`: Overview workspace-grid geometry, timing, and live-capture throttle constants.
+- `overview_config.h`: Overview workspace-grid geometry, local and global scale, timing, and live-capture throttle constants.
 - `wallpaper_config.h`: Wallpaper layer-shell namespace constant, `WallpaperTransition` enum (`None`/`Fade`/`Wipe`/`Disc`/`Stripes`/`Zoom`/`Honeycomb`/`Random`), and the fixed cross-transition duration/edge-smoothness constants.
 - `settings_config.h`: Settings panel layout/animation constants, `SettingsFieldId` enum, `SettingsTabDef` type, and the six nav-rail tab labels.
 - `rain_config.h`: `RainMode`/`RainParams` types, shared rain window/timing constants, plus per-sim `kMatrixRain*` and `kStilettoRain*` tuning constants.
@@ -117,7 +117,7 @@
 - `notification.h`+`.cpp`: Notification renderer; rebuilds render/animation state from `notification_service` records, per-monitor card paint, and per-monitor close-button dismissal.
 - `logout.h`+`.cpp`: Logout ring overlay: entry/exit lightning-slash/shockwave choreography, animated centre logo, and its two custom shader effects.
 - `dashboard.h`+`.cpp`: Dashboard singleton state: fixed top-right overlay, IPC/widget-triggered open, scrollable card layout, and brightness card.
-- `overview.h`+`.cpp`: Overview state, Hyprland-only full-screen exclusive-keyboard overlay; paginated workspace grid, live per-window `hyprland-toplevel-export-v1` thumbnails, click/drag/keyboard focus-move-swap-close, IPC-only toggle.
+- `overview.h`+`.cpp`: Overview state, Hyprland-only full-screen exclusive-keyboard overlay; local paginated grid or `Tab`-switched global per-monitor grid, live `hyprland-toplevel-export-v1` thumbnails with app icons, click/drag/keyboard focus-move-swap-close, IPC-only toggle.
 - `wallpaper.h`+`.cpp`: Per-monitor wallpaper surface: static or animated columns per config, cross-transition on image change, shared by `lock` and idle ambient.
 - `idle.h`+`.cpp`: Recent-activity idle clock feeding the per-monitor ambient/screensaver overlay surface; screensaver bounces an `AnimatedImage` logo, freed while not shown.
 - `settings.h`+`.cpp`: Settings panel core: hosts per-tab modules, responsive nav rail, shared toggle widgets, and a separately-faded active-tab scene.

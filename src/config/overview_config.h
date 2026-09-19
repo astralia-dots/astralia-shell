@@ -14,13 +14,16 @@ constexpr float kOverviewBackgroundOpacity = 1.0f;
 constexpr float kOverviewBackgroundPadding = 10.0f;
 constexpr int kOverviewColumns = 5;
 constexpr float kOverviewElevationMargin = 10.0f;
+constexpr float kOverviewGlobalBlockSpacing = 10.0f;
+constexpr float kOverviewGlobalScale = 0.08f;
 
 // focus & indicator
 constexpr int kOverviewFocusGrabDelayMs = 150;
 constexpr float kOverviewFocusedIndicatorBorderWidth = 2.0f;
 
 // window/preview layout
-constexpr float kOverviewIconToWindowRatio = 0.25f;
+constexpr float kOverviewIconInset = 4.0f;
+constexpr float kOverviewIconToWindowRatio = 0.2f;
 constexpr float kOverviewOtherMonitorOpacity = 0.4f;
 constexpr int kOverviewRaceDelayMs = 150;
 constexpr int kOverviewRows = 2;
