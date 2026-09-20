@@ -165,17 +165,7 @@ int main(int argc, char **argv) {
     for (auto &mon : app.outputs)
         request_all_frames(*mon);
 
-    long poll_iter = 0;
-    auto poll_heartbeat = std::chrono::steady_clock::now();
     while (app.running) {
-        ++poll_iter;
-        {
-            auto now = std::chrono::steady_clock::now();
-            if (std::chrono::duration_cast<std::chrono::milliseconds>(now - poll_heartbeat).count() >= 1000) {
-                poll_heartbeat = now;
-                klog("poll: iter=%ld locked=%d", poll_iter, app.session_locked);
-            }
-        }
         wl_display_flush(app.display);
 
         std::vector<FnPollSource> fn_sources;

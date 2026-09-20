@@ -399,6 +399,7 @@ astralia_shell_test = executable(
   'test/wayland/test_active_output.cpp',
   'test/wayland/test_dock.cpp',
   'test/wayland/test_sway.cpp',
+  'test/wayland/test_hyprland.cpp',
   'test/system/test_rfkill.cpp',
   'test/system/test_cpu_temp.cpp',
   'test/system/test_gpu_temp.cpp',

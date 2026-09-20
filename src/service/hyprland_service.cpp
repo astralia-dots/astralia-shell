@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <nlohmann/json.hpp>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #include "core/log.h"
@@ -13,6 +14,8 @@
 #include "service/hyprland_service.h"
 
 namespace {
+
+constexpr timeval kRequestTimeout{0, 100000};
 
 bool resolve_socket_paths(CompositorState &state) {
     const char *sig = getenv("HYPRLAND_INSTANCE_SIGNATURE");
@@ -40,6 +43,9 @@ std::string request(const std::string &socket_path, const std::string &cmd) {
     if (fd < 0)
         return {};
 
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &kRequestTimeout, sizeof(kRequestTimeout));
+    setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &kRequestTimeout, sizeof(kRequestTimeout));
+
     size_t sent = 0;
     while (sent < cmd.size()) {
         ssize_t n = send(fd, cmd.data() + sent, cmd.size() - sent, 0);
@@ -55,9 +61,17 @@ std::string request(const std::string &socket_path, const std::string &cmd) {
 
     std::string result;
     char buf[4096];
-    ssize_t n;
-    while ((n = recv(fd, buf, sizeof(buf), 0)) > 0) {
-        result.append(buf, static_cast<size_t>(n));
+    for (;;) {
+        ssize_t n = recv(fd, buf, sizeof(buf), 0);
+        if (n > 0) {
+            result.append(buf, static_cast<size_t>(n));
+            continue;
+        }
+        if (n < 0 && errno == EINTR)
+            continue;
+        if (n < 0)
+            result.clear();
+        break;
     }
     close(fd);
     return result;
@@ -130,12 +144,19 @@ std::vector<std::string> split(const std::string &s, char delim) {
 void hypr_refresh(CompositorState &state) {
     using nlohmann::json;
 
-    state.by_monitor.clear();
     if (state.request_socket_path.empty())
         return;
 
     std::string workspaces_reply =
         request(state.request_socket_path, "j/workspaces");
+    std::string monitors_reply =
+        request(state.request_socket_path, "j/monitors");
+    std::string clients_reply =
+        request(state.request_socket_path, "j/clients");
+    if (workspaces_reply.empty() || monitors_reply.empty() || clients_reply.empty())
+        return;
+
+    state.by_monitor.clear();
     try {
         json arr = json::parse(workspaces_reply);
         for (auto &w : arr) {
@@ -155,8 +176,6 @@ void hypr_refresh(CompositorState &state) {
         klog("hyprland: failed to parse j/workspaces: %s", e.what());
     }
 
-    std::string monitors_reply =
-        request(state.request_socket_path, "j/monitors");
     try {
         json arr = json::parse(monitors_reply);
         state.monitors.clear();
@@ -185,15 +204,18 @@ void hypr_refresh(CompositorState &state) {
         klog("hyprland: failed to parse j/monitors: %s", e.what());
     }
 
-    state.clients =
-        parse_clients(request(state.request_socket_path, "j/clients"));
+    state.clients = parse_clients(clients_reply);
+    state.clients_reply = std::move(clients_reply);
 }
 
 bool hypr_refresh_clients(CompositorState &state) {
     if (state.request_socket_path.empty())
         return false;
-    std::vector<CompositorClient> fresh =
-        parse_clients(request(state.request_socket_path, "j/clients"));
+    std::string reply = request(state.request_socket_path, "j/clients");
+    if (reply.empty() || reply == state.clients_reply)
+        return false;
+    std::vector<CompositorClient> fresh = parse_clients(reply);
+    state.clients_reply = std::move(reply);
     if (!client_order_differs(fresh, state.clients))
         return false;
     state.clients = std::move(fresh);

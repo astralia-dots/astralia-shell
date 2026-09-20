@@ -56,6 +56,7 @@ struct CompositorState {
     std::string focused_monitor;
     std::vector<CompositorMonitor> monitors;
     std::vector<CompositorClient> clients;
+    std::string clients_reply;
 };
 
 enum class CompositorEventResult {

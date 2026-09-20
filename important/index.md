@@ -224,6 +224,7 @@
 - `test_active_output.cpp`: Active-output selection logic.
 - `test_dock.cpp`: Dock entry list for a monitor's active workspace.
 - `test_sway.cpp`: Sway `get_workspaces`/`get_outputs`/`get_tree` parsing into `CompositorState`, and its dock entries.
+- `test_hyprland.cpp`: Hyprland client refresh against a fake request socket: timeout, changed reply, and unchanged-reply skip.
 
 ## test/system
 
