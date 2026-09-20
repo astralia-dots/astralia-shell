@@ -178,15 +178,12 @@
 
 ## src/modules/bar/widget
 
-- `widget_capsule.h`+`.cpp`: Shared pill bookkeeping, hover-expand/click dispatch, and the pill-row layout/draw.
+- `widget_capsule.h`+`.cpp`: Shared pill bookkeeping, hover-expand/click dispatch, and the pill-row and shared-capsule group layout/draw.
 - `workspace_widget.h`+`.cpp`: Workspace-row drawing plus trailing overview-toggle icon; records per-pill and icon hit rects for click routing.
 - `dock_widget.h`+`.cpp`: Bar-capsule variant of the dock icon row for the active workspace, drawn after the workspace row via shared `render/dock_row`; non-interactive.
 - `clock_widget.h`+`.cpp`: State-free clock-pill drawing; returns the pill hit rect and owns the calendar-panel open trigger.
 - `logout_widget.h`+`.cpp`: Logout pill that toggles the logout overlay.
-- `battery_widget.h`+`.cpp`: Battery pill opening the battery panel.
-- `network_widget.h`+`.cpp`: Network pill opening the network panel.
-- `bluetooth_widget.h`+`.cpp`: Bluetooth pill opening the Bluetooth panel.
-- `volume_widget.h`+`.cpp`: Volume pill opening the volume panel.
+- `status_widget.h`+`.cpp`: One shared capsule of network, Bluetooth, volume, and battery segments, each opening its own panel; volume wheel and peek.
 - `dashboard_widget.h`+`.cpp`: Dashboard pill that toggles the dashboard overlay.
 - `system_monitor_widget.h`+`.cpp`: CPU pill opening the system-monitor panel.
 - `tray_widget.h`+`.cpp`: Tray pill opening the tray panel.

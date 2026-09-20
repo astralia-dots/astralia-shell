@@ -70,6 +70,10 @@ float pills_row_width(WidgetCapsuleState &capsule, AnimationManager &animations,
 
 float draw_pills(Node *root, WidgetCapsuleState &capsule, AnimationManager &animations, float x, float height, const std::vector<Pill> &pills, const float tint[4], const float pill_bg[4], PillId hovered, PillId instant_pill = PillId::None);
 
+float pill_group_width(WidgetCapsuleState &capsule, AnimationManager &animations, const std::vector<Pill> &pills, PillId hovered, float height, PillId instant_pill = PillId::None);
+
+float draw_pill_group(Node *root, WidgetCapsuleState &capsule, AnimationManager &animations, float x, float height, const std::vector<Pill> &pills, const float tint[4], const float pill_bg[4], PillId hovered, PillId instant_pill = PillId::None);
+
 void dispatch_pill_click(WidgetCapsuleState &capsule, const PointerState &pointer, wl_surface *own_surface);
 
 } // namespace bar_detail

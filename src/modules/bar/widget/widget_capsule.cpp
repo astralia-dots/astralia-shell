@@ -156,6 +156,90 @@ float draw_pills(Node *root, WidgetCapsuleState &capsule, AnimationManager &anim
     return x;
 }
 
+namespace {
+
+struct SegmentLayout {
+    const Texture *label_tex = nullptr;
+    float t = 0.0f;
+    float w = 0.0f;
+};
+
+SegmentLayout segment_layout(WidgetCapsuleState &capsule, AnimationManager &animations, const Pill &p, PillId hovered, PillId instant_pill) {
+    bool hovered_now = p.id == hovered && !p.label.empty();
+    update_pill_expand(capsule, animations, p.id, hovered_now, hovered_now && p.id == instant_pill);
+    SegmentLayout seg;
+    seg.t = capsule.pill_expand_t[pill_idx(p.id)];
+    seg.w = static_cast<float>(p.icon->width);
+    if (!p.label.empty()) {
+        const Texture &label_tex = ensure_label_texture(capsule, p);
+        if (label_tex.id) {
+            seg.label_tex = &label_tex;
+            seg.w += (kPillPad + label_tex.width) * seg.t;
+        }
+    }
+    return seg;
+}
+
+std::vector<const Pill *> visible_pills(const std::vector<Pill> &pills) {
+    std::vector<const Pill *> out;
+    for (const Pill &p : pills)
+        if (p.icon && p.icon->id)
+            out.push_back(&p);
+    return out;
+}
+
+} // namespace
+
+float pill_group_width(WidgetCapsuleState &capsule, AnimationManager &animations, const std::vector<Pill> &pills, PillId hovered, float height, PillId instant_pill) {
+    std::vector<const Pill *> visible = visible_pills(pills);
+    if (visible.empty())
+        return 0.0f;
+    float w = height + kGroupSegmentGap * static_cast<float>(visible.size() - 1);
+    for (const Pill *p : visible)
+        w += segment_layout(capsule, animations, *p, hovered, instant_pill).w;
+    return w;
+}
+
+float draw_pill_group(Node *root, WidgetCapsuleState &capsule, AnimationManager &animations, float x, float height, const std::vector<Pill> &pills, const float tint[4], const float pill_bg[4], PillId hovered, PillId instant_pill) {
+    std::vector<const Pill *> visible = visible_pills(pills);
+    if (visible.empty())
+        return x;
+
+    std::vector<SegmentLayout> layouts;
+    float group_w = height + kGroupSegmentGap * static_cast<float>(visible.size() - 1);
+    for (const Pill *p : visible) {
+        layouts.push_back(segment_layout(capsule, animations, *p, hovered, instant_pill));
+        group_w += layouts.back().w;
+    }
+
+    Node *group = node_add_group(root, x, 0, group_w, height, true);
+    node_add_rrect(group, 0, 0, group_w, height, height / 2.0f, metrics::border_thin, pill_bg, rgba(palette::accent));
+
+    float cx = height / 2.0f;
+    for (size_t i = 0; i < visible.size(); ++i) {
+        const Pill &p = *visible[i];
+        const SegmentLayout &seg = layouts[i];
+        size_t idx = pill_idx(p.id);
+
+        float iy = (height - p.icon->height) / 2.0f;
+        node_add_texture(group, cx, iy, *p.icon, tint);
+        if (seg.label_tex) {
+            float lx = cx + p.icon->width + kPillPad;
+            float ly = (height - seg.label_tex->height) / 2.0f;
+            capsule.pill_label_tint[idx] = {tint[0], tint[1], tint[2], seg.t};
+            node_add_texture(group, lx, ly, *seg.label_tex, rgba(capsule.pill_label_tint[idx]));
+        }
+
+        float left = i == 0 ? 0.0f : cx - kGroupSegmentGap / 2.0f;
+        float right = i + 1 == visible.size() ? group_w : cx + seg.w + kGroupSegmentGap / 2.0f;
+        capsule.pill_rects[idx] = {x + left, 0.0f, right - left, height};
+        capsule.pill_expanded_center_x[idx] = x + group_w / 2.0f;
+        capsule.pill_click[idx] = p.on_click;
+        cx += seg.w + kGroupSegmentGap;
+    }
+    return x + group_w + kCapsuleGap;
+}
+
 void dispatch_pill_click(WidgetCapsuleState &capsule, const PointerState &pointer, wl_surface *own_surface) {
     PillId hit = hit_test_pills(capsule, pointer, own_surface);
     if (hit == PillId::None)

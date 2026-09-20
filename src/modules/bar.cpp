@@ -7,16 +7,13 @@
 #include "core/log.h"
 
 #include "modules/bar.h"
-#include "modules/bar/widget/battery_widget.h"
-#include "modules/bar/widget/bluetooth_widget.h"
 #include "modules/bar/widget/clock_widget.h"
 #include "modules/bar/widget/dashboard_widget.h"
 #include "modules/bar/widget/dock_widget.h"
 #include "modules/bar/widget/logout_widget.h"
-#include "modules/bar/widget/network_widget.h"
+#include "modules/bar/widget/status_widget.h"
 #include "modules/bar/widget/system_monitor_widget.h"
 #include "modules/bar/widget/tray_widget.h"
-#include "modules/bar/widget/volume_widget.h"
 
 #include "render/gl.h"
 #include "render/icon.h"
@@ -264,7 +261,7 @@ void bar_paint(MonitorOutput &mon) {
     hit_pointer.y -= content_y_offset;
     PillId hovered = current_panel_pill != PillId::None ? current_panel_pill : lingering ? bs.capsule.label_linger_pill
                                                                                          : hit_test_pills(bs.capsule, hit_pointer, mon.surface);
-    if (hovered == PillId::None && bs.volume_peek_active)
+    if (hovered == PillId::None && bs.status_widget.volume_peek_active)
         hovered = PillId::Volume;
 
     float x = 0.0f;
@@ -282,28 +279,25 @@ void bar_paint(MonitorOutput &mon) {
     bs.clock_rect = draw_clock_pill(content, height, mon.width, bs.clock_texture, white, pill_bg);
 
     std::vector<Pill> dashboard_pills = {dashboard_pill(mon)};
-    std::vector<Pill> battery_pills = {battery_pill(mon)};
+    std::vector<Pill> status_segments = status_pills(mon);
     std::vector<Pill> right_stub_pills = {
         tray_pill(mon),
         cpu_pill(mon),
-        wifi_pill(mon),
-        bluetooth_pill(mon),
-        volume_pill(mon),
     };
 
     float cc_w = pills_row_width(bs.capsule, mon.animations, dashboard_pills, hovered, height);
-    float batt_w = pills_row_width(bs.capsule, mon.animations, battery_pills, hovered, height);
+    float status_w = pill_group_width(bs.capsule, mon.animations, status_segments, hovered, height, current_panel_pill);
     float stub_w = pills_row_width(bs.capsule, mon.animations, right_stub_pills, hovered, height, current_panel_pill);
 
     float cc_x = mon.width - cc_w;
-    float batt_x = cc_x - (batt_w > 0 ? kCapsuleGap : 0.0f) - batt_w;
-    float stub_x = batt_x - (stub_w > 0 ? kCapsuleGap : 0.0f) - stub_w;
+    float status_x = cc_x - (status_w > 0 ? kCapsuleGap : 0.0f) - status_w;
+    float stub_x = status_x - (stub_w > 0 ? kCapsuleGap : 0.0f) - stub_w;
 
     if (stub_w > 0) {
         draw_pills(content, bs.capsule, mon.animations, stub_x, height, right_stub_pills, white, pill_bg, hovered, current_panel_pill);
     }
-    if (batt_w > 0) {
-        draw_pills(content, bs.capsule, mon.animations, batt_x, height, battery_pills, white, pill_bg, hovered);
+    if (status_w > 0) {
+        draw_pill_group(content, bs.capsule, mon.animations, status_x, height, status_segments, white, pill_bg, hovered, current_panel_pill);
         const UpowerState &u = app.upower;
         if (u.present && !u.charging && !u.full && u.percent <= 10) {
             const Rect &r = bs.capsule.pill_rects[pill_idx(PillId::Battery)];

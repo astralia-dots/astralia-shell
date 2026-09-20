@@ -210,15 +210,12 @@ astralia_shell_bar_main_only_sources = [
   'src/modules/bar/widget/widget_capsule.cpp',
   'src/modules/bar/widget/clock_widget.cpp',
   'src/modules/bar/widget/workspace_widget.cpp',
-  'src/modules/bar/widget/battery_widget.cpp',
   'src/modules/bar/widget/logout_widget.cpp',
-  'src/modules/bar/widget/bluetooth_widget.cpp',
-  'src/modules/bar/widget/network_widget.cpp',
   'src/modules/bar/widget/dashboard_widget.cpp',
   'src/modules/bar/widget/dock_widget.cpp',
   'src/modules/bar/widget/system_monitor_widget.cpp',
   'src/modules/bar/widget/tray_widget.cpp',
-  'src/modules/bar/widget/volume_widget.cpp',
+  'src/modules/bar/widget/status_widget.cpp',
 ]
 
 astralia_shell_idle_main_only_sources = [
