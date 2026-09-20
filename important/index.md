@@ -183,10 +183,9 @@
 - `dock_widget.h`+`.cpp`: Bar-capsule variant of the dock icon row for the active workspace, drawn after the workspace row via shared `render/dock_row`; non-interactive.
 - `clock_widget.h`+`.cpp`: State-free clock-pill drawing; returns the pill hit rect and owns the calendar-panel open trigger.
 - `logout_widget.h`+`.cpp`: Logout pill that toggles the logout overlay.
-- `status_widget.h`+`.cpp`: One shared capsule of network, Bluetooth, volume, and battery segments, each opening its own panel; volume wheel and peek.
+- `status_widget.h`+`.cpp`: One shared capsule of tray, network, Bluetooth, volume, and battery segments, each opening its own panel; volume wheel and peek.
 - `dashboard_widget.h`+`.cpp`: Dashboard pill that toggles the dashboard overlay.
 - `system_monitor_widget.h`+`.cpp`: CPU pill opening the system-monitor panel.
-- `tray_widget.h`+`.cpp`: Tray pill opening the tray panel.
 
 ## src
 

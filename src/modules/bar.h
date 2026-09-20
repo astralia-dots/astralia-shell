@@ -45,7 +45,6 @@ struct BarPerMonitorState {
     Rect clock_rect;
     Texture logout_texture;
     Texture overview_texture;
-    Texture tray_texture;
     Texture cpu_texture;
     Texture dashboard_texture;
     StatusWidgetState status_widget;

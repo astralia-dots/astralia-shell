@@ -10,6 +10,7 @@
 struct MonitorOutput;
 
 struct StatusWidgetState {
+    Texture tray_icon_texture;
     Texture wifi_icon_texture;
     const char *wifi_icon_glyph_cached = nullptr;
     Texture bluetooth_icon_texture;

@@ -13,7 +13,6 @@
 #include "modules/bar/widget/logout_widget.h"
 #include "modules/bar/widget/status_widget.h"
 #include "modules/bar/widget/system_monitor_widget.h"
-#include "modules/bar/widget/tray_widget.h"
 
 #include "render/gl.h"
 #include "render/icon.h"
@@ -192,7 +191,6 @@ void update_clock(MonitorOutput &mon) {
 void init_stub_widgets(MonitorOutput &mon) {
     BarPerMonitorState &bs = bar_state(mon);
     bs.logout_texture = make_icon_texture(icon::power);
-    bs.tray_texture = make_icon_texture(icon::tray);
     bs.cpu_texture = make_icon_texture(icon::cpu);
     bs.dashboard_texture = make_icon_texture(icon::dashboard);
     bs.overview_texture = make_icon_texture(icon::overview);
@@ -280,10 +278,7 @@ void bar_paint(MonitorOutput &mon) {
 
     std::vector<Pill> dashboard_pills = {dashboard_pill(mon)};
     std::vector<Pill> status_segments = status_pills(mon);
-    std::vector<Pill> right_stub_pills = {
-        tray_pill(mon),
-        cpu_pill(mon),
-    };
+    std::vector<Pill> right_stub_pills = {cpu_pill(mon)};
 
     float cc_w = pills_row_width(bs.capsule, mon.animations, dashboard_pills, hovered, height);
     float status_w = pill_group_width(bs.capsule, mon.animations, status_segments, hovered, height, current_panel_pill);

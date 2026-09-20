@@ -214,7 +214,6 @@ astralia_shell_bar_main_only_sources = [
   'src/modules/bar/widget/dashboard_widget.cpp',
   'src/modules/bar/widget/dock_widget.cpp',
   'src/modules/bar/widget/system_monitor_widget.cpp',
-  'src/modules/bar/widget/tray_widget.cpp',
   'src/modules/bar/widget/status_widget.cpp',
 ]
 

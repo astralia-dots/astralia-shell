@@ -7,6 +7,7 @@
 #include "modules/bar/panel/battery_panel.h"
 #include "modules/bar/panel/bluetooth_panel.h"
 #include "modules/bar/panel/network_panel.h"
+#include "modules/bar/panel/tray_panel.h"
 #include "modules/bar/panel/volume_panel.h"
 #include "modules/bar/widget/status_widget.h"
 
@@ -110,6 +111,19 @@ namespace bar_detail {
 
 namespace {
 
+void open_tray_panel(MonitorOutput &mon) {
+    BarPerMonitorState &bs = bar_state(mon);
+    close_other_overlays(mon, PillId::Tray);
+    tray_menu_close(bs.tray_menu);
+    if (!bs.tray_panel.base.open) {
+        update_pill_expand(bs.capsule, mon.animations, PillId::Tray, true, true);
+        bar_paint(mon);
+        overlay_panel_ensure(bs.tray_panel.base, mon.app->display, [&] { return tray_panel_create_surface(bs.tray_panel, mon.app->compositor, mon.app->layer_shell, mon.output.wl); }, [&] { return tray_panel_init_egl(bs.tray_panel, mon.app->renderer, mon.app->tray, mon.app->egl_display, mon.app->egl_config, mon.app->egl_context); });
+        app_detail::rest_egl_current(*mon.app);
+    }
+    tray_panel_toggle(bs.tray_panel, pill_center_x(bs.capsule, PillId::Tray));
+}
+
 void open_network_panel(MonitorOutput &mon) {
     BarPerMonitorState &bs = bar_state(mon);
     close_other_overlays(mon, PillId::Wifi);
@@ -166,6 +180,8 @@ std::vector<Pill> status_pills(MonitorOutput &mon) {
     StatusWidgetState &sw = bar_state(mon).status_widget;
     WaylandState &app = *mon.app;
 
+    if (!sw.tray_icon_texture.id)
+        sw.tray_icon_texture = make_icon_texture(icon::tray);
     const char *wifi_glyph = wifi_icon_glyph(app.network);
     if (wifi_glyph != sw.wifi_icon_glyph_cached) {
         sw.wifi_icon_texture = make_icon_texture(wifi_glyph);
@@ -188,6 +204,7 @@ std::vector<Pill> status_pills(MonitorOutput &mon) {
     }
 
     return {
+        Pill{PillId::Tray, &sw.tray_icon_texture, "Tray", nullptr, [&mon] { open_tray_panel(mon); }},
         Pill{PillId::Wifi, &sw.wifi_icon_texture, wifi_label(app.network), nullptr, [&mon] { open_network_panel(mon); }},
         Pill{PillId::Bluetooth, &sw.bluetooth_icon_texture, bluetooth_label(app.bluetooth), nullptr, [&mon] { open_bluetooth_panel(mon); }},
         Pill{PillId::Volume, &sw.volume_icon_texture, volume_label(app.pipewire), nullptr, [&mon] { open_volume_panel(mon); }},
