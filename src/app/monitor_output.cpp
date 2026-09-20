@@ -84,17 +84,17 @@ void rest_egl_current(WaylandState &app) {
 
 const std::vector<Workspace> &monitor_workspaces(const MonitorOutput &mon) {
     static const std::vector<Workspace> empty;
-    if (mon.app->compositor_backend != WaylandState::CompositorBackend::Hyprland)
+    if (mon.app->compositor_state.backend == CompositorBackend::None)
         return empty;
-    auto it = mon.app->hypr.by_monitor.find(mon.output.name);
-    return it != mon.app->hypr.by_monitor.end() ? it->second.workspaces : empty;
+    auto it = mon.app->compositor_state.by_monitor.find(mon.output.name);
+    return it != mon.app->compositor_state.by_monitor.end() ? it->second.workspaces : empty;
 }
 
 int monitor_active_workspace_id(const MonitorOutput &mon) {
-    if (mon.app->compositor_backend != WaylandState::CompositorBackend::Hyprland)
+    if (mon.app->compositor_state.backend == CompositorBackend::None)
         return -1;
-    auto it = mon.app->hypr.by_monitor.find(mon.output.name);
-    return it != mon.app->hypr.by_monitor.end() ? it->second.active_id : -1;
+    auto it = mon.app->compositor_state.by_monitor.find(mon.output.name);
+    return it != mon.app->compositor_state.by_monitor.end() ? it->second.active_id : -1;
 }
 
 void apply_config_update(WaylandState &app, Config new_cfg) {
@@ -148,8 +148,8 @@ MonitorOutput *active_target_monitor(WaylandState &app) {
     for (auto &mon : app.outputs)
         outputs.push_back(&mon->output);
     std::string focused_name =
-        app.compositor_backend == WaylandState::CompositorBackend::Hyprland
-            ? app.hypr.focused_monitor
+        app.compositor_state.backend != CompositorBackend::None
+            ? app.compositor_state.focused_monitor
             : std::string();
     wl_output *pointer_hint = app.last_pointer_monitor ? app.last_pointer_monitor->output.wl : nullptr;
     wl_output *target =

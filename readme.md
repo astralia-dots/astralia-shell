@@ -3,7 +3,7 @@
 ## Important
 
 - Supported Display Server: Wayland
-- Supported Compositors: ShojiWM, Hyprland
+- Supported Compositors: ShojiWM, Hyprland, Sway
 - Requires OpenGL ES 3.2
 
 ## Prerequisite

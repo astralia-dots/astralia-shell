@@ -3,25 +3,25 @@
 #include "service/dock_service.h"
 
 void test_dock() {
-    HyprlandState state;
+    CompositorState state;
     state.by_monitor["DP-1"].active_id = 2;
     state.by_monitor["DP-2"].active_id = 5;
 
-    HyprClient a;
+    CompositorClient a;
     a.address = "0xaaa";
     a.window_class = "firefox";
     a.workspace_id = 2;
     a.at = {300.0, 0.0};
     a.focus_history_id = 1;
 
-    HyprClient b;
+    CompositorClient b;
     b.address = "0xbbb";
     b.window_class = "kitty";
     b.workspace_id = 2;
     b.at = {100.0, 0.0};
     b.focus_history_id = 0;
 
-    HyprClient c;
+    CompositorClient c;
     c.address = "0xccc";
     c.window_class = "mpv";
     c.workspace_id = 1;

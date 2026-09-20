@@ -50,7 +50,7 @@ struct DockState {
     std::vector<DockEntry> entries;
     int32_t last_exclusive_zone = -1;
     std::string output_name;
-    const HyprlandState *hypr = nullptr;
+    const CompositorState *compositor_state = nullptr;
     const PointerState *pointer = nullptr;
     DockAutoHideState autohide;
 };

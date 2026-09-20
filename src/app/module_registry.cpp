@@ -704,7 +704,7 @@ SettingsEnv settings_env(WaylandState &app) {
             return names;
         },
         [&app] {
-            return app.compositor_backend == WaylandState::CompositorBackend::Hyprland ? app.hypr.focused_monitor : std::string();
+            return app.compositor_state.focused_monitor;
         },
         [&app](const std::string &name, int column) -> MediaDecodeStatus {
             for (auto &mon : app.outputs) {
@@ -732,7 +732,7 @@ bool DockPerMonitorModule::init_egl(WaylandState &app, MonitorOutput &mon) {
     if (!state_.layer_surface)
         return true;
     state_.output_name = mon.output.name;
-    state_.hypr = &app.hypr;
+    state_.compositor_state = &app.compositor_state;
     state_.pointer = &app.pointer;
     if (dock_init_egl(state_, app.renderer, app.egl_display, app.egl_config, app.egl_context)) {
         dock_apply_autohide(state_, dock_autohide_effective_enabled(app.cfg, mon.output.name));

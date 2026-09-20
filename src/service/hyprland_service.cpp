@@ -6,7 +6,6 @@
 #include <filesystem>
 #include <nlohmann/json.hpp>
 #include <sys/socket.h>
-#include <sys/un.h>
 #include <unistd.h>
 
 #include "core/log.h"
@@ -15,7 +14,7 @@
 
 namespace {
 
-bool resolve_socket_paths(HyprlandState &state) {
+bool resolve_socket_paths(CompositorState &state) {
     const char *sig = getenv("HYPRLAND_INSTANCE_SIGNATURE");
     if (!sig || !*sig)
         return false;
@@ -37,17 +36,9 @@ bool resolve_socket_paths(HyprlandState &state) {
 }
 
 std::string request(const std::string &socket_path, const std::string &cmd) {
-    int fd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
+    int fd = compositor_connect_socket(socket_path);
     if (fd < 0)
         return {};
-
-    sockaddr_un addr{};
-    addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, socket_path.c_str(), sizeof(addr.sun_path) - 1);
-    if (connect(fd, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) < 0) {
-        close(fd);
-        return {};
-    }
 
     size_t sent = 0;
     while (sent < cmd.size()) {
@@ -72,13 +63,13 @@ std::string request(const std::string &socket_path, const std::string &cmd) {
     return result;
 }
 
-std::vector<HyprClient> parse_clients(const std::string &reply) {
+std::vector<CompositorClient> parse_clients(const std::string &reply) {
     using nlohmann::json;
-    std::vector<HyprClient> clients;
+    std::vector<CompositorClient> clients;
     try {
         json arr = json::parse(reply);
         for (auto &c : arr) {
-            HyprClient hc;
+            CompositorClient hc;
             hc.address = c.value("address", std::string());
             hc.window_class = c.value("class", std::string());
             hc.title = c.value("title", std::string());
@@ -109,7 +100,7 @@ std::vector<HyprClient> parse_clients(const std::string &reply) {
     return clients;
 }
 
-bool client_order_differs(const std::vector<HyprClient> &a, const std::vector<HyprClient> &b) {
+bool client_order_differs(const std::vector<CompositorClient> &a, const std::vector<CompositorClient> &b) {
     if (a.size() != b.size())
         return true;
     for (size_t i = 0; i < a.size(); ++i) {
@@ -136,7 +127,7 @@ std::vector<std::string> split(const std::string &s, char delim) {
 
 } // namespace
 
-void hypr_refresh(HyprlandState &state) {
+void hypr_refresh(CompositorState &state) {
     using nlohmann::json;
 
     state.by_monitor.clear();
@@ -176,7 +167,7 @@ void hypr_refresh(HyprlandState &state) {
             if (m.value("focused", false))
                 state.focused_monitor = name;
 
-            HyprMonitor hm;
+            CompositorMonitor hm;
             hm.id = m.value("id", -1);
             hm.name = name;
             hm.x = m.value("x", 0.0);
@@ -198,10 +189,10 @@ void hypr_refresh(HyprlandState &state) {
         parse_clients(request(state.request_socket_path, "j/clients"));
 }
 
-bool hypr_refresh_clients(HyprlandState &state) {
+bool hypr_refresh_clients(CompositorState &state) {
     if (state.request_socket_path.empty())
         return false;
-    std::vector<HyprClient> fresh =
+    std::vector<CompositorClient> fresh =
         parse_clients(request(state.request_socket_path, "j/clients"));
     if (!client_order_differs(fresh, state.clients))
         return false;
@@ -211,21 +202,13 @@ bool hypr_refresh_clients(HyprlandState &state) {
 
 namespace {
 
-bool hypr_connect_events(HyprlandState &state) {
+bool hypr_connect_events(CompositorState &state) {
     if (state.event_socket_path.empty())
         return false;
 
-    int fd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
+    int fd = compositor_connect_socket(state.event_socket_path);
     if (fd < 0)
         return false;
-
-    sockaddr_un addr{};
-    addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, state.event_socket_path.c_str(), sizeof(addr.sun_path) - 1);
-    if (connect(fd, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) < 0) {
-        close(fd);
-        return false;
-    }
 
     int flags = fcntl(fd, F_GETFL, 0);
     fcntl(fd, F_SETFL, flags | O_NONBLOCK);
@@ -235,13 +218,13 @@ bool hypr_connect_events(HyprlandState &state) {
 
 } // namespace
 
-void hypr_dispatch(HyprlandState &state, const std::string &command) {
+void hypr_dispatch(CompositorState &state, const std::string &command) {
     if (state.request_socket_path.empty())
         return;
     request(state.request_socket_path, "dispatch " + command);
 }
 
-bool hypr_init(HyprlandState &state) {
+bool hypr_init(CompositorState &state) {
     if (!resolve_socket_paths(state)) {
         klog("hyprland: HYPRLAND_INSTANCE_SIGNATURE not set, skipping "
              "compositor integration");
@@ -255,7 +238,7 @@ bool hypr_init(HyprlandState &state) {
     return true;
 }
 
-HyprEventResult hypr_poll_events(HyprlandState &state) {
+CompositorEventResult hypr_poll_events(CompositorState &state) {
     static std::string read_buffer;
 
     char buf[4096];
@@ -266,13 +249,13 @@ HyprEventResult hypr_poll_events(HyprlandState &state) {
         got_any = true;
     }
     if (n == 0)
-        return HyprEventResult::Disconnected;
+        return CompositorEventResult::Disconnected;
     if (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
-        return HyprEventResult::Disconnected;
+        return CompositorEventResult::Disconnected;
     if (!got_any && read_buffer.empty())
-        return HyprEventResult::None;
+        return CompositorEventResult::None;
 
-    HyprEventResult result = HyprEventResult::None;
+    CompositorEventResult result = CompositorEventResult::None;
     size_t nl;
     while ((nl = read_buffer.find('\n')) != std::string::npos) {
         std::string line = read_buffer.substr(0, nl);
@@ -290,19 +273,19 @@ HyprEventResult hypr_poll_events(HyprlandState &state) {
                 state.focused_monitor = parts[0];
                 state.by_monitor[state.focused_monitor].active_id =
                     atoi(parts[1].c_str());
-                if (result == HyprEventResult::None)
-                    result = HyprEventResult::ActiveChanged;
+                if (result == CompositorEventResult::None)
+                    result = CompositorEventResult::ActiveChanged;
             }
         } else if (event == "workspacev2") {
             auto parts = split(data, ',');
             if (!parts.empty() && !state.focused_monitor.empty()) {
                 state.by_monitor[state.focused_monitor].active_id =
                     atoi(parts[0].c_str());
-                if (result == HyprEventResult::None)
-                    result = HyprEventResult::ActiveChanged;
+                if (result == CompositorEventResult::None)
+                    result = CompositorEventResult::ActiveChanged;
             }
         } else if (event == "createworkspacev2" || event == "destroyworkspacev2" || event == "renameworkspace" || event == "moveworkspacev2" || event == "openwindow" || event == "closewindow" || event == "movewindow" || event == "movewindowv2" || event == "pin" || event == "fullscreen" || event == "changefloatingmode" || event == "activewindowv2" || event == "moveintogroup" || event == "moveoutofgroup" || event == "togglegroup" || event == "changegroupactivev2") {
-            result = HyprEventResult::StructuralChanged;
+            result = CompositorEventResult::StructuralChanged;
         }
     }
     return result;
@@ -313,11 +296,11 @@ namespace {
 constexpr int kWorkspacesPerMonitor = 10;
 constexpr const char *kSwapTempWorkspace = "special:__tmp_swp";
 
-void dispatch_lua(HyprlandState &state, const std::string &expr) {
+void dispatch_lua(CompositorState &state, const std::string &expr) {
     hypr_dispatch(state, expr);
 }
 
-int resolve_workspace(const HyprlandState &state, int id, bool global) {
+int resolve_workspace(const CompositorState &state, int id, bool global) {
     if (global || id < 1 || id > kWorkspacesPerMonitor)
         return id;
     int active = 1;
@@ -332,46 +315,46 @@ std::string window_target(const std::string &address) {
     return address.empty() ? "activewindow" : ("address:" + address);
 }
 
-std::vector<const HyprClient *> clients_in_workspace(const HyprlandState &state, int workspace_id) {
-    std::vector<const HyprClient *> out;
-    for (const HyprClient &c : state.clients)
+std::vector<const CompositorClient *> clients_in_workspace(const CompositorState &state, int workspace_id) {
+    std::vector<const CompositorClient *> out;
+    for (const CompositorClient &c : state.clients)
         if (c.workspace_id == workspace_id)
             out.push_back(&c);
     return out;
 }
 
-void move_all(HyprlandState &state, const std::vector<const HyprClient *> &windows, const std::string &workspace_lua) {
-    for (const HyprClient *w : windows)
+void move_all(CompositorState &state, const std::vector<const CompositorClient *> &windows, const std::string &workspace_lua) {
+    for (const CompositorClient *w : windows)
         dispatch_lua(state, "hl.dsp.window.move({window='address:" + w->address + "', workspace=" + workspace_lua + ", follow=false})");
 }
 
 } // namespace
 
-void hypr_tile_focus_workspace(HyprlandState &state, int id, bool global) {
+void hypr_tile_focus_workspace(CompositorState &state, int id, bool global) {
     int resolved = resolve_workspace(state, id, global);
     dispatch_lua(state, "hl.dsp.focus({workspace=" + std::to_string(resolved) + "})");
 }
 
-void hypr_tile_move_window(HyprlandState &state, int id, bool follow, const std::string &address, bool global) {
+void hypr_tile_move_window(CompositorState &state, int id, bool follow, const std::string &address, bool global) {
     int resolved = resolve_workspace(state, id, global);
     dispatch_lua(state, "hl.dsp.window.move({window='" + window_target(address) + "', workspace=" + std::to_string(resolved) + ", follow=" + (follow ? "true" : "false") + "})");
 }
 
-void hypr_tile_close_workspace(HyprlandState &state, HyprCloseScope scope, int id) {
-    std::vector<const HyprClient *> targets;
-    for (const HyprClient &c : state.clients) {
+void hypr_tile_close_workspace(CompositorState &state, HyprCloseScope scope, int id) {
+    std::vector<const CompositorClient *> targets;
+    for (const CompositorClient &c : state.clients) {
         bool match =
             scope == HyprCloseScope::All || (scope == HyprCloseScope::Workspace && c.workspace_id == id) || (scope == HyprCloseScope::Monitor && c.monitor_id == id);
         if (match)
             targets.push_back(&c);
     }
-    for (const HyprClient *c : targets)
+    for (const CompositorClient *c : targets)
         dispatch_lua(state, "hl.dsp.window.close({window='address:" + c->address + "'})");
     if (scope == HyprCloseScope::All)
         hypr_tile_focus_workspace(state, 1);
 }
 
-void hypr_tile_move_workspace_in(HyprlandState &state, int id, bool global) {
+void hypr_tile_move_workspace_in(CompositorState &state, int id, bool global) {
     int dst = resolve_workspace(state, id, global);
     auto it = state.by_monitor.find(state.focused_monitor);
     int src = it != state.by_monitor.end() ? it->second.active_id : -1;
@@ -382,16 +365,16 @@ void hypr_tile_move_workspace_in(HyprlandState &state, int id, bool global) {
     hypr_tile_focus_workspace(state, id, global);
 }
 
-void hypr_tile_swap_workspace(HyprlandState &state, int id, bool global) {
+void hypr_tile_swap_workspace(CompositorState &state, int id, bool global) {
     int dst = resolve_workspace(state, id, global);
     auto it = state.by_monitor.find(state.focused_monitor);
     int src = it != state.by_monitor.end() ? it->second.active_id : -1;
     if (src < 0 || src == dst)
         return;
 
-    std::vector<const HyprClient *> src_windows =
+    std::vector<const CompositorClient *> src_windows =
         clients_in_workspace(state, src);
-    std::vector<const HyprClient *> dst_windows =
+    std::vector<const CompositorClient *> dst_windows =
         clients_in_workspace(state, dst);
     if (src_windows.empty() && dst_windows.empty())
         return;

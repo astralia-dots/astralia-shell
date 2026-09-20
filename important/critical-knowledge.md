@@ -319,10 +319,17 @@ Drop an entry once newer knowledge fully supersedes it.
 - **`hypr_dispatch`'s transport (`"dispatch " + command` over the request socket) is correct; only the argument shape was wrong.** It had zero callers until `hypr_tile_*` proved a `hl.dsp.*` Lua-expression string works.
 - **`hypr_refresh` must also run on `activewindowv2`, not just structural events.** Focus changes bump every client's `focusHistoryID`; UI ordered by it goes stale without a re-read.
 - **Hyprland emits no IPC event for an intra-workspace tiled reorder (mouse-drag swap, `swapwindow`, `movewindow` dispatcher).** `movewindowv2` is workspace-move only. `CompositorWorkspaceService::timer_tick` re-reads `j/clients` each second, redrawing only when order actually changed.
-- **An overlay reading `hypr` state on open should `hypr_refresh` first.** Event-driven state can be arbitrarily stale by the time the user opens the panel.
+- **An overlay reading compositor state on open should `compositor_refresh` first.** Event-driven state can be arbitrarily stale by the time the user opens the panel.
 - **`redraw_all_monitors` pokes only per-monitor modules, never `app.overlays`.** An open app overlay reacting live to an event needs its own `request_frame()` loop over `app.overlays`.
-- **The bar's per-monitor workspace pills carry Hyprland's absolute workspace id.** Switching from a pill must call `hypr_tile_focus_workspace` with `global=true`, or `resolve_workspace` remaps it.
+- **The bar's per-monitor workspace pills carry the compositor's absolute workspace id.** Switching from a pill must call `compositor_focus_workspace` with `global=true`, or Hyprland's `resolve_workspace` remaps it.
 - **A bar widget that only emits scene nodes isn't clickable until its hit rects are recorded and routed.** `dispatch_pill_click` scans only the fixed `PillId` array; the workspace row stores and checks its own rects.
 - **A workspace grid spanning monitors must pass `global=true` to every `hypr_tile_*` call.** `resolve_workspace` otherwise remaps ids `1..10` onto the focused monitor's page.
 - **`overview` paints and hit-tests from one `Layout` cell list, never row/column loops.** Local and global modes then share geometry, so click, drop, and hover can't drift from paint.
 - **Global-mode block origins are monitor `x`/`y` times cells-per-block, plus a gap per monitor chain-separated before it.** A block is 5x2 cells, so raw positions overlap; a gap per distinct coordinate skewed a centered monitor.
+
+## 7. Sway IPC
+
+- **Sway reports `name` and `app_id` as JSON `null`, not absent, on split containers and XWayland windows.** `json::value()` throws on `null` and aborts the whole tree parse; read strings through `str_field`.
+- **Sway keeps floating windows under a workspace's `floating_nodes` and scratchpad windows under a `num == -1` workspace.** `walk_tree` recurses both lists and skips negative `num`.
+- **Sway has no global focus history, so `focus_history_id` is derived.** `0` marks the `focused` leaf, tree order ranks the rest; the dock reads only `== 0`.
+- **Sway emits `window::move` for an intra-workspace reorder, unlike Hyprland.** The one-second client re-read in `timer_tick` is Hyprland-only; sway's event path already refreshes.

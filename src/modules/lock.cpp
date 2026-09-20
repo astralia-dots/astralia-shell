@@ -82,7 +82,7 @@ const Texture *tc_icon(LockState &st, const char *glyph, int px, int32_t scale) 
 }
 
 std::string wm_name(const WaylandState *app) {
-    return app && app->compositor_backend == WaylandState::CompositorBackend::Hyprland ? "Hyprland" : "Wayland";
+    return app ? compositor_name(app->compositor_state) : "Wayland";
 }
 
 void draw_center_column(LockState &st, LockOutputSurface &los, Node *content, const LockRect &col, int32_t scale, float ca);

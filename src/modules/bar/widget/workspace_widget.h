@@ -10,7 +10,7 @@
 #include "render/rect.h"
 #include "render/texture.h"
 
-#include "service/hyprland_service.h"
+#include "service/compositor_service.h"
 
 struct WorkspaceWidgetState {
     std::unordered_map<int, float> width_t;

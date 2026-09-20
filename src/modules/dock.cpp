@@ -161,9 +161,9 @@ void dock_request_frame(DockState &state) {
 }
 
 void dock_refresh(DockState &state) {
-    if (!state.hypr)
+    if (!state.compositor_state)
         return;
-    state.entries = dock_entries_for_monitor(*state.hypr, state.output_name);
+    state.entries = dock_entries_for_monitor(*state.compositor_state, state.output_name);
     if (!state.autohide.enabled) {
         int32_t zone =
             state.entries.empty() ? 0 : kDockCapsuleHeight + kDockMarginBottom;

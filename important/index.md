@@ -89,7 +89,9 @@
 - `frame_service.h`+`.cpp`: Frame-callback paint pacing shared across surfaces; first paint synchronous, later repaints deferred to `frame_done`.
 - `input_service.h`+`.cpp`: All `wl_seat` input: `wl_keyboard`+xkbcommon key handling, `wl_pointer` hover/click/cursor-shape, and the shared seat-capabilities listener.
 - `text_input_service.h`+`.cpp`: `zwp_text_input_v3` client-role protocol glue for IME composition (fcitx5/ibus), focus tracking, preedit/commit/delete dispatch to the active `TextInputClient`.
-- `hyprland_service.h`+`.cpp`: Hyprland IPC client: per-monitor workspace/client state via request+event sockets, plus `hypr_tile_*` tiling actions dispatched as Lua calls.
+- `compositor_service.h`+`.cpp`: Compositor-neutral `CompositorState` workspace/monitor/client data; picks the Hyprland or Sway backend and dispatches to it.
+- `hyprland_service.h`+`.cpp`: Hyprland backend: fills `CompositorState` via request+event sockets, plus `hypr_tile_*` tiling actions dispatched as Lua calls.
+- `sway_service.h`+`.cpp`: Sway backend: `i3-ipc` request/subscribe client, pure `sway_parse_*` JSON-to-`CompositorState` parsers, and `workspace number` focus.
 - `capture_service.h`+`.cpp`: Per-window `hyprland-toplevel-export-v1` live capture; `wl_shm` buffer alloc/reuse and GL texture upload, throttled per window.
 - `output_service.h`+`.cpp`: Pure-data `Output` struct plus output-selection logic, and per-output fractional-scale listener tracking (`OutputScale`).
 - `wallpaper_service.h`+`.cpp`: Per-monitor, per-column wallpaper path/count/fill-mode resolution; a `bool animated` selects the static or animated config maps.
@@ -97,7 +99,7 @@
 - `media_plugin.h`+`.cpp`: The `shared_module` linking `libavcodec`/`libavfilter`, isolated so a missing `ffmpeg` only disables animated content, not the whole shell.
 - `settings_service.h`+`.cpp`: Settings field-text parsing into `Config` and the config-save wrapper.
 - `icon_service.h`+`.cpp`: App icon path resolution across GTK icon themes; `resolve_window_icon_path` maps a window class to an icon via `.desktop` ids.
-- `dock_service.h`+`.cpp`: `DockEntry` list for a monitor's active workspace from `HyprlandState`, sorted by window `x`, `focused` = `focus_history_id == 0`; pure, test-linked.
+- `dock_service.h`+`.cpp`: `DockEntry` list for a monitor's active workspace from `CompositorState`, sorted by window `x`, `focused` = `focus_history_id == 0`; pure, test-linked.
 - `polkit_service.h`+`.cpp`: `PolkitAgent`, an in-session polkit authentication agent on its own nested `GMainContext`; `PolkitPollSource` bridges it into the poll loop.
 
 ## src/core
@@ -226,6 +228,7 @@
 - `test_keyboard.cpp`: `xkbcommon` key-event translation, modifiers, and compose handling.
 - `test_active_output.cpp`: Active-output selection logic.
 - `test_dock.cpp`: Dock entry list for a monitor's active workspace.
+- `test_sway.cpp`: Sway `get_workspaces`/`get_outputs`/`get_tree` parsing into `CompositorState`, and its dock entries.
 
 ## test/system
 

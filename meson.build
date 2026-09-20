@@ -165,12 +165,14 @@ astralia_shell_service_test_sources = [
   'src/service/settings_service.cpp',
   'src/service/icon_service.cpp',
   'src/service/dock_service.cpp',
+  'src/service/compositor_service.cpp',
+  'src/service/hyprland_service.cpp',
+  'src/service/sway_service.cpp',
 ]
 
 astralia_shell_service_main_only_sources = [
   'src/service/pipewire_service.cpp',
   'src/service/frame_service.cpp',
-  'src/service/hyprland_service.cpp',
   'src/service/capture_service.cpp',
   'src/service/text_input_service.cpp',
   'src/service/notification_service.cpp',
@@ -401,6 +403,7 @@ astralia_shell_test = executable(
   'test/wayland/test_keyboard.cpp',
   'test/wayland/test_active_output.cpp',
   'test/wayland/test_dock.cpp',
+  'test/wayland/test_sway.cpp',
   'test/system/test_rfkill.cpp',
   'test/system/test_cpu_temp.cpp',
   'test/system/test_gpu_temp.cpp',

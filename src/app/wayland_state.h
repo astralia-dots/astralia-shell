@@ -17,7 +17,7 @@
 
 #include "service/bluetooth_service.h"
 #include "service/brightness_service.h"
-#include "service/hyprland_service.h"
+#include "service/compositor_service.h"
 #include "service/input_service.h"
 #include "service/mpris_service.h"
 #include "service/network_service.h"
@@ -80,10 +80,7 @@ struct WaylandState {
     MonitorOutput *last_pointer_monitor = nullptr;
     bool settings_enabled = false;
     wl_output *settings_bound_output = nullptr;
-    enum class CompositorBackend { None,
-                                   Hyprland };
-    CompositorBackend compositor_backend = CompositorBackend::None;
-    HyprlandState hypr;
+    CompositorState compositor_state;
     std::vector<std::unique_ptr<MonitorOutput>> outputs;
 };
 

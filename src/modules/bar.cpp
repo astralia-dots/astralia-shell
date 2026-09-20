@@ -157,8 +157,7 @@ bool bar_init_egl(MonitorOutput &mon, Renderer &renderer, EGLDisplay display, EG
 }
 
 void bar_workspace_activate(MonitorOutput &mon, int ws_id) {
-    if (mon.app->compositor_backend == WaylandState::CompositorBackend::Hyprland)
-        hypr_tile_focus_workspace(mon.app->hypr, ws_id, true);
+    compositor_focus_workspace(mon.app->compositor_state, ws_id, true);
 }
 
 void dispatch_pill_click(MonitorOutput &mon, double click_x, double click_y) {
@@ -277,7 +276,7 @@ void bar_paint(MonitorOutput &mon) {
     x = draw_workspace_row(content, bs.workspace_widget, mon.animations, x, height, ws_list, active_id, pill_bg, bs.overview_texture);
 
     std::vector<DockEntry> dock_entries =
-        dock_entries_for_monitor(app.hypr, mon.output.name);
+        dock_entries_for_monitor(app.compositor_state, mon.output.name);
     x = draw_dock_capsule(content, bs.dock_widget, mon.animations, x, height, dock_entries, pill_bg);
 
     bs.clock_rect = draw_clock_pill(content, height, mon.width, bs.clock_texture, white, pill_bg);

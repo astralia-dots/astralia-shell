@@ -16,8 +16,8 @@
 #include "render/renderer.h"
 #include "render/scene.h"
 
+#include "service/compositor_service.h"
 #include "service/frame_service.h"
-#include "service/hyprland_service.h"
 #include "service/output_service.h"
 
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"

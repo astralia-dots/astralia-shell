@@ -14,7 +14,7 @@
 
 #include "service/bluetooth_service.h"
 #include "service/brightness_service.h"
-#include "service/hyprland_service.h"
+#include "service/compositor_service.h"
 #include "service/mpris_service.h"
 #include "service/network_service.h"
 #include "service/notification_service.h"
@@ -330,35 +330,33 @@ class CompositorWorkspaceService final : public Service {
     const char *name() const override { return "compositor-workspace"; }
 
     bool init(WaylandState &app) override {
-        if (hypr_init(app.hypr))
-            app.compositor_backend = WaylandState::CompositorBackend::Hyprland;
-        klog("compositor backend: %s", app.compositor_backend == WaylandState::CompositorBackend::Hyprland ? "hyprland" : "none");
+        compositor_init(app.compositor_state);
         return true;
     }
 
     std::vector<FnPollSource> poll_sources(WaylandState &app) override {
         std::vector<FnPollSource> sources;
-        if (app.compositor_backend != WaylandState::CompositorBackend::Hyprland)
+        if (app.compositor_state.backend == CompositorBackend::None)
             return sources;
-        int fd = app.hypr.event_fd;
+        int fd = app.compositor_state.event_fd;
         if (fd < 0)
             return sources;
         sources.emplace_back(fd, POLLIN, [&app] {
-            HyprEventResult r = hypr_poll_events(app.hypr);
-            if (r == HyprEventResult::Disconnected) {
-                close(app.hypr.event_fd);
-                app.hypr.event_fd = -1;
-                app.compositor_backend = WaylandState::CompositorBackend::None;
-                klog("hyprland: event socket disconnected");
-            } else if (r == HyprEventResult::StructuralChanged) {
-                hypr_refresh(app.hypr);
+            CompositorEventResult r = compositor_poll_events(app.compositor_state);
+            if (r == CompositorEventResult::Disconnected) {
+                close(app.compositor_state.event_fd);
+                app.compositor_state.event_fd = -1;
+                app.compositor_state.backend = CompositorBackend::None;
+                klog("compositor: event socket disconnected");
+            } else if (r == CompositorEventResult::StructuralChanged) {
+                compositor_refresh(app.compositor_state);
                 redraw_all_monitors(app);
                 for (auto &m : app.overlays)
                     if (m->is_open()) {
                         m->request_frame();
                         app_detail::rest_egl_current(app);
                     }
-            } else if (r == HyprEventResult::ActiveChanged) {
+            } else if (r == CompositorEventResult::ActiveChanged) {
                 redraw_all_monitors(app);
             }
         });
@@ -366,9 +364,7 @@ class CompositorWorkspaceService final : public Service {
     }
 
     void timer_tick(WaylandState &app) override {
-        if (app.compositor_backend != WaylandState::CompositorBackend::Hyprland)
-            return;
-        if (!hypr_refresh_clients(app.hypr))
+        if (!compositor_refresh_clients(app.compositor_state))
             return;
         redraw_all_monitors(app);
         for (auto &m : app.overlays)
@@ -430,11 +426,7 @@ class IdleService final : public Service {
     }
 
     void timer_tick(WaylandState &app) override {
-        std::string focused =
-            app.compositor_backend == WaylandState::CompositorBackend::Hyprland
-                ? app.hypr.focused_monitor
-                : std::string();
-        idle_tick(app.idle, focused);
+        idle_tick(app.idle, app.compositor_state.focused_monitor);
     }
 };
 

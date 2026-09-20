@@ -19,47 +19,49 @@
 #include "render/palette.h"
 #include "render/text.h"
 
+#include "service/hyprland_service.h"
+
 namespace {
 
-const HyprMonitor *find_monitor_by_name(const HyprlandState &hypr, const std::string &name) {
-    for (const HyprMonitor &m : hypr.monitors)
+const CompositorMonitor *find_monitor_by_name(const CompositorState &compositor, const std::string &name) {
+    for (const CompositorMonitor &m : compositor.monitors)
         if (m.name == name)
             return &m;
     return nullptr;
 }
 
-const HyprMonitor *find_monitor_by_id(const HyprlandState &hypr, int id) {
-    for (const HyprMonitor &m : hypr.monitors)
+const CompositorMonitor *find_monitor_by_id(const CompositorState &compositor, int id) {
+    for (const CompositorMonitor &m : compositor.monitors)
         if (m.id == id)
             return &m;
     return nullptr;
 }
 
-double logical_w(const HyprMonitor &m) {
+double logical_w(const CompositorMonitor &m) {
     bool rotated = (m.transform % 2) == 1;
     return (rotated ? m.height : m.width) / (m.scale > 0.0 ? m.scale : 1.0);
 }
 
-double logical_h(const HyprMonitor &m) {
+double logical_h(const CompositorMonitor &m) {
     bool rotated = (m.transform % 2) == 1;
     return (rotated ? m.width : m.height) / (m.scale > 0.0 ? m.scale : 1.0);
 }
 
-double source_work_area_w(const HyprMonitor &m) {
+double source_work_area_w(const CompositorMonitor &m) {
     bool rotated = (m.transform % 2) == 1;
     return logical_w(m) - (rotated ? m.reserved[1] : m.reserved[0]) - (rotated ? m.reserved[3] : m.reserved[2]);
 }
 
-double source_work_area_h(const HyprMonitor &m) {
+double source_work_area_h(const CompositorMonitor &m) {
     bool rotated = (m.transform % 2) == 1;
     return logical_h(m) - (rotated ? m.reserved[0] : m.reserved[1]) - (rotated ? m.reserved[2] : m.reserved[3]);
 }
 
 int workspaces_shown() { return kOverviewRows * kOverviewColumns; }
 
-int active_workspace_id(const HyprlandState &hypr, const std::string &monitor_name) {
-    auto it = hypr.by_monitor.find(monitor_name);
-    if (it == hypr.by_monitor.end() || it->second.active_id < 0)
+int active_workspace_id(const CompositorState &compositor, const std::string &monitor_name) {
+    auto it = compositor.by_monitor.find(monitor_name);
+    if (it == compositor.by_monitor.end() || it->second.active_id < 0)
         return 1;
     return it->second.active_id;
 }
@@ -92,15 +94,15 @@ std::string bound_output_name(const OverviewState &state, const WaylandState &ap
     return {};
 }
 
-const HyprMonitor *bound_monitor(const OverviewState &state, const WaylandState &app) {
-    return find_monitor_by_name(app.hypr, bound_output_name(state, app));
+const CompositorMonitor *bound_monitor(const OverviewState &state, const WaylandState &app) {
+    return find_monitor_by_name(app.compositor_state, bound_output_name(state, app));
 }
 
-int page_group(const HyprlandState &hypr, const HyprMonitor &m) {
-    return (active_workspace_id(hypr, m.name) - 1) / workspaces_shown();
+int page_group(const CompositorState &compositor, const CompositorMonitor &m) {
+    return (active_workspace_id(compositor, m.name) - 1) / workspaces_shown();
 }
 
-Block make_block(const HyprMonitor &m, int group, float scale, float x, float y) {
+Block make_block(const CompositorMonitor &m, int group, float scale, float x, float y) {
     Block b;
     b.group = group;
     b.x = x;
@@ -110,34 +112,34 @@ Block make_block(const HyprMonitor &m, int group, float scale, float x, float y)
     return b;
 }
 
-std::vector<float> separation_steps(const std::vector<HyprMonitor> &monitors, double HyprMonitor::*pos, double (*extent)(const HyprMonitor &)) {
+std::vector<float> separation_steps(const std::vector<CompositorMonitor> &monitors, double CompositorMonitor::*pos, double (*extent)(const CompositorMonitor &)) {
     std::vector<size_t> order(monitors.size());
     std::iota(order.begin(), order.end(), size_t{0});
     std::sort(order.begin(), order.end(), [&](size_t a, size_t b) { return monitors[a].*pos < monitors[b].*pos; });
     std::vector<float> steps(monitors.size(), 0.0f);
     for (size_t i = 1; i < order.size(); ++i)
         for (size_t j = 0; j < i; ++j) {
-            const HyprMonitor &before = monitors[order[j]];
-            const HyprMonitor &after = monitors[order[i]];
+            const CompositorMonitor &before = monitors[order[j]];
+            const CompositorMonitor &after = monitors[order[i]];
             if (before.*pos + extent(before) <= after.*pos + 0.5)
                 steps[order[i]] = std::max(steps[order[i]], steps[order[j]] + 1.0f);
         }
     return steps;
 }
 
-float global_blocks(const HyprlandState &hypr, int surface_w, int surface_h, std::vector<Block> &blocks) {
-    if (hypr.monitors.empty())
+float global_blocks(const CompositorState &compositor, int surface_w, int surface_h, std::vector<Block> &blocks) {
+    if (compositor.monitors.empty())
         return 0.0f;
     float spacing = std::round(kOverviewWorkspaceSpacing);
     float gap_x = spacing * (kOverviewColumns - 1) + kOverviewBackgroundPadding * 2.0f + kOverviewGlobalBlockSpacing;
     float gap_y = spacing * (kOverviewRows - 1) + kOverviewBackgroundPadding * 2.0f + kOverviewGlobalBlockSpacing;
     float frame = 2.0f * (kOverviewBackgroundPadding + kOverviewElevationMargin);
 
-    const std::vector<HyprMonitor> &ms = hypr.monitors;
-    std::vector<float> steps_x = separation_steps(ms, &HyprMonitor::x, logical_w);
-    std::vector<float> steps_y = separation_steps(ms, &HyprMonitor::y, logical_h);
+    const std::vector<CompositorMonitor> &ms = compositor.monitors;
+    std::vector<float> steps_x = separation_steps(ms, &CompositorMonitor::x, logical_w);
+    std::vector<float> steps_y = separation_steps(ms, &CompositorMonitor::y, logical_h);
     double min_x = ms[0].x, min_y = ms[0].y;
-    for (const HyprMonitor &m : ms) {
+    for (const CompositorMonitor &m : ms) {
         min_x = std::min(min_x, m.x);
         min_y = std::min(min_y, m.y);
     }
@@ -155,7 +157,7 @@ float global_blocks(const HyprlandState &hypr, int surface_w, int surface_h, std
     for (size_t i = 0; i < ms.size(); ++i) {
         float x = static_cast<float>((ms[i].x - min_x) * kOverviewColumns * scale) + steps_x[i] * gap_x;
         float y = static_cast<float>((ms[i].y - min_y) * kOverviewRows * scale) + steps_y[i] * gap_y;
-        blocks.push_back(make_block(ms[i], page_group(hypr, ms[i]), scale, x, y));
+        blocks.push_back(make_block(ms[i], page_group(compositor, ms[i]), scale, x, y));
     }
     return scale;
 }
@@ -164,8 +166,8 @@ Layout compute_layout(const OverviewState &state, const WaylandState &app) {
     Layout g;
     std::vector<Block> blocks;
     if (state.global_mode) {
-        g.scale = global_blocks(app.hypr, state.base.width, state.base.height, blocks);
-    } else if (const HyprMonitor *target = bound_monitor(state, app)) {
+        g.scale = global_blocks(app.compositor_state, state.base.width, state.base.height, blocks);
+    } else if (const CompositorMonitor *target = bound_monitor(state, app)) {
         g.scale = kOverviewScale;
         blocks.push_back(make_block(*target, state.workspace_group, g.scale, 0.0f, 0.0f));
     }
@@ -225,15 +227,15 @@ bool rect_equal(const Rect &a, const Rect &b) {
     return a.x == b.x && a.y == b.y && a.w == b.w && a.h == b.h;
 }
 
-void rebuild_tiles(OverviewState &state, WaylandState &app, const Layout &g, const HyprMonitor *fallback) {
+void rebuild_tiles(OverviewState &state, WaylandState &app, const Layout &g, const CompositorMonitor *fallback) {
     state.tiles.clear();
 
-    std::vector<const HyprClient *> visible;
-    for (const HyprClient &c : app.hypr.clients)
+    std::vector<const CompositorClient *> visible;
+    for (const CompositorClient &c : app.compositor_state.clients)
         if (find_cell(g, c.workspace_id))
             visible.push_back(&c);
 
-    std::sort(visible.begin(), visible.end(), [](const HyprClient *a, const HyprClient *b) {
+    std::sort(visible.begin(), visible.end(), [](const CompositorClient *a, const CompositorClient *b) {
         if (a->pinned != b->pinned)
             return !a->pinned;
         if (a->floating != b->floating)
@@ -245,8 +247,8 @@ void rebuild_tiles(OverviewState &state, WaylandState &app, const Layout &g, con
         return a->focus_history_id > b->focus_history_id;
     });
 
-    for (const HyprClient *c : visible) {
-        const HyprMonitor *src = find_monitor_by_id(app.hypr, c->monitor_id);
+    for (const CompositorClient *c : visible) {
+        const CompositorMonitor *src = find_monitor_by_id(app.compositor_state, c->monitor_id);
         if (!src)
             src = fallback;
         if (!src)
@@ -325,16 +327,16 @@ void overview_request_frame(OverviewState &state) {
 }
 
 void overview_toggle(OverviewState &state, WaylandState &app, bool by_widget) {
-    if (app.compositor_backend != WaylandState::CompositorBackend::Hyprland)
+    if (app.compositor_state.backend != CompositorBackend::Hyprland)
         return;
     if (!state.base.layer_surface || state.base.egl_surface == EGL_NO_SURFACE)
         return;
 
     bool opening = !state.base.open;
     if (opening) {
-        hypr_refresh(app.hypr);
+        compositor_refresh(app.compositor_state);
         state.opened_by_widget = by_widget;
-        int active_id = active_workspace_id(app.hypr, bound_output_name(state, app));
+        int active_id = active_workspace_id(app.compositor_state, bound_output_name(state, app));
         state.selected_workspace = active_id;
         state.workspace_group = (active_id - 1) / workspaces_shown();
         state.slide_y = static_cast<float>(state.base.height);
@@ -386,7 +388,7 @@ void overview_handle_click(OverviewState &state, WaylandState &app, double px, d
     }
     if (const LayoutCell *cell = cell_at(g, px, py)) {
         state.selected_workspace = cell->workspace_id;
-        hypr_tile_focus_workspace(app.hypr, cell->workspace_id, state.global_mode);
+        hypr_tile_focus_workspace(app.compositor_state, cell->workspace_id, state.global_mode);
         return;
     }
 
@@ -430,9 +432,9 @@ void overview_handle_pointer_release(OverviewState &state, WaylandState &app) {
     if (!cell)
         return;
     if (cell->workspace_id != state.drag_from_workspace) {
-        hypr_tile_move_window(app.hypr, cell->workspace_id, false, state.drag_address, state.global_mode);
+        hypr_tile_move_window(app.compositor_state, cell->workspace_id, false, state.drag_address, state.global_mode);
     } else {
-        hypr_tile_focus_workspace(app.hypr, cell->workspace_id, state.global_mode);
+        hypr_tile_focus_workspace(app.compositor_state, cell->workspace_id, state.global_mode);
     }
 }
 
@@ -447,11 +449,11 @@ void overview_handle_key_event(OverviewState &state, WaylandState &app, const Ke
         state.selected_workspace = ws;
         state.workspace_group = (ws - 1) / shown;
         if (shift)
-            hypr_tile_swap_workspace(app.hypr, ws, state.global_mode);
+            hypr_tile_swap_workspace(app.compositor_state, ws, state.global_mode);
         else if (alt)
-            hypr_tile_move_workspace_in(app.hypr, ws, state.global_mode);
+            hypr_tile_move_workspace_in(app.compositor_state, ws, state.global_mode);
         else
-            hypr_tile_focus_workspace(app.hypr, ws, state.global_mode);
+            hypr_tile_focus_workspace(app.compositor_state, ws, state.global_mode);
     };
 
     switch (event.kind) {
@@ -476,7 +478,7 @@ void overview_handle_key_event(OverviewState &state, WaylandState &app, const Ke
         break;
     }
     case KeyKind::Tab:
-        if (!state.global_mode && app.hypr.monitors.size() < 2) {
+        if (!state.global_mode && app.compositor_state.monitors.size() < 2) {
             spawn_detached("notify-send 'Overview' 'This device only has one display.'");
             break;
         }
@@ -494,13 +496,13 @@ void overview_handle_key_event(OverviewState &state, WaylandState &app, const Ke
             if (position <= shown)
                 switch_to(state.workspace_group * shown + position, event.shift, event.alt);
         } else if (event.ctrl && (event.text == "d" || event.text == "D")) {
-            hypr_tile_close_workspace(app.hypr, HyprCloseScope::All);
+            hypr_tile_close_workspace(app.compositor_state, HyprCloseScope::All);
         } else if (event.text == "D") {
-            const HyprMonitor *target = bound_monitor(state, app);
+            const CompositorMonitor *target = bound_monitor(state, app);
             if (target)
-                hypr_tile_close_workspace(app.hypr, HyprCloseScope::Monitor, target->id);
+                hypr_tile_close_workspace(app.compositor_state, HyprCloseScope::Monitor, target->id);
         } else if (event.text == "d") {
-            hypr_tile_close_workspace(app.hypr, HyprCloseScope::Workspace, state.selected_workspace);
+            hypr_tile_close_workspace(app.compositor_state, HyprCloseScope::Workspace, state.selected_workspace);
         }
         break;
     default:
@@ -521,7 +523,7 @@ void overview_paint(OverviewState &state, WaylandState &app) {
 
     state.scene.rebuild();
 
-    if (state.base.open && app.compositor_backend == WaylandState::CompositorBackend::Hyprland) {
+    if (state.base.open && app.compositor_state.backend == CompositorBackend::Hyprland) {
         Layout g = compute_layout(state, app);
 
         if (!g.cells.empty()) {
@@ -548,7 +550,7 @@ void overview_paint(OverviewState &state, WaylandState &app) {
                 bg->border = bg_border;
             }
 
-            int active_id = active_workspace_id(app.hypr, state.global_mode ? app.hypr.focused_monitor : bound_output_name(state, app));
+            int active_id = active_workspace_id(app.compositor_state, state.global_mode ? app.compositor_state.focused_monitor : bound_output_name(state, app));
             int active_page = (active_id - 1) / workspaces_shown();
             const LayoutCell *active_cell = find_cell(g, active_id);
             if (!active_cell)
@@ -652,7 +654,7 @@ void overview_paint(OverviewState &state, WaylandState &app) {
             }
 
             std::vector<std::string> live_addresses;
-            for (const HyprClient &c : app.hypr.clients)
+            for (const CompositorClient &c : app.compositor_state.clients)
                 live_addresses.push_back(c.address);
             toplevel_export_prune(state.capture, live_addresses);
 

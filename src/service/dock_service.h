@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "service/hyprland_service.h"
+#include "service/compositor_service.h"
 
 struct DockEntry {
     std::string address;
@@ -11,4 +11,4 @@ struct DockEntry {
     bool focused = false;
 };
 
-std::vector<DockEntry> dock_entries_for_monitor(const HyprlandState &hypr, const std::string &monitor_name);
+std::vector<DockEntry> dock_entries_for_monitor(const CompositorState &compositor, const std::string &monitor_name);
