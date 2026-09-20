@@ -116,13 +116,6 @@ void apply_config_update(WaylandState &app, Config new_cfg) {
         if (new_autohide != mon->autohide.enabled)
             bar_detail::monitor_autohide_apply(*mon, new_autohide);
 
-        if (auto *dock = mon->module<DockPerMonitorModule>()) {
-            bool new_dock_autohide =
-                dock_autohide_effective_enabled(new_cfg, mon->output.name);
-            if (new_dock_autohide != dock->state().autohide.enabled)
-                dock_apply_autohide(dock->state(), new_dock_autohide);
-        }
-
         if (auto *nv = mon->module<NotificationViewPerMonitorModule>())
             nv->resync(app, *mon);
     }

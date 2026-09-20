@@ -181,6 +181,7 @@ Drop an entry once newer knowledge fully supersedes it.
 - **A real `xdg_toplevel` window is created on open and destroyed on close, not kept mapped-but-transparent.** A zero-opacity mapped toplevel would still show in switchers, unlike a layer-shell fade-in-place.
 - **`ToplevelWindowBase` has no generic resize callback, only `on_close_request`.** A module keeping a persistent per-size buffer must compare against live width/height each paint.
 - **An animation's `on_complete` that destroys the animated surface can fire mid-frame, inside paint's own `tick()`.** Re-check surface validity right after `tick()`, or defer the destroy to the next poll iteration.
+- **A bottom-anchored layer surface must change its size and its buffer in the same commit.** Sway repositions from the requested size at once; a separate size commit left a stale `1px` buffer off the pointer, dropping hover.
 - **A layer-shell overlay now stays mapped across same-output toggles, not destroying its surface on close.** Destroy-then-recreate left the compositor's layer stack stale until an unrelated event forced a recompute.
 - **Destroying and recreating a layer surface with the same namespace can leave it uncomposited.** Hyprland kept the reopened panel invisible until an unrelated workspace switch or exclusive-zone change.
 - **A module with its own hand-rolled toggle can silently miss a shared surface-lifecycle fix.** `launcher_toggle` kept destroying its surface every close, hitting the same uncomposited-Hyprland-surface bug independently.
@@ -230,6 +231,8 @@ Drop an entry once newer knowledge fully supersedes it.
 - **Binding a PipeWire node listener alone doesn't deliver live param-value updates.** An explicit `pw_node_subscribe_params()` call is required to receive future value changes.
 - **Every panel requesting exclusive keyboard interactivity needs its own key-dispatch arm.** The two are declared separately, so nothing enforces they stay in sync as panels are added.
 - **An optimistic local write can suppress the `*_changed` flag it's supposed to trigger.** The confirmation compares against the already-updated value and finds no change; raise the flag at the write.
+- **A modifier-aware shortcut must match `KeyEvent::base_sym`, not `text`.** `text` is modifier-transformed (`Shift`+`1` is `!`, `Ctrl`+`d` is `\x04`), so `overview`'s digit and `d` shortcuts never fired.
+- **A sway `move container` must restore the focused monitor's active workspace in the same command.** Otherwise the view can follow the moved window; `--no-auto-back-and-forth` keeps a same-workspace refocus from bouncing.
 - **A client's own callback confirming a write isn't proof the real state changed.** Device-backed PipeWire nodes need writes routed through the parent Device's Route, not the node.
 - **A registry's initial announcement and an object's own info event carry different properties.** A property missing from one may only appear in the other's later event.
 - **A generic "click missed" guard excluding a sibling surface pushes the decision onto it.** That surface's own handler must then know about every overlay stacked above it.
@@ -283,10 +286,7 @@ Drop an entry once newer knowledge fully supersedes it.
 - **The same flat track+fill progress bar was reimplemented three times, with two byte-identical warn-color copies.** Moved to `render/progress_bar` with `min_fill_w` a caller param, since `osd` has no width floor and panels do.
 - **Every shell text input shares one caret idle and one per-character type-in pop, in `render/text_field`.** `launcher`/`lock` each had their own copy; `TextFieldTypeAnim` now serves all four with caller-passed manager and owner-id.
 - **Every `lock` card goes through one local `draw_card` chrome: `overlay` fill, 2px `accent` border, radius, optional bold title.** It mirrors `dashboard`'s `card_chrome_draw` but can't share it — that's bound to `dashboard`'s `TextureCache`, and cross-module include is banned.
-- **The dock's window list and icon-row draw are shared via `service/dock_service` (select) and `render/dock_row` (draw).** The two live in different modules and cannot include each other.
-- **A layer surface can reserve or release space by re-sending only `set_exclusive_zone`, no size change and no reconfigure round-trip.** The non-autohide `dock` toggles its zone as its active-workspace window count crosses zero; the next paint commits it.
-- **With dock autohide on, the exclusive zone stays `0`.** The surface instead collapses to a `1px` peek strip at the screen edge.
-- **An edge-anchored autohide surface's reveal must keep `margin = 0` and fold the float gap into its height, like `bar`.** A real reveal `margin_bottom` vacated the dock's edge trigger strip under the pointer, re-triggering hide — violent flicker.
+- **The window list and icon-row draw behind `dock_widget` live in `service/dock_service` (select) and `render/dock_row` (draw), and `overview` reuses `render/dock_row`.** `bar` and `overview` are different modules and cannot include each other.
 - **A dock icon must resolve through a `.desktop` id/`StartupWMClass` -> `Icon` heuristic, not the raw compositor window class.** Passing the raw class straight to the icon-theme lookup collapses every unresolved app onto one generic placeholder icon.
 - **The main poll loop must `continue` on `EINTR` and `klog` any other `poll()` error before breaking.** Breaking on `EINTR` silently exited the whole process, masquerading as an unexplained crash on display unplug.
 - **`main()` must ignore `SIGPIPE` and install `klog_install_crash_handler()` to get any post-mortem from a crash.** `SIGPIPE`'s default action terminates without a core, and the crash handler logs a backtrace for `SIGSEGV`/`SIGABRT`/`SIGBUS`/`SIGILL`/`SIGFPE` into `astralia.log`.
@@ -331,5 +331,5 @@ Drop an entry once newer knowledge fully supersedes it.
 
 - **Sway reports `name` and `app_id` as JSON `null`, not absent, on split containers and XWayland windows.** `json::value()` throws on `null` and aborts the whole tree parse; read strings through `str_field`.
 - **Sway keeps floating windows under a workspace's `floating_nodes` and scratchpad windows under a `num == -1` workspace.** `walk_tree` recurses both lists and skips negative `num`.
-- **Sway has no global focus history, so `focus_history_id` is derived.** `0` marks the `focused` leaf, tree order ranks the rest; the dock reads only `== 0`.
+- **Sway has no global focus history, so `focus_history_id` is derived.** `0` marks the `focused` leaf, tree order ranks the rest; `dock_service` reads only `== 0`.
 - **Sway emits `window::move` for an intra-workspace reorder, unlike Hyprland.** The one-second client re-read in `timer_tick` is Hyprland-only; sway's event path already refreshes.

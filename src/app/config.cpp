@@ -32,13 +32,6 @@ bool autohide_effective_enabled(const Config &cfg, const std::string &monitor_na
     return cfg.autohide;
 }
 
-bool dock_autohide_effective_enabled(const Config &cfg, const std::string &monitor_name) {
-    auto it = cfg.monitor_overrides.find(monitor_name);
-    if (it != cfg.monitor_overrides.end() && it->second.enabled)
-        return it->second.dock_autohide;
-    return cfg.dock_autohide;
-}
-
 bool ambient_effective_enabled(const Config &cfg, const std::string &monitor_name) {
     if (!cfg.idle_management_enabled)
         return false;
@@ -137,9 +130,6 @@ Config load_config() {
         nlohmann::json bar = section(j, "bar", "qixing");
         cfg.autohide = bar.value("autohideEnabled", cfg.autohide);
 
-        nlohmann::json dock = j.value("dock", nlohmann::json::object());
-        cfg.dock_autohide = dock.value("autohideEnabled", cfg.dock_autohide);
-
         nlohmann::json wallpaper = section(j, "wallpaper", "expanse");
         cfg.wallpaper_dir = wallpaper.value("dir", cfg.wallpaper_dir);
         if (auto it = wallpaper.find("columns"); it != wallpaper.end() && it->is_object())
@@ -197,7 +187,6 @@ Config load_config() {
             mo.notifications =
                 pick(val, "notifications", "heralds", mo.notifications);
             mo.autohide = val.value("autohide", mo.autohide);
-            mo.dock_autohide = val.value("dockAutohide", mo.dock_autohide);
             mo.ambient_enabled =
                 val.value("ambientEnabled", mo.ambient_enabled);
             mo.ambient_timeout_seconds =
@@ -300,7 +289,6 @@ void save_config(const Config &cfg) {
         mo["osd"] = ov.osd;
         mo["notifications"] = ov.notifications;
         mo["autohide"] = ov.autohide;
-        mo["dockAutohide"] = ov.dock_autohide;
         mo["ambientEnabled"] = ov.ambient_enabled;
         mo["ambientTimeoutSeconds"] = ov.ambient_timeout_seconds;
         mo["screensaverEnabled"] = ov.screensaver_enabled;
@@ -332,7 +320,6 @@ void save_config(const Config &cfg) {
 
     nlohmann::json j;
     j["bar"] = {{"autohideEnabled", cfg.autohide}};
-    j["dock"] = {{"autohideEnabled", cfg.dock_autohide}};
     j["wallpaper"] = wallpaper;
     j["displays"] = displays;
     j["logout"] = {{"animatedLogo", cfg.logout_animated_logo}};

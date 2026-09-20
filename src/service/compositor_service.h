@@ -77,4 +77,12 @@ CompositorEventResult compositor_poll_events(CompositorState &state);
 
 void compositor_focus_workspace(CompositorState &state, int id, bool global = false);
 
+void compositor_move_window(CompositorState &state, const std::string &address, int id, bool global = false);
+
+void compositor_close_window(CompositorState &state, const std::string &address);
+
+void compositor_move_workspace_in(CompositorState &state, int id, bool global = false);
+
+void compositor_swap_workspace(CompositorState &state, int id, bool global = false);
+
 const char *compositor_name(const CompositorState &state);

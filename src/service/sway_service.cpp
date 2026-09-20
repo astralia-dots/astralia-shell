@@ -26,6 +26,7 @@ constexpr uint32_t kGetTree = 4;
 constexpr uint32_t kEventMask = 0x80000000u;
 
 constexpr const char *kSubscription = "[\"workspace\",\"window\",\"output\"]";
+constexpr const char *kSwapTempWorkspace = "astralia_swap_tmp";
 
 std::string frame(uint32_t type, const std::string &payload) {
     std::string out(kMagic, kMagicLen);
@@ -120,6 +121,10 @@ std::string str_field(const nlohmann::json &node, const char *key) {
 struct TreeWalk {
     CompositorState &state;
     long next_history = 1;
+    double output_x = 0.0;
+    double output_y = 0.0;
+    double output_w = 0.0;
+    double output_h = 0.0;
 };
 
 void walk_tree(TreeWalk &walk, const nlohmann::json &node, int monitor_id, int workspace_id, bool floating) {
@@ -139,6 +144,11 @@ void walk_tree(TreeWalk &walk, const nlohmann::json &node, int monitor_id, int w
         int id = monitor_index(walk.state, str_field(node, "name"));
         if (id < 0)
             return;
+        json rect = node.value("rect", json::object());
+        walk.output_x = rect.value("x", 0.0);
+        walk.output_y = rect.value("y", 0.0);
+        walk.output_w = rect.value("width", 0.0);
+        walk.output_h = rect.value("height", 0.0);
         for (const json &child : nodes)
             walk_tree(walk, child, id, workspace_id, false);
         return;
@@ -147,6 +157,12 @@ void walk_tree(TreeWalk &walk, const nlohmann::json &node, int monitor_id, int w
         int num = node.value("num", -1);
         if (num < 0)
             return;
+        json rect = node.value("rect", json::object());
+        double left = rect.value("x", walk.output_x) - walk.output_x;
+        double top = rect.value("y", walk.output_y) - walk.output_y;
+        double right = walk.output_x + walk.output_w - (rect.value("x", walk.output_x) + rect.value("width", walk.output_w));
+        double bottom = walk.output_y + walk.output_h - (rect.value("y", walk.output_y) + rect.value("height", walk.output_h));
+        walk.state.monitors[static_cast<size_t>(monitor_id)].reserved = {std::max(0.0, left), std::max(0.0, top), std::max(0.0, right), std::max(0.0, bottom)};
         for (const json &child : nodes)
             walk_tree(walk, child, monitor_id, num, false);
         for (const json &child : floats)
@@ -346,4 +362,67 @@ void sway_focus_workspace(CompositorState &state, int id) {
     if (state.request_socket_path.empty())
         return;
     request(state.request_socket_path, kRunCommand, "workspace number " + std::to_string(id));
+}
+
+namespace {
+
+int focused_active_workspace(const CompositorState &state) {
+    auto it = state.by_monitor.find(state.focused_monitor);
+    return it != state.by_monitor.end() ? it->second.active_id : -1;
+}
+
+std::string workspace_number_target(int id) {
+    return "number " + std::to_string(id);
+}
+
+std::string move_clients_command(const CompositorState &state, int from_workspace, const std::string &target) {
+    std::string command;
+    for (const CompositorClient &c : state.clients)
+        if (c.workspace_id == from_workspace)
+            command += "[con_id=" + c.address + "] move container to workspace " + target + "; ";
+    return command;
+}
+
+std::string focus_command(int id) {
+    return "workspace --no-auto-back-and-forth " + workspace_number_target(id);
+}
+
+} // namespace
+
+void sway_move_window(CompositorState &state, const std::string &address, int id) {
+    if (state.request_socket_path.empty() || address.empty())
+        return;
+    std::string command = "[con_id=" + address + "] move container to workspace " + workspace_number_target(id);
+    int active = focused_active_workspace(state);
+    if (active >= 0)
+        command += "; " + focus_command(active);
+    request(state.request_socket_path, kRunCommand, command);
+}
+
+void sway_move_workspace_in(CompositorState &state, int id) {
+    int src = focused_active_workspace(state);
+    if (state.request_socket_path.empty() || src < 0 || src == id)
+        return;
+    request(state.request_socket_path, kRunCommand, move_clients_command(state, src, workspace_number_target(id)) + focus_command(id));
+}
+
+void sway_swap_workspace(CompositorState &state, int id) {
+    int src = focused_active_workspace(state);
+    if (state.request_socket_path.empty() || src < 0 || src == id)
+        return;
+    std::string src_to_tmp = move_clients_command(state, src, kSwapTempWorkspace);
+    std::string dst_to_src = move_clients_command(state, id, workspace_number_target(src));
+    if (src_to_tmp.empty() && dst_to_src.empty())
+        return;
+    std::string tmp_to_dst;
+    for (const CompositorClient &c : state.clients)
+        if (c.workspace_id == src)
+            tmp_to_dst += "[con_id=" + c.address + "] move container to workspace " + workspace_number_target(id) + "; ";
+    request(state.request_socket_path, kRunCommand, src_to_tmp + dst_to_src + tmp_to_dst + focus_command(id));
+}
+
+void sway_close_window(CompositorState &state, const std::string &address) {
+    if (state.request_socket_path.empty() || address.empty())
+        return;
+    request(state.request_socket_path, kRunCommand, "[con_id=" + address + "] kill");
 }

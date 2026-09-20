@@ -78,8 +78,11 @@ std::optional<KeyEvent> translate_key(xkb_state *state, uint32_t keycode, xkb_co
     int n = xkb_state_key_get_utf8(state, xkb_code, buf, sizeof(buf));
     if (n <= 0)
         return std::nullopt;
+    const xkb_keysym_t *base_syms = nullptr;
+    int base_count = xkb_keymap_key_get_syms_by_level(xkb_state_get_keymap(state), xkb_code, xkb_state_key_get_layout(state, xkb_code), 0, &base_syms);
+    xkb_keysym_t base_sym = base_count > 0 ? base_syms[0] : XKB_KEY_NoSymbol;
     return KeyEvent{KeyKind::Text, std::string(buf, static_cast<size_t>(n)),
-                    shift, alt, ctrl};
+                    shift, alt, ctrl, base_sym};
 }
 
 namespace {

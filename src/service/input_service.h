@@ -31,6 +31,7 @@ struct KeyEvent {
     bool shift = false;
     bool alt = false;
     bool ctrl = false;
+    xkb_keysym_t base_sym = XKB_KEY_NoSymbol;
 };
 
 struct KeyboardState {

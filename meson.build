@@ -235,7 +235,6 @@ astralia_shell_lock_main_only_sources = [
 ]
 
 astralia_shell_overlay_main_only_sources = [
-  'src/modules/dock.cpp',
   'src/modules/osd.cpp',
   'src/modules/wallpaper.cpp',
   'src/modules/notification.cpp',

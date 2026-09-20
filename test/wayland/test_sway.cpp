@@ -47,8 +47,8 @@ const char *kTree = R"({
       ]},
       {"type": "workspace", "name": "2", "num": 2, "nodes": [], "floating_nodes": []}
     ]},
-    {"type": "output", "name": "HDMI-A-1", "nodes": [
-      {"type": "workspace", "name": "11", "num": 11, "nodes": [
+    {"type": "output", "name": "HDMI-A-1", "rect": {"x": 1280, "y": 0, "width": 1080, "height": 1920}, "nodes": [
+      {"type": "workspace", "name": "11", "num": 11, "rect": {"x": 1280, "y": 40, "width": 1080, "height": 1880}, "nodes": [
         {"type": "con", "id": 20, "name": "editor", "app_id": "code", "nodes": [], "floating_nodes": [],
          "rect": {"x": 1280, "y": 0, "width": 1080, "height": 1900}, "focused": false}
       ], "floating_nodes": []}
@@ -112,6 +112,9 @@ void test_sway() {
 
     const CompositorClient *editor = find_client(state, "20");
     assert(editor && editor->workspace_id == 11 && editor->monitor_id == 1);
+    assert(state.monitors[1].reserved[0] == 0.0 && state.monitors[1].reserved[1] == 40.0);
+    assert(state.monitors[1].reserved[2] == 0.0 && state.monitors[1].reserved[3] == 0.0);
+    assert(state.monitors[0].reserved[1] == 0.0);
 
     auto entries = dock_entries_for_monitor(state, "DP-1");
     assert(entries.size() == 3);

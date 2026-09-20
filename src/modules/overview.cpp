@@ -300,6 +300,21 @@ bool point_in_rect(double px, double py, const Rect &r) {
     return px >= r.x && px < r.x + r.w && py >= r.y && py < r.y + r.h;
 }
 
+void close_workspaces(CompositorState &compositor, HyprCloseScope scope, int id) {
+    if (compositor.backend == CompositorBackend::Hyprland) {
+        hypr_tile_close_workspace(compositor, scope, id);
+        return;
+    }
+    std::vector<std::string> addresses;
+    for (const CompositorClient &c : compositor.clients) {
+        bool match = scope == HyprCloseScope::All || (scope == HyprCloseScope::Monitor ? c.monitor_id == id : c.workspace_id == id);
+        if (match)
+            addresses.push_back(c.address);
+    }
+    for (const std::string &address : addresses)
+        compositor_close_window(compositor, address);
+}
+
 } // namespace
 
 bool overview_create_surface(OverviewState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
@@ -327,7 +342,7 @@ void overview_request_frame(OverviewState &state) {
 }
 
 void overview_toggle(OverviewState &state, WaylandState &app, bool by_widget) {
-    if (app.compositor_state.backend != CompositorBackend::Hyprland)
+    if (app.compositor_state.backend == CompositorBackend::None)
         return;
     if (!state.base.layer_surface || state.base.egl_surface == EGL_NO_SURFACE)
         return;
@@ -359,7 +374,7 @@ std::vector<IpcHandler> overview_ipc_handlers(OverviewState &overview, WaylandSt
              }
              overview_toggle(overview, state);
          },
-         "toggle the overview (Hyprland only)"},
+         "toggle the overview"},
     };
 }
 
@@ -388,7 +403,7 @@ void overview_handle_click(OverviewState &state, WaylandState &app, double px, d
     }
     if (const LayoutCell *cell = cell_at(g, px, py)) {
         state.selected_workspace = cell->workspace_id;
-        hypr_tile_focus_workspace(app.compositor_state, cell->workspace_id, state.global_mode);
+        compositor_focus_workspace(app.compositor_state, cell->workspace_id, state.global_mode);
         return;
     }
 
@@ -432,9 +447,9 @@ void overview_handle_pointer_release(OverviewState &state, WaylandState &app) {
     if (!cell)
         return;
     if (cell->workspace_id != state.drag_from_workspace) {
-        hypr_tile_move_window(app.compositor_state, cell->workspace_id, false, state.drag_address, state.global_mode);
+        compositor_move_window(app.compositor_state, state.drag_address, cell->workspace_id, state.global_mode);
     } else {
-        hypr_tile_focus_workspace(app.compositor_state, cell->workspace_id, state.global_mode);
+        compositor_focus_workspace(app.compositor_state, cell->workspace_id, state.global_mode);
     }
 }
 
@@ -449,11 +464,11 @@ void overview_handle_key_event(OverviewState &state, WaylandState &app, const Ke
         state.selected_workspace = ws;
         state.workspace_group = (ws - 1) / shown;
         if (shift)
-            hypr_tile_swap_workspace(app.compositor_state, ws, state.global_mode);
+            compositor_swap_workspace(app.compositor_state, ws, state.global_mode);
         else if (alt)
-            hypr_tile_move_workspace_in(app.compositor_state, ws, state.global_mode);
+            compositor_move_workspace_in(app.compositor_state, ws, state.global_mode);
         else
-            hypr_tile_focus_workspace(app.compositor_state, ws, state.global_mode);
+            compositor_focus_workspace(app.compositor_state, ws, state.global_mode);
     };
 
     switch (event.kind) {
@@ -491,18 +506,18 @@ void overview_handle_key_event(OverviewState &state, WaylandState &app, const Ke
         overview_toggle(state, app);
         break;
     case KeyKind::Text:
-        if (event.text.size() == 1 && event.text[0] >= '0' && event.text[0] <= '9') {
-            int position = event.text[0] == '0' ? 10 : event.text[0] - '0';
+        if (event.base_sym >= XKB_KEY_0 && event.base_sym <= XKB_KEY_9) {
+            int position = event.base_sym == XKB_KEY_0 ? 10 : static_cast<int>(event.base_sym - XKB_KEY_0);
             if (position <= shown)
                 switch_to(state.workspace_group * shown + position, event.shift, event.alt);
-        } else if (event.ctrl && (event.text == "d" || event.text == "D")) {
-            hypr_tile_close_workspace(app.compositor_state, HyprCloseScope::All);
-        } else if (event.text == "D") {
+        } else if (event.ctrl && event.base_sym == XKB_KEY_d) {
+            close_workspaces(app.compositor_state, HyprCloseScope::All, -1);
+        } else if (event.shift && event.base_sym == XKB_KEY_d) {
             const CompositorMonitor *target = bound_monitor(state, app);
             if (target)
-                hypr_tile_close_workspace(app.compositor_state, HyprCloseScope::Monitor, target->id);
-        } else if (event.text == "d") {
-            hypr_tile_close_workspace(app.compositor_state, HyprCloseScope::Workspace, state.selected_workspace);
+                close_workspaces(app.compositor_state, HyprCloseScope::Monitor, target->id);
+        } else if (event.base_sym == XKB_KEY_d) {
+            close_workspaces(app.compositor_state, HyprCloseScope::Workspace, state.selected_workspace);
         }
         break;
     default:
@@ -523,7 +538,7 @@ void overview_paint(OverviewState &state, WaylandState &app) {
 
     state.scene.rebuild();
 
-    if (state.base.open && app.compositor_state.backend == CompositorBackend::Hyprland) {
+    if (state.base.open && app.compositor_state.backend != CompositorBackend::None) {
         Layout g = compute_layout(state, app);
 
         if (!g.cells.empty()) {

@@ -28,7 +28,7 @@
 ## src/config
 
 - `bar_config.h`: Bar geometry, spacing, and pill-order constants.
-- `dock_config.h`: Dock capsule geometry, icon size/spacing, focused/unfocused icon opacity, reorder timing, bottom margin, autohide peek/reveal/hide constants, animation-owner bases.
+- `dock_config.h`: Dock icon size/spacing, focused/unfocused icon opacity, reorder timing, and the `dock_widget` animation-owner base.
 - `launcher_config.h`: Every launcher data type and constant, no function bodies.
 - `osd_config.h`: OSD surface size/margin/duration/animation-owner constants.
 - `notification_config.h`: Notification card padding/size/timing constants.
@@ -73,7 +73,7 @@
 - `slider.h`+`.cpp`: `draw_slider_track`, shared track+fill+click-region drawing for any slider.
 - `arc_gauge.h`+`.cpp`: Shared cached circular arc-gauge texture plus icon/value/sub-label layout; diameter, stroke, and colors are caller params.
 - `progress_bar.h`+`.cpp`: Shared track+fill rounded-bar drawing with a caller-set minimum fill width; no click regions or panel dependency.
-- `dock_row.h`+`.cpp`: Per-window-class icon-texture cache and the icon-row draw with focus opacity and reorder slide; shared by `dock` and `dock_widget`.
+- `dock_row.h`+`.cpp`: Per-window-class icon-texture cache and the icon-row draw with focus opacity and reorder slide; shared by `dock_widget` and `overview`.
 
 ## src/service
 
@@ -89,9 +89,9 @@
 - `frame_service.h`+`.cpp`: Frame-callback paint pacing shared across surfaces; first paint synchronous, later repaints deferred to `frame_done`.
 - `input_service.h`+`.cpp`: All `wl_seat` input: `wl_keyboard`+xkbcommon key handling, `wl_pointer` hover/click/cursor-shape, and the shared seat-capabilities listener.
 - `text_input_service.h`+`.cpp`: `zwp_text_input_v3` client-role protocol glue for IME composition (fcitx5/ibus), focus tracking, preedit/commit/delete dispatch to the active `TextInputClient`.
-- `compositor_service.h`+`.cpp`: Compositor-neutral `CompositorState` workspace/monitor/client data; picks the Hyprland or Sway backend and dispatches to it.
+- `compositor_service.h`+`.cpp`: Compositor-neutral `CompositorState` workspace/monitor/client data; picks the Hyprland or Sway backend and dispatches focus, move, close, and workspace swap/move-in to it.
 - `hyprland_service.h`+`.cpp`: Hyprland backend: fills `CompositorState` via request+event sockets, plus `hypr_tile_*` tiling actions dispatched as Lua calls.
-- `sway_service.h`+`.cpp`: Sway backend: `i3-ipc` request/subscribe client, pure `sway_parse_*` JSON-to-`CompositorState` parsers, and `workspace number` focus.
+- `sway_service.h`+`.cpp`: Sway backend: `i3-ipc` request/subscribe client, pure `sway_parse_*` JSON-to-`CompositorState` parsers, `workspace number` focus, `con_id` move/kill, and workspace swap/move-in.
 - `capture_service.h`+`.cpp`: Per-window `hyprland-toplevel-export-v1` live capture; `wl_shm` buffer alloc/reuse and GL texture upload, throttled per window.
 - `output_service.h`+`.cpp`: Pure-data `Output` struct plus output-selection logic, and per-output fractional-scale listener tracking (`OutputScale`).
 - `wallpaper_service.h`+`.cpp`: Per-monitor, per-column wallpaper path/count/fill-mode resolution; a `bool animated` selects the static or animated config maps.
@@ -113,13 +113,12 @@
 ## src/modules
 
 - `bar.h`+`.cpp`: Bar rendering, autohide geometry, pill-click dispatch, bar surface's own EGL; shared `WaylandState`-wide helpers.
-- `dock.h`+`.cpp`: Per-monitor bottom layer-shell dock; centered capsule of the active workspace's window icons, own surface/EGL/scene, with optional autohide.
 - `launcher.h`+`.cpp`: `LauncherState`, surface/EGL/tick/toggle/key/click/pointer-hover/paint core only.
 - `osd.h`+`.cpp`: Volume/brightness popup, per-monitor, auto-hides, reactive to system state changes.
 - `notification.h`+`.cpp`: Notification renderer; rebuilds render/animation state from `notification_service` records, per-monitor card paint, and per-monitor close-button dismissal.
 - `logout.h`+`.cpp`: Logout ring overlay: entry/exit lightning-slash/shockwave choreography, animated centre logo, and its two custom shader effects.
 - `dashboard.h`+`.cpp`: Dashboard singleton state: fixed top-right overlay, IPC/widget-triggered open, scrollable card layout, and brightness card.
-- `overview.h`+`.cpp`: Hyprland-only overlay: `Tab`-switched local or global workspace grid, live window thumbnails, click/drag/keyboard focus-move-swap-close, IPC or bar-widget toggle.
+- `overview.h`+`.cpp`: `Tab`-switched local or global workspace grid; live thumbnails on Hyprland, icon tiles on Sway; click/drag/keyboard focus-move-close.
 - `wallpaper.h`+`.cpp`: Per-monitor wallpaper surface: static or animated columns per config, cross-transition on image change, shared by `lock` and idle ambient.
 - `idle.h`+`.cpp`: Recent-activity idle clock feeding the per-monitor ambient/screensaver overlay surface; screensaver bounces an `AnimatedImage` logo, freed while not shown.
 - `settings.h`+`.cpp`: Settings panel core: hosts per-tab modules, responsive nav rail, shared toggle widgets, and a separately-faded active-tab scene.
@@ -295,7 +294,6 @@
 - `index.md`: Index of every source, test, asset, and protocol file.
 - `convention.md`: Commenting, formatting, module-boundary, config-header, service, and include rules.
 - `critical-knowledge.md`: Hard-won development rules, one statement plus one explanation each.
-- `naming.md`: Functional module names, retired code names, IPC verbs, and config legacy keys.
 
 ## local
 

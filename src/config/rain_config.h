@@ -12,12 +12,12 @@ struct RainParams {
 constexpr int kRainDefaultWindowWidth = 480;
 constexpr int kRainDefaultWindowHeight = 600;
 
-// shared rain timing (unchanged from the matrix version)
+// shared rain timing
 constexpr float kRainFallIntervalMs = 45.0f;
 constexpr float kRainResetChance = 0.025f;
 constexpr float kRainFadeAlpha = 0.05f;
 
-// per-column fall-rate spread when async_speed is on
+// async fall speed
 constexpr float kRainAsyncSpeedMin = 0.4f;
 constexpr float kRainAsyncSpeedMax = 1.0f;
 

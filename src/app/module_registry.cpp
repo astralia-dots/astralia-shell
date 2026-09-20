@@ -718,40 +718,6 @@ SettingsEnv settings_env(WaylandState &app) {
     };
 }
 
-bool DockPerMonitorModule::create_surface(WaylandState &app, MonitorOutput &mon, wl_output *output) {
-    if (!dock_create_surface(state_, app.compositor, app.layer_shell, output))
-        klog("dock: failed to create layer surface on '%s'", mon.output.name.c_str());
-    return true;
-}
-
-bool DockPerMonitorModule::configured() const {
-    return !state_.layer_surface || state_.configured;
-}
-
-bool DockPerMonitorModule::init_egl(WaylandState &app, MonitorOutput &mon) {
-    if (!state_.layer_surface)
-        return true;
-    state_.output_name = mon.output.name;
-    state_.compositor_state = &app.compositor_state;
-    state_.pointer = &app.pointer;
-    if (dock_init_egl(state_, app.renderer, app.egl_display, app.egl_config, app.egl_context)) {
-        dock_apply_autohide(state_, dock_autohide_effective_enabled(app.cfg, mon.output.name));
-        dock_refresh(state_);
-        eglMakeCurrent(app.egl_display, mon.egl_surface, mon.egl_surface, app.egl_context);
-    }
-    return true;
-}
-
-void DockPerMonitorModule::destroy(WaylandState &app, MonitorOutput &) {
-    destroy_layer_surface(app.egl_display, state_.surface, state_.layer_surface, state_.egl_window, state_.egl_surface, &state_.frame_clock);
-}
-
-bool DockPerMonitorModule::owns_surface(wl_surface *surface) const {
-    return surface == state_.surface;
-}
-
-void DockPerMonitorModule::request_frame() { dock_refresh(state_); }
-
 bool OsdPerMonitorModule::create_surface(WaylandState &app, MonitorOutput &mon, wl_output *output) {
     if (!osd_create_surface(state_, app.compositor, app.layer_shell, output))
         klog("osd: failed to create layer surface on '%s'", mon.output.name.c_str());
@@ -1019,7 +985,6 @@ void lock_start(WaylandState &app) {
 std::vector<std::unique_ptr<PerMonitorModule>> build_per_monitor_modules() {
     std::vector<std::unique_ptr<PerMonitorModule>> modules;
     modules.push_back(std::make_unique<BarPerMonitorModule>());
-    modules.push_back(std::make_unique<DockPerMonitorModule>());
     modules.push_back(std::make_unique<WallpaperPerMonitorModule>());
     modules.push_back(std::make_unique<OsdPerMonitorModule>());
     modules.push_back(std::make_unique<NotificationViewPerMonitorModule>());

@@ -129,7 +129,6 @@ bool idle_tab_handle_click(SettingsState &state, const Config &cfg, const Settin
             ov.osd = cfg.default_osd_enabled;
             ov.notifications = cfg.default_notifications_enabled;
             ov.autohide = cfg.autohide;
-            ov.dock_autohide = cfg.dock_autohide;
             ov.ambient_enabled = cfg.ambient_enabled;
             ov.ambient_timeout_seconds = cfg.ambient_timeout_seconds;
             ov.screensaver_enabled = cfg.screensaver_enabled;
