@@ -1,12 +1,10 @@
-#include <algorithm>
-
+#include "modules/bar/widget/widget_capsule.h"
 #include "modules/bar/panel/battery_panel.h"
 #include "modules/bar/panel/bluetooth_panel.h"
 #include "modules/bar/panel/network_panel.h"
 #include "modules/bar/panel/system_monitor_panel.h"
 #include "modules/bar/panel/tray_panel.h"
 #include "modules/bar/panel/volume_panel.h"
-#include "modules/bar/widget/widget_capsule.h"
 
 #include "render/text.h"
 
@@ -79,6 +77,10 @@ const Texture &ensure_label_texture(WidgetCapsuleState &capsule, const Pill &p) 
     return tex;
 }
 
+float pill_collapsed_width(const Pill &p, float height) {
+    return p.icon->width + height;
+}
+
 } // namespace
 
 void update_pill_expand(WidgetCapsuleState &capsule, AnimationManager &animations, PillId id, bool hovered_now, bool instant) {
@@ -98,7 +100,7 @@ float pills_row_width(WidgetCapsuleState &capsule, AnimationManager &animations,
         bool hovered_now = p.id == hovered && !p.label.empty();
         update_pill_expand(capsule, animations, p.id, hovered_now, hovered_now && p.id == instant_pill);
         float t = capsule.pill_expand_t[pill_idx(p.id)];
-        float collapsed_w = std::max(p.icon->width + kPillPad * 2, height);
+        float collapsed_w = pill_collapsed_width(p, height);
         float pw = collapsed_w;
         if (t > 0.0f && !p.label.empty()) {
             const Texture &label_tex = ensure_label_texture(capsule, p);
@@ -129,7 +131,7 @@ float draw_pills(Node *root, WidgetCapsuleState &capsule, AnimationManager &anim
         if (label_tex && !label_tex->id)
             label_tex = nullptr;
 
-        float collapsed_w = std::max(p.icon->width + kPillPad * 2, height);
+        float collapsed_w = pill_collapsed_width(p, height);
         float expanded_w = collapsed_w;
         if (label_tex)
             expanded_w = height + p.icon->width + kPillPad + label_tex->width;
@@ -137,12 +139,8 @@ float draw_pills(Node *root, WidgetCapsuleState &capsule, AnimationManager &anim
 
         Node *pill_group = node_add_group(root, x, 0, pill_w, height, true);
         node_add_rrect(pill_group, 0, 0, pill_w, height, height / 2.0f, metrics::border_thin, pill_bg, p.border_color ? p.border_color : rgba(palette::accent));
-        float icon_collapsed_x = (collapsed_w - p.icon->width) / 2.0f;
-        float icon_expanded_x = height / 2.0f;
-        float icon_x =
-            icon_collapsed_x + (icon_expanded_x - icon_collapsed_x) * t;
         float iy = (height - p.icon->height) / 2.0f;
-        node_add_texture(pill_group, icon_x, iy, *p.icon, tint);
+        node_add_texture(pill_group, height / 2.0f, iy, *p.icon, tint);
         if (label_tex) {
             float lx = height / 2.0f + p.icon->width + kPillPad;
             float ly = (height - label_tex->height) / 2.0f;
