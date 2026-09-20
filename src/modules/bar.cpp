@@ -211,12 +211,14 @@ void bar_paint(MonitorOutput &mon) {
 
     Module *logout_m = find_overlay_by_name(app, "logout");
     Module *dashboard_m = find_overlay_by_name(app, "dashboard");
+    Module *overview_m = find_overlay_by_name(app, "overview");
+    bool overview_here = overview_m && overview_m->is_open() && overview_m->opened_by_widget() && overview_m->bound_output() == mon.output.wl;
     bool logout_here = logout_m && logout_m->is_open() && logout_m->opened_by_widget() && logout_m->bound_output() == mon.output.wl;
     bool dashboard_here = dashboard_m && dashboard_m->is_open() && dashboard_m->opened_by_widget() && dashboard_m->bound_output() == mon.output.wl;
     PillId current_panel_pill = panel_pill(bs.network_panel, bs.bluetooth_panel, bs.volume_panel, bs.tray_panel, bs.battery_panel, bs.system_monitor_panel, logout_here, dashboard_here);
 
     if (mon.autohide.enabled) {
-        bool want_shown = app.pointer.focused_surface == mon.surface || current_panel_pill != PillId::None || bs.clock_panel.base.open;
+        bool want_shown = app.pointer.focused_surface == mon.surface || current_panel_pill != PillId::None || bs.clock_panel.base.open || overview_here;
         if (want_shown == mon.autohide.hidden) {
             mon.autohide.hidden = !want_shown;
             if (want_shown && mon.autohide.collapsed) {

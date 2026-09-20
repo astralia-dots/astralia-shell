@@ -64,7 +64,7 @@
 - `popup_window.h`+`.cpp`: Shared `xdg_popup` surface lifecycle parented to a layer surface via `zwlr_layer_surface_v1::get_popup`, with positioner, popup grab, `popup_done`, and reposition-on-resize.
 - `layer_surface.h`+`.cpp`: Shared layer-shell surface creation helper, deduping anchor/margin/listener setup; `destroy_layer_surface` also drops any pending frame callback.
 - `scene.h`: Thin `Scene` holder over `node.h` - a root `Node` plus `dirty`/`draw`/`rebuild` one-liners; no scene-graph logic of its own.
-- `image.h`+`.cpp`: JPEG/PNG/SVG decode (sniffed from content) and GL texture upload, no GIF; SVG rasterized via `librsvg`+Cairo; `load_image_texture_first_existing` picks the first candidate path that exists.
+- `image.h`+`.cpp`: JPEG/PNG/SVG decode sniffed from content, `librsvg`+Cairo SVG rasterization, GL texture upload, first-existing-path loader.
 - `texture_cache.h`+`.cpp`: Path-keyed decoded-texture cache built on `texture.h`.
 - `icon.h`+`.cpp`: Direct FreeType+Cairo rendering of single icon glyphs, plus `make_icon_texture` glyph-to-`Texture`.
 - `icons.h`: Tabler Icons codepoint constants.
@@ -98,12 +98,12 @@
 - `settings_service.h`+`.cpp`: Settings field-text parsing into `Config` and the config-save wrapper.
 - `icon_service.h`+`.cpp`: App icon path resolution across GTK icon themes; `resolve_window_icon_path` maps a window class to an icon via `.desktop` ids.
 - `dock_service.h`+`.cpp`: `DockEntry` list for a monitor's active workspace from `HyprlandState`, sorted by window `x`, `focused` = `focus_history_id == 0`; pure, test-linked.
-- `polkit_service.h`+`.cpp`: `PolkitAgent`, an in-session polkit authentication agent registering with `polkit-gobject-1`/`polkit-agent-1` and driving the session through its own nested `GMainContext`; `PolkitPollSource` bridges it into the shared poll loop.
+- `polkit_service.h`+`.cpp`: `PolkitAgent`, an in-session polkit authentication agent on its own nested `GMainContext`; `PolkitPollSource` bridges it into the poll loop.
 
 ## src/core
 
 - `deferred_call.h`+`.cpp`: Cross-thread callback hand-off so worker threads can post to the main thread.
-- `log.h`+`.cpp`: `klog()` dual stderr + logfile logging with timestamps; `klog_install_crash_handler()` also installs a `std::set_terminate` handler that logs the uncaught exception's `what()` before aborting.
+- `log.h`+`.cpp`: `klog()` dual stderr + logfile logging with timestamps; `klog_install_crash_handler()` also logs crash backtraces and uncaught exception `what()`.
 - `path_home.h`+`.cpp`: `path_collapse_home`/`path_expand_home` `$HOME` <-> `~` path rewriters, shared by `config`, `settings`, and `launcher`.
 - `poll_source.h`+`.cpp`: `PollSource` interface, `FnPollSource` helper, and `sdbus_poll_source` wrapping an sdbus connection's poll data.
 - `async_process.h`+`.cpp`: Worker-thread subprocess runner, plus `spawn_detached` for fire-and-forget commands.
@@ -117,14 +117,14 @@
 - `notification.h`+`.cpp`: Notification renderer; rebuilds render/animation state from `notification_service` records, per-monitor card paint, and per-monitor close-button dismissal.
 - `logout.h`+`.cpp`: Logout ring overlay: entry/exit lightning-slash/shockwave choreography, animated centre logo, and its two custom shader effects.
 - `dashboard.h`+`.cpp`: Dashboard singleton state: fixed top-right overlay, IPC/widget-triggered open, scrollable card layout, and brightness card.
-- `overview.h`+`.cpp`: Overview state, Hyprland-only full-screen exclusive-keyboard overlay; local paginated grid or `Tab`-switched global per-monitor grid, live `hyprland-toplevel-export-v1` thumbnails with app icons, click/drag/keyboard focus-move-swap-close, IPC-only toggle.
+- `overview.h`+`.cpp`: Hyprland-only overlay: `Tab`-switched local or global workspace grid, live window thumbnails, click/drag/keyboard focus-move-swap-close, IPC or bar-widget toggle.
 - `wallpaper.h`+`.cpp`: Per-monitor wallpaper surface: static or animated columns per config, cross-transition on image change, shared by `lock` and idle ambient.
 - `idle.h`+`.cpp`: Recent-activity idle clock feeding the per-monitor ambient/screensaver overlay surface; screensaver bounces an `AnimatedImage` logo, freed while not shown.
 - `settings.h`+`.cpp`: Settings panel core: hosts per-tab modules, responsive nav rail, shared toggle widgets, and a separately-faded active-tab scene.
 - `rain.h`+`.cpp`: Rain overlay, a real `xdg_toplevel` window; hosts the `MatrixRain`/`StilettoRain` sims and applies mode/speed config live.
 - `visualizer.h`+`.cpp`: Audio visualizer overlay window; a dedicated self-pacing render thread draws either `SphereVisualizer` or `BarVisualizer`, fed by its own PipeWire capture.
 - `lock.h`+`.cpp`: `ext-session-lock-v1` session lock; one surface per output, `PAM` auth on a worker thread, three-column info card.
-- `polkit.h`+`.cpp`: Reactive singleton overlay prompting for the user's password on a polkit authentication request; centered card with `EaseOutBack`/`EaseInBack` scale-in/out, dot-masked password field shared with `lock`'s echo glyph.
+- `polkit.h`+`.cpp`: Reactive polkit password overlay: centered card with scale-in/out, dot-masked password field shared with `lock`'s echo glyph.
 
 ## src/modules/visualizer
 
@@ -165,27 +165,30 @@
 - `rain_tab.h`+`.cpp`: Per-tab settings UI and commit logic; `Matrix`/`Stiletto` `RainMode` selector row plus an `Asynchronous fall speed` toggle row.
 - `animation_tab.h`+`.cpp`: Per-tab settings UI and commit logic; single `Disable Animations` toggle row.
 
-## src/modules/bar
+## src/modules/bar/panel
 
-- `panel/network_panel.h`+`.cpp`: One `<name>_panel.h/.cpp` pair per on-demand panel.
-- `panel/bluetooth_panel.h`+`.cpp`: One `<name>_panel.h/.cpp` pair per on-demand panel.
-- `panel/volume_panel.h`+`.cpp`: One `<name>_panel.h/.cpp` pair per on-demand panel.
-- `panel/tray_panel.h`+`.cpp`: On-demand tray grid panel plus its context menu, a separate `xdg_popup` grabbed to the panel layer surface.
-- `panel/battery_panel.h`+`.cpp`: One `<name>_panel.h/.cpp` pair per on-demand panel.
-- `panel/system_monitor_panel.h`+`.cpp`: One `<name>_panel.h/.cpp` pair per on-demand panel.
-- `panel/clock_panel.h`+`.cpp`: On-demand centered month-grid calendar panel; header prev/today/next month nav, weekday row, `6x7` day grid with today highlighted.
-- `widget/widget_capsule.h`+`.cpp`: Shared pill bookkeeping, hover-expand/click dispatch, and the pill-row layout/draw.
-- `widget/workspace_widget.h`+`.cpp`: Workspace-row drawing plus trailing overview-toggle icon; records per-pill and icon hit rects for click routing.
-- `widget/dock_widget.h`+`.cpp`: Bar-capsule variant of the dock icon row for the active workspace, drawn after the workspace row via shared `render/dock_row`; non-interactive.
-- `widget/clock_widget.h`+`.cpp`: State-free clock-pill drawing; returns the pill hit rect and owns the calendar-panel open trigger.
-- `widget/logout_widget.h`+`.cpp`: One pair per bar pill.
-- `widget/battery_widget.h`+`.cpp`: One pair per bar pill.
-- `widget/network_widget.h`+`.cpp`: One pair per bar pill.
-- `widget/bluetooth_widget.h`+`.cpp`: One pair per bar pill.
-- `widget/volume_widget.h`+`.cpp`: One pair per bar pill.
-- `widget/dashboard_widget.h`+`.cpp`: One pair per bar pill.
-- `widget/system_monitor_widget.h`+`.cpp`: One pair per bar pill (CPU pill opening the system-monitor panel).
-- `widget/tray_widget.h`+`.cpp`: One pair per bar pill (tray pill opening the tray panel).
+- `network_panel.h`+`.cpp`: On-demand Wi-Fi panel: network list, connect/forget rows, password sub-dialog.
+- `bluetooth_panel.h`+`.cpp`: On-demand Bluetooth panel: device list with connect/forget rows and `rfkill` toggle.
+- `volume_panel.h`+`.cpp`: On-demand volume panel: output and input device sliders written through PipeWire.
+- `tray_panel.h`+`.cpp`: On-demand tray grid panel plus its context menu, a separate `xdg_popup` grabbed to the panel layer surface.
+- `battery_panel.h`+`.cpp`: On-demand battery panel: every UPower device with its charge level.
+- `system_monitor_panel.h`+`.cpp`: On-demand system-monitor panel: CPU/GPU temperature and usage, RAM, disk, and network throughput.
+- `clock_panel.h`+`.cpp`: On-demand centered month-grid calendar panel; header prev/today/next month nav, weekday row, `6x7` day grid with today highlighted.
+
+## src/modules/bar/widget
+
+- `widget_capsule.h`+`.cpp`: Shared pill bookkeeping, hover-expand/click dispatch, and the pill-row layout/draw.
+- `workspace_widget.h`+`.cpp`: Workspace-row drawing plus trailing overview-toggle icon; records per-pill and icon hit rects for click routing.
+- `dock_widget.h`+`.cpp`: Bar-capsule variant of the dock icon row for the active workspace, drawn after the workspace row via shared `render/dock_row`; non-interactive.
+- `clock_widget.h`+`.cpp`: State-free clock-pill drawing; returns the pill hit rect and owns the calendar-panel open trigger.
+- `logout_widget.h`+`.cpp`: Logout pill that toggles the logout overlay.
+- `battery_widget.h`+`.cpp`: Battery pill opening the battery panel.
+- `network_widget.h`+`.cpp`: Network pill opening the network panel.
+- `bluetooth_widget.h`+`.cpp`: Bluetooth pill opening the Bluetooth panel.
+- `volume_widget.h`+`.cpp`: Volume pill opening the volume panel.
+- `dashboard_widget.h`+`.cpp`: Dashboard pill that toggles the dashboard overlay.
+- `system_monitor_widget.h`+`.cpp`: CPU pill opening the system-monitor panel.
+- `tray_widget.h`+`.cpp`: Tray pill opening the tray panel.
 
 ## src
 
@@ -193,59 +196,81 @@
 
 ## test
 
-`test/`: One test file per pure-logic header, grouped by module, run through one `astralia-shell-test` binary via meson.
+- `astralia-shell-test.cpp`: Test runner `main`, calling every test function from one `astralia-shell-test` binary.
+- `astralia-shell-test.hpp`: Declarations of every test function the runner calls.
 
-- astralia-shell-test.cpp
-- astralia-shell-test.hpp
-- app/test_config.cpp
-- app/test_wallpaper_resolve.cpp
-- core/test_async_process.cpp
-- core/test_deferred_call.cpp
-- core/test_path_home.cpp
-- core/test_poll_source.cpp
-- dbus/test_network_parse.cpp
-- dbus/test_bluetooth.cpp
-- launcher/test_launcher.cpp
-- wayland/test_keyboard.cpp
-- wayland/test_active_output.cpp
-- wayland/test_dock.cpp
-- system/test_rfkill.cpp
-- render/test_animation.cpp
-- render/test_animated_image.cpp
-- render/test_marquee_scroll.cpp
-- render/test_palette.cpp
-- render/test_image_decode.cpp
-- render/test_text_elide.cpp
-- lock/test_layout.cpp
-- visualizer/test_fft.cpp
-- dbus/test_mpris.cpp
-- system/test_cpu_temp.cpp
-- system/test_gpu_temp.cpp
-- system/test_system_stats.cpp
+## test/app
 
-## root
+- `test_config.cpp`: Config load/save, hot-reload watch, and per-monitor override resolution.
+- `test_wallpaper_resolve.cpp`: Per-monitor, per-column wallpaper path and fill-mode resolution.
 
-- `meson.build`: Build config, dependency list, test registration.
-- `convention.md`: Formatting and commenting rules.
+## test/core
 
-## dist
+- `test_async_process.cpp`: Worker-thread subprocess runner and detached spawn helpers.
+- `test_deferred_call.cpp`: Cross-thread deferred callback hand-off.
+- `test_path_home.cpp`: `$HOME` to `~` path collapse and expansion.
+- `test_poll_source.cpp`: `PollSource` interface and `FnPollSource` helper.
 
-- `build.sh`: Shared configure+compile step (RAM-capped job count via `ASTRALIA_SHELL_BUILD_JOBS`), called by `test.sh` and `install.sh`.
-- `{run,install,test}`: Convenience scripts to build+test, build+install, or kill+install+launch astralia-shell.
+## test/dbus
+
+- `test_network_parse.cpp`: Pure `nmcli` output parsers.
+- `test_bluetooth.cpp`: Bluetooth device-kind classification.
+- `test_mpris.cpp`: MPRIS player selection, playback-status parsing, position formatting, and art-URL checks.
+
+## test/launcher
+
+- `test_launcher.cpp`: Launcher desktop-entry, search, scoring, submenu, visit-store, and launch-action logic.
+
+## test/wayland
+
+- `test_keyboard.cpp`: `xkbcommon` key-event translation, modifiers, and compose handling.
+- `test_active_output.cpp`: Active-output selection logic.
+- `test_dock.cpp`: Dock entry list for a monitor's active workspace.
+
+## test/system
+
+- `test_rfkill.cpp`: `sysfs` string/uint readers behind the `rfkill` soft-block check.
+- `test_cpu_temp.cpp`: CPU `hwmon`/thermal-zone name matching and core-label indexing.
+- `test_gpu_temp.cpp`: GPU `hwmon` name matching and `nvidia-smi` output parsing.
+- `test_system_stats.cpp`: CPU, RAM, disk, and network throughput stats.
+
+## test/render
+
+- `test_animation.cpp`: `AnimationManager` tween and easing engine.
+- `test_animated_image.cpp`: Animated-image frame indexing, scale filter choice, and frame-count ceiling.
+- `test_marquee_scroll.cpp`: Marquee pause/scroll/snap state machine.
+- `test_palette.cpp`: Compile-time hex parsing and alpha handling of palette colors.
+- `test_image_decode.cpp`: JPEG/PNG/SVG decode.
+- `test_text_elide.cpp`: End and middle string elision.
+
+## test/lock
+
+- `test_layout.cpp`: Pure lock-panel geometry math.
+
+## test/visualizer
+
+- `test_fft.cpp`: Radix-2 FFT and magnitude tilt.
 
 ## assets
 
-- `fonts/*`, `constellation/C*.png`: Installed fonts, launcher constellation bullet icons.
-- `shaders/**`: Every `#version 100` GLES shader the shell compiles, grouped by consumer directory; installed as a subdir by meson.
-- `NOTICE`: Third-party attribution for ported shader and asset parts.
-- `stellar-restoration.png`: Default wallpaper wallpaper, the `ASTRALIA_SHELL_DEFAULT_WALLPAPER` fallback when a column has no configured path.
+- `fonts/*`: Installed fonts: `tabler-icons.ttf` icon glyphs and `YujiMai.ttf`.
+- `constellation/C*.png`: Launcher constellation bullet icons.
+- `stellar-restoration.png`: Default wallpaper, the `ASTRALIA_SHELL_DEFAULT_WALLPAPER` fallback when a column has no configured path.
 - `stellar-restoration.svg`: Idle screensaver bouncing-logo source (placeholder).
 - `stiletto.svg`: `stiletto_rain` comet head, rasterized once aspect-correct and scaled to the comet-row head height.
 - `electro.png`: Password-field echo glyph, drawn per character.
-- `gifs/profile.gif`: Lock avatar, settings and dashboard profile-picture source, decoded to cached frames via `ffmpeg`.
-- `logout/logo.gif`: Logout animated centre-logo source, decoded to cached frames via `ffmpeg`.
+- `gifs/profile.gif`: Lock avatar, settings and dashboard profile-picture source, decoded to cached frames via `media_service`.
+- `logout/logo.gif`: Logout animated centre-logo source, decoded to cached frames via `media_service`.
 - `logout/logo.png`: Logout static centre-logo source, used when the animated-logo toggle is off.
 - `pam/astralia-shell`: `PAM` service file for the lock screen, loaded via `pam_start_confdir`.
+
+## assets/shaders
+
+- `renderer/*`: Shared quad vertex shader and rect, rounded-rect, texture, and video fragment shaders.
+- `logout/*`: `thunder_burst` and `thunder_shock` lightning-effect fragment shaders.
+- `wallpaper/*`: Six wallpaper cross-transition fragment shaders.
+- `visualizer/*`: Audio-stage, bar, and sphere/glow pipeline shaders, plus the shared fullscreen vertex shader.
+- `NOTICE`: Third-party attribution for ported shader and asset parts.
 
 ## protocols
 
@@ -254,6 +279,20 @@
 - `text-input-unstable-v3.xml`: IME text-input protocol XML, code-generated, used by `text_input_service`.
 - `wlr-foreign-toplevel-management-unstable-v1.xml`: Unused directly; linked only to satisfy a symbol `hyprland-toplevel-export-v1`'s v2 request references.
 - `ext-session-lock-v1`: From `wayland-protocols` (`staging/`), code-generated at build time, used by `lock`.
+
+## root
+
+- `meson.build`: Build config, dependency list, test registration.
+- `build.sh`: `setup`/`build`/`install`/`run`/`test`/`uninstall` commands; job count capped via `ASTRALIA_SHELL_BUILD_JOBS`.
+- `readme.md`: Supported compositors, prerequisites, install and run instructions.
+- `CLAUDE.md`: Project instructions for Claude Code.
+
+## important
+
+- `index.md`: Index of every source, test, asset, and protocol file.
+- `convention.md`: Commenting, formatting, module-boundary, config-header, service, and include rules.
+- `critical-knowledge.md`: Hard-won development rules, one statement plus one explanation each.
+- `naming.md`: Functional module names, retired code names, IPC verbs, and config legacy keys.
 
 ## local
 
