@@ -47,6 +47,12 @@ struct BarPerMonitorState {
     Texture overview_texture;
     Texture cpu_texture;
     Texture dashboard_texture;
+    Texture fillet_left;
+    Texture fillet_right;
+    Texture fillet_inner_left;
+    Texture fillet_inner_right;
+    int fillet_px = 0;
+    int fillet_inner_px = 0;
     StatusWidgetState status_widget;
 };
 
@@ -84,6 +90,14 @@ class BarPerMonitorModule final : public PerMonitorModule, public TextInputClien
 
 BarPerMonitorState &bar_state(MonitorOutput &mon);
 
+inline const BarStyleSpec &bar_style_of(const MonitorOutput &mon) {
+    return bar_style_spec(mon.app->cfg.bar_style);
+}
+
+inline int32_t bar_top_margin(const Config &cfg) {
+    return bar_style_spec(cfg.bar_style).top_margin;
+}
+
 namespace bar_detail {
 
 void bar_autohide_set_surface_geometry(zwlr_layer_surface_v1 *layer_surface, wl_surface *surface, wl_egl_window *egl_window, int32_t width, int32_t height_px, int32_t margin_top, int32_t margin_right, int32_t margin_left, int32_t exclusive_zone, int32_t output_scale);
@@ -96,13 +110,13 @@ struct BarGeometry {
     int32_t exclusive_zone;
 };
 
-BarGeometry bar_autohide_geometry(bool autohide, bool collapsed, int32_t cfg_height);
+BarGeometry bar_autohide_geometry(bool autohide, bool collapsed, int32_t cfg_height, int32_t top_margin);
 
 int32_t bar_current_height(const MonitorOutput &mon);
 
-void bar_autohide_apply_geometry(MonitorOutput &mon, bool autohide, bool collapsed);
+void bar_autohide_apply_geometry(MonitorOutput &mon, bool autohide, bool collapsed, const BarStyleSpec &style);
 
-void monitor_autohide_apply(MonitorOutput &mon, bool enabled);
+void monitor_autohide_apply(MonitorOutput &mon, bool enabled, const BarStyleSpec &style);
 
 } // namespace bar_detail
 

@@ -50,6 +50,7 @@ int main() {
         {"palette", test_palette},
         {"image_decode", test_image_decode},
         {"text_elide", test_text_elide},
+        {"bar_fillet", test_bar_fillet},
         {"lock_layout", test_lock_layout},
         {"visualizer_fft", test_visualizer_fft},
     };

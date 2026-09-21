@@ -1,12 +1,15 @@
 #include <GLES3/gl32.h>
 #include <algorithm>
+#include <cmath>
 #include <cstring>
+#include <vector>
 
 #include "app/wayland_registry.h"
 
 #include "core/log.h"
 
 #include "modules/bar.h"
+#include "modules/bar/fillet.h"
 #include "modules/bar/widget/clock_widget.h"
 #include "modules/bar/widget/dashboard_widget.h"
 #include "modules/bar/widget/dock_widget.h"
@@ -66,31 +69,31 @@ void close_other_overlays(MonitorOutput &mon, PillId keep) {
         clock_panel_toggle(bs.clock_panel);
 }
 
-BarGeometry bar_autohide_geometry(bool autohide, bool collapsed, int32_t cfg_height) {
+BarGeometry bar_autohide_geometry(bool autohide, bool collapsed, int32_t cfg_height, int32_t top_margin) {
     if (!autohide)
-        return {cfg_height, kBarTopMargin, cfg_height};
+        return {cfg_height, top_margin, cfg_height};
     if (collapsed)
         return {kAutoHideStripPx, 0, 0};
-    return {kBarTopMargin + cfg_height, 0, 0};
+    return {top_margin + cfg_height, 0, 0};
 }
 
 int32_t bar_current_height(const MonitorOutput &mon) {
-    return bar_autohide_geometry(mon.autohide.enabled, mon.autohide.collapsed, kBarHeight)
+    return bar_autohide_geometry(mon.autohide.enabled, mon.autohide.collapsed, kBarHeight, bar_style_of(mon).top_margin)
         .height;
 }
 
-void bar_autohide_apply_geometry(MonitorOutput &mon, bool autohide, bool collapsed) {
+void bar_autohide_apply_geometry(MonitorOutput &mon, bool autohide, bool collapsed, const BarStyleSpec &style) {
     BarGeometry g =
-        bar_autohide_geometry(autohide, collapsed, kBarHeight);
-    bar_autohide_set_surface_geometry(mon.layer_surface, mon.surface, mon.egl_window, mon.width, g.height, g.margin_top, static_cast<int32_t>(kPanelSideMargin), static_cast<int32_t>(kPanelSideMargin), g.exclusive_zone, mon.output_scale.scale);
+        bar_autohide_geometry(autohide, collapsed, kBarHeight, style.top_margin);
+    bar_autohide_set_surface_geometry(mon.layer_surface, mon.surface, mon.egl_window, mon.width, g.height, g.margin_top, style.side_margin, style.side_margin, g.exclusive_zone, mon.output_scale.scale);
 }
 
-void monitor_autohide_apply(MonitorOutput &mon, bool enabled) {
+void monitor_autohide_apply(MonitorOutput &mon, bool enabled, const BarStyleSpec &style) {
     mon.autohide.enabled = enabled;
     mon.autohide.hidden = false;
     mon.autohide.collapsed = enabled && mon.autohide.collapsed;
     mon.autohide.opacity = mon.autohide.collapsed ? 0.0f : 1.0f;
-    bar_autohide_apply_geometry(mon, enabled, mon.autohide.collapsed);
+    bar_autohide_apply_geometry(mon, enabled, mon.autohide.collapsed, style);
 }
 
 } // namespace bar_detail
@@ -161,7 +164,7 @@ void dispatch_pill_click(MonitorOutput &mon, double click_x, double click_y) {
     p.x = click_x;
     p.y = click_y;
     if (mon.autohide.enabled)
-        p.y -= bar_detail::kBarTopMargin;
+        p.y -= bar_style_of(mon).top_margin;
 
     BarPerMonitorState &bs = bar_state(mon);
     if (bar_detail::workspace_row_hit_overview(bs.workspace_widget, p.x, p.y)) {
@@ -196,10 +199,35 @@ void init_stub_widgets(MonitorOutput &mon) {
     bs.overview_texture = make_icon_texture(icon::overview);
 }
 
+namespace {
+
+void ensure_fillets(BarPerMonitorState &bs, const BarStyleSpec &style, int32_t scale) {
+    int px = static_cast<int>(std::lround(style.fillet_radius * static_cast<float>(scale)));
+    int inner_px = static_cast<int>(std::lround((style.fillet_radius + style.border_width) * static_cast<float>(scale)));
+    if (px == bs.fillet_px && inner_px == bs.fillet_inner_px)
+        return;
+    auto build = [scale](Texture &tex, int size, bool circle_on_right) {
+        std::vector<uint8_t> mask = fillet_rgba(size, circle_on_right);
+        tex = make_texture_rgba(size, size, mask.data());
+        tex.scale = scale;
+    };
+    build(bs.fillet_left, px, false);
+    build(bs.fillet_right, px, true);
+    build(bs.fillet_inner_left, inner_px, false);
+    build(bs.fillet_inner_right, inner_px, true);
+    bs.fillet_px = px;
+    bs.fillet_inner_px = inner_px;
+}
+
+} // namespace
+
 void bar_paint(MonitorOutput &mon) {
     using namespace bar_detail;
     WaylandState &app = *mon.app;
     BarPerMonitorState &bs = bar_state(mon);
+    const BarStyleSpec &style = bar_style_of(mon);
+    const bool rail = bar_style_has_rail(style);
+    bs.capsule.side_margin = static_cast<float>(style.side_margin);
 
     mon.animations.tick(std::chrono::steady_clock::now());
 
@@ -217,20 +245,20 @@ void bar_paint(MonitorOutput &mon) {
             mon.autohide.hidden = !want_shown;
             if (want_shown && mon.autohide.collapsed) {
                 mon.autohide.collapsed = false;
-                bar_autohide_apply_geometry(mon, true, false);
+                bar_autohide_apply_geometry(mon, true, false, style);
             }
             float target = want_shown ? 1.0f : 0.0f;
             float duration = want_shown ? kAutoHideRevealMs : kAutoHideHideMs;
             mon.animations.animate(mon.autohide.opacity, target, duration, Easing::EaseOutCubic, [&mon](float v) { mon.autohide.opacity = v; }, [&mon] {
                     if (mon.autohide.hidden && !mon.autohide.collapsed) {
                         mon.autohide.collapsed = true;
-                        bar_autohide_apply_geometry(mon, true, true);
+                        bar_autohide_apply_geometry(mon, true, true, bar_style_of(mon));
                     } }, kAutoHideAnimOwner);
         }
     }
     int32_t surface_height = bar_current_height(mon);
     float content_y_offset =
-        mon.autohide.enabled ? static_cast<float>(kBarTopMargin) : 0.0f;
+        mon.autohide.enabled ? static_cast<float>(style.top_margin) : 0.0f;
     float height = static_cast<float>(kBarHeight);
 
     gl_make_current(app.egl_display, mon.egl_surface, app.egl_context);
@@ -244,8 +272,6 @@ void bar_paint(MonitorOutput &mon) {
     Node *content = node_add_group(root, 0.0f, content_y_offset, static_cast<float>(mon.width), height);
 
     const float *white = rgba(palette::text);
-    float pill_bg[4] = {palette::overlay.r, palette::overlay.g,
-                        palette::overlay.b, palette::overlay.a};
 
     if (current_panel_pill == PillId::None && bs.capsule.panel_pill_prev != PillId::None) {
         bs.capsule.label_linger_pill = bs.capsule.panel_pill_prev;
@@ -262,37 +288,98 @@ void bar_paint(MonitorOutput &mon) {
     if (hovered == PillId::None && bs.status_widget.volume_peek_active)
         hovered = PillId::Volume;
 
-    float x = 0.0f;
+    float width = static_cast<float>(mon.width);
+    float island_pad = rail ? kIslandPad : 0.0f;
+    struct Island {
+        Node *outer = nullptr;
+        Node *inner = nullptr;
+    };
+    Island left_island;
+    Island center_island;
+    Island right_island;
+    const float bw = style.border_width;
+    const float radius = style.island_radius;
+    if (rail) {
+        ensure_fillets(bs, style, mon.output_scale.scale);
+        node_add_rect(content, 0.0f, 0.0f, width, style.rail_height, rgba(style.border));
+        auto add_outer = [&] { return node_add_rrect(content, 0.0f, -radius, 0.0f, height + radius, radius, 0.0f, rgba(style.border), rgba(style.border)); };
+        left_island.outer = add_outer();
+        center_island.outer = add_outer();
+        right_island.outer = add_outer();
+        node_add_rect(content, 0.0f, 0.0f, width, style.rail_height - bw, rgba(style.bg));
+        auto add_inner = [&] { return node_add_rrect(content, 0.0f, -radius, 0.0f, height + radius - bw, radius - bw, 0.0f, rgba(style.bg), rgba(style.bg)); };
+        left_island.inner = add_inner();
+        center_island.inner = add_inner();
+        right_island.inner = add_inner();
+    }
+    auto place_island = [&](Island &island, float left, float right, bool flush_left, bool flush_right) {
+        island.outer->x = flush_left ? left - radius : left;
+        island.outer->w = (flush_right ? right + radius : right) - island.outer->x;
+        island.inner->x = flush_left ? island.outer->x : island.outer->x + bw;
+        island.inner->w = island.outer->x + island.outer->w - (flush_right ? 0.0f : bw) - island.inner->x;
+    };
+    std::vector<std::pair<float, bool>> fillets;
+    auto add_divider = [&](float cx) {
+        node_add_rect(content, std::floor(cx), height * (1.0f - kIslandDividerHeightRatio) / 2.0f, 1.0f, height * kIslandDividerHeightRatio, rgba(palette::text_alpha20));
+    };
+
+    float x = island_pad;
+    float item_from = x;
+    std::vector<float> left_dividers;
+    auto track_divider = [&] {
+        if (rail && x > item_from)
+            left_dividers.push_back(x - kCapsuleGap / 2.0f);
+        item_from = x;
+    };
+
     std::vector<Pill> logout_pills = {logout_pill(mon)};
-    x = draw_pills(content, bs.capsule, mon.animations, x, height, logout_pills, white, pill_bg, hovered, current_panel_pill);
+    x = draw_pills(content, bs.capsule, mon.animations, x, height, logout_pills, white, style, hovered, current_panel_pill);
+    track_divider();
 
     int active_id = app_detail::monitor_active_workspace_id(mon);
     const std::vector<Workspace> &ws_list = app_detail::monitor_workspaces(mon);
-    x = draw_workspace_row(content, bs.workspace_widget, mon.animations, x, height, ws_list, active_id, pill_bg, bs.overview_texture);
+    x = draw_workspace_row(content, bs.workspace_widget, mon.animations, x, height, ws_list, active_id, style, bs.overview_texture);
+    track_divider();
 
     std::vector<DockEntry> dock_entries =
         dock_entries_for_monitor(app.compositor_state, mon.output.name);
-    x = draw_dock_capsule(content, bs.dock_widget, mon.animations, x, height, dock_entries, pill_bg);
+    x = draw_dock_capsule(content, bs.dock_widget, mon.animations, x, height, dock_entries, style);
+    track_divider();
 
-    bs.clock_rect = draw_clock_pill(content, height, mon.width, bs.clock_texture, white, pill_bg);
+    if (rail && x > island_pad) {
+        float left_end = std::round(x - kCapsuleGap + island_pad);
+        place_island(left_island, 0.0f, left_end, true, false);
+        for (size_t i = 0; i + 1 < left_dividers.size(); ++i)
+            add_divider(left_dividers[i]);
+        fillets.emplace_back(left_end, true);
+    }
+
+    bs.clock_rect = draw_clock_pill(content, height, mon.width, bs.clock_texture, white, style);
+    if (rail && bs.clock_rect.w > 0.0f) {
+        float center_left = std::round(bs.clock_rect.x - island_pad);
+        float center_right = std::round(bs.clock_rect.x + bs.clock_rect.w + island_pad);
+        place_island(center_island, center_left, center_right, false, false);
+        fillets.emplace_back(center_left, false);
+        fillets.emplace_back(center_right, true);
+    }
 
     std::vector<Pill> dashboard_pills = {dashboard_pill(mon)};
     std::vector<Pill> status_segments = status_pills(mon);
     std::vector<Pill> right_stub_pills = {cpu_pill(mon)};
 
-    float cc_w = pills_row_width(bs.capsule, mon.animations, dashboard_pills, hovered, height);
-    float status_w = pill_group_width(bs.capsule, mon.animations, status_segments, hovered, height, current_panel_pill);
-    float stub_w = pills_row_width(bs.capsule, mon.animations, right_stub_pills, hovered, height, current_panel_pill);
+    float cc_w = pills_row_width(bs.capsule, mon.animations, dashboard_pills, hovered, height, style);
+    float status_w = pill_group_width(bs.capsule, mon.animations, status_segments, hovered, height, style, current_panel_pill);
+    float stub_w = pills_row_width(bs.capsule, mon.animations, right_stub_pills, hovered, height, style, current_panel_pill);
 
-    float cc_x = mon.width - cc_w;
+    float cc_x = width - island_pad - cc_w;
     float status_x = cc_x - (status_w > 0 ? kCapsuleGap : 0.0f) - status_w;
     float stub_x = status_x - (stub_w > 0 ? kCapsuleGap : 0.0f) - stub_w;
 
     if (stub_w > 0) {
-        draw_pills(content, bs.capsule, mon.animations, stub_x, height, right_stub_pills, white, pill_bg, hovered, current_panel_pill);
+        draw_pills(content, bs.capsule, mon.animations, stub_x, height, right_stub_pills, white, style, hovered, current_panel_pill);
     }
     if (status_w > 0) {
-        draw_pill_group(content, bs.capsule, mon.animations, status_x, height, status_segments, white, pill_bg, hovered, current_panel_pill);
+        draw_pill_group(content, bs.capsule, mon.animations, status_x, height, status_segments, white, style, hovered, current_panel_pill);
         const UpowerState &u = app.upower;
         if (u.present && !u.charging && !u.full && u.percent <= 10) {
             const Rect &r = bs.capsule.pill_rects[pill_idx(PillId::Battery)];
@@ -300,8 +387,23 @@ void bar_paint(MonitorOutput &mon) {
         }
     }
     if (cc_w > 0) {
-        draw_pills(content, bs.capsule, mon.animations, cc_x, height, dashboard_pills, white, pill_bg, hovered);
+        draw_pills(content, bs.capsule, mon.animations, cc_x, height, dashboard_pills, white, style, hovered);
     }
+    if (rail && cc_w + status_w + stub_w > 0) {
+        float leftmost = stub_w > 0 ? stub_x : status_w > 0 ? status_x
+                                                            : cc_x;
+        float right_left = std::round(leftmost - island_pad);
+        place_island(right_island, right_left, width, false, true);
+        if (stub_w > 0 && status_w + cc_w > 0)
+            add_divider(stub_x + stub_w + kCapsuleGap / 2.0f);
+        if (status_w > 0 && cc_w > 0)
+            add_divider(status_x + status_w + kCapsuleGap / 2.0f);
+        fillets.emplace_back(right_left, false);
+    }
+    for (const auto &[edge_x, right_of_island] : fillets)
+        node_add_texture(content, right_of_island ? edge_x : edge_x - style.fillet_radius, style.rail_height, right_of_island ? bs.fillet_right : bs.fillet_left, rgba(style.border));
+    for (const auto &[edge_x, right_of_island] : fillets)
+        node_add_texture(content, right_of_island ? edge_x - bw : edge_x - style.fillet_radius, style.rail_height - bw, right_of_island ? bs.fillet_inner_right : bs.fillet_inner_left, rgba(style.bg));
 
     mon.scene.draw(app.renderer);
     eglSwapBuffers(app.egl_display, mon.egl_surface);
@@ -319,15 +421,16 @@ void bar_request_frame(MonitorOutput &mon) {
 bool BarPerMonitorModule::create_surface(WaylandState &app, MonitorOutput &mon, wl_output *output) {
     mon_ = &mon;
     mon.autohide.enabled = autohide_effective_enabled(app.cfg, mon.output.name);
+    const BarStyleSpec &style = bar_style_spec(app.cfg.bar_style);
     LayerSurfaceConfig bar_cfg{
         .layer = ZWLR_LAYER_SHELL_V1_LAYER_TOP,
         .name_space = "astralia-shell",
         .anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT,
         .height = bar_detail::bar_current_height(mon),
-        .margin_top = bar_detail::bar_autohide_geometry(mon.autohide.enabled, mon.autohide.collapsed, bar_detail::kBarHeight).margin_top,
-        .margin_right = static_cast<int32_t>(kPanelSideMargin),
-        .margin_left = static_cast<int32_t>(kPanelSideMargin),
-        .exclusive_zone = bar_detail::bar_autohide_geometry(mon.autohide.enabled, mon.autohide.collapsed, bar_detail::kBarHeight).exclusive_zone,
+        .margin_top = bar_detail::bar_autohide_geometry(mon.autohide.enabled, mon.autohide.collapsed, bar_detail::kBarHeight, style.top_margin).margin_top,
+        .margin_right = style.side_margin,
+        .margin_left = style.side_margin,
+        .exclusive_zone = bar_detail::bar_autohide_geometry(mon.autohide.enabled, mon.autohide.collapsed, bar_detail::kBarHeight, style.top_margin).exclusive_zone,
     };
     mon.layer_surface = layer_surface_create(mon.surface, app.compositor, app.layer_shell, bar_cfg, &bar_layer_surface_listener, &mon, output);
     mon.output_scale.on_change = [&mon](int32_t scale) {
@@ -452,14 +555,15 @@ void BarPerMonitorModule::request_frame() {
     if (!mon_)
         return;
     bar_request_frame(*mon_);
-    network_panel_request_frame(state.network_panel, bar_detail::pill_center_x(state.capsule, PillId::Wifi), static_cast<float>(bar_detail::kBarHeight), bar_detail::kBarTopMargin);
-    bluetooth_panel_request_frame(state.bluetooth_panel, bar_detail::pill_center_x(state.capsule, PillId::Bluetooth), static_cast<float>(bar_detail::kBarHeight), bar_detail::kBarTopMargin);
-    volume_panel_request_frame(state.volume_panel, bar_detail::pill_center_x(state.capsule, PillId::Volume), static_cast<float>(bar_detail::kBarHeight), bar_detail::kBarTopMargin);
-    tray_panel_request_frame(state.tray_panel, bar_detail::pill_center_x(state.capsule, PillId::Tray), static_cast<float>(bar_detail::kBarHeight), bar_detail::kBarTopMargin);
+    int32_t top_margin = bar_style_of(*mon_).top_margin;
+    network_panel_request_frame(state.network_panel, bar_detail::pill_center_x(state.capsule, PillId::Wifi), static_cast<float>(bar_detail::kBarHeight), top_margin);
+    bluetooth_panel_request_frame(state.bluetooth_panel, bar_detail::pill_center_x(state.capsule, PillId::Bluetooth), static_cast<float>(bar_detail::kBarHeight), top_margin);
+    volume_panel_request_frame(state.volume_panel, bar_detail::pill_center_x(state.capsule, PillId::Volume), static_cast<float>(bar_detail::kBarHeight), top_margin);
+    tray_panel_request_frame(state.tray_panel, bar_detail::pill_center_x(state.capsule, PillId::Tray), static_cast<float>(bar_detail::kBarHeight), top_margin);
     popup_window_request_frame(state.tray_menu.base);
-    battery_panel_request_frame(state.battery_panel, bar_detail::pill_center_x(state.capsule, PillId::Battery), static_cast<float>(bar_detail::kBarHeight), bar_detail::kBarTopMargin);
-    system_monitor_panel_request_frame(state.system_monitor_panel, bar_detail::pill_center_x(state.capsule, PillId::Cpu), static_cast<float>(bar_detail::kBarHeight), bar_detail::kBarTopMargin);
-    clock_panel_request_frame(state.clock_panel, static_cast<float>(mon_->width) / 2.0f + kPanelSideMargin, static_cast<float>(bar_detail::kBarHeight), bar_detail::kBarTopMargin);
+    battery_panel_request_frame(state.battery_panel, bar_detail::pill_center_x(state.capsule, PillId::Battery), static_cast<float>(bar_detail::kBarHeight), top_margin);
+    system_monitor_panel_request_frame(state.system_monitor_panel, bar_detail::pill_center_x(state.capsule, PillId::Cpu), static_cast<float>(bar_detail::kBarHeight), top_margin);
+    clock_panel_request_frame(state.clock_panel, static_cast<float>(mon_->width) / 2.0f + state.capsule.side_margin, static_cast<float>(bar_detail::kBarHeight), top_margin);
 }
 
 void BarPerMonitorModule::tick(WaylandState &, MonitorOutput &mon) {
@@ -633,7 +737,7 @@ bool BarPerMonitorModule::wants_pointing_hand_cursor() const {
     p.x = pointer_x_;
     p.y = pointer_y_;
     if (mon_->autohide.enabled)
-        p.y -= bar_detail::kBarTopMargin;
+        p.y -= bar_style_of(*mon_).top_margin;
     const Rect &cr = bs.clock_rect;
     bool clock_hit = cr.w > 0 && p.x >= cr.x && p.x < cr.x + cr.w && p.y >= cr.y && p.y < cr.y + cr.h;
     return clock_hit || bar_detail::workspace_row_hit_overview(bs.workspace_widget, p.x, p.y) || bar_detail::workspace_row_hit_workspace(bs.workspace_widget, p.x, p.y) > 0 || bar_detail::hit_test_pills(bs.capsule, p, mon_->surface) != PillId::None;

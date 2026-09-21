@@ -32,9 +32,21 @@ void test_config() {
     std::string content((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
     assert(content.find("\"autohideEnabled\"") != std::string::npos);
     assert(content.find("\"dock\"") == std::string::npos);
+    assert(content.find("\"style\": \"islands\"") != std::string::npos);
 
     Config reloaded = load_config();
     assert(reloaded.autohide == true);
+    assert(reloaded.bar_style == BarStyle::Islands);
+
+    cfg.bar_style = BarStyle::Okinami;
+    save_config(cfg);
+    assert(load_config().bar_style == BarStyle::Okinami);
+
+    {
+        std::ofstream out(path, std::ios::trunc);
+        out << R"({"bar": {"style": "classic"}})";
+    }
+    assert(load_config().bar_style == BarStyle::Islands);
 
     unlink(path.c_str());
     rmdir(config_dir.c_str());

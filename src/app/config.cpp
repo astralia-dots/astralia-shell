@@ -129,6 +129,10 @@ Config load_config() {
 
         nlohmann::json bar = section(j, "bar", "qixing");
         cfg.autohide = bar.value("autohideEnabled", cfg.autohide);
+        std::string bar_style = bar.value("style", std::string(kBarStyleNames[0]));
+        for (int i = 0; i < kBarStyleCount; ++i)
+            if (bar_style == kBarStyleNames[i])
+                cfg.bar_style = static_cast<BarStyle>(i);
 
         nlohmann::json wallpaper = section(j, "wallpaper", "expanse");
         cfg.wallpaper_dir = wallpaper.value("dir", cfg.wallpaper_dir);
@@ -319,7 +323,7 @@ void save_config(const Config &cfg) {
     rain["asyncSpeed"] = cfg.rain.async_speed;
 
     nlohmann::json j;
-    j["bar"] = {{"autohideEnabled", cfg.autohide}};
+    j["bar"] = {{"autohideEnabled", cfg.autohide}, {"style", kBarStyleNames[static_cast<int>(cfg.bar_style)]}};
     j["wallpaper"] = wallpaper;
     j["displays"] = displays;
     j["logout"] = {{"animatedLogo", cfg.logout_animated_logo}};

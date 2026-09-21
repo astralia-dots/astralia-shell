@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "config/bar_config.h"
 #include "config/rain_config.h"
 #include "config/visualizer_config.h"
 
@@ -48,6 +49,7 @@ struct Config {
     std::map<std::string, std::vector<std::string>> wallpaper_animated_fill_modes;
 
     bool autohide = false;
+    BarStyle bar_style = BarStyle::Islands;
     bool default_osd_enabled = true;
     bool default_notifications_enabled = true;
     bool default_wallpaper_enabled = true;

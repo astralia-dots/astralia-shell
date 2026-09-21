@@ -27,7 +27,7 @@
 
 ## src/config
 
-- `bar_config.h`: Bar geometry, spacing, and pill-order constants.
+- `bar_config.h`: `BarStyle` enum with name/label tables, plus bar geometry, spacing, and Okinami layout constants.
 - `dock_config.h`: Dock icon size/spacing, focused/unfocused icon opacity, reorder timing, and the `dock_widget` animation-owner base.
 - `launcher_config.h`: Every launcher data type and constant, no function bodies.
 - `osd_config.h`: OSD surface size/margin/duration/animation-owner constants.
@@ -36,7 +36,7 @@
 - `dashboard_config.h`: Dashboard card-stack geometry and gauge/temp-warn color constants.
 - `overview_config.h`: Overview workspace-grid geometry, local and global scale, timing, and live-capture throttle constants.
 - `wallpaper_config.h`: Wallpaper layer-shell namespace constant, `WallpaperTransition` enum (`None`/`Fade`/`Wipe`/`Disc`/`Stripes`/`Zoom`/`Honeycomb`/`Random`), and the fixed cross-transition duration/edge-smoothness constants.
-- `settings_config.h`: Settings panel layout/animation constants, `SettingsFieldId` enum, `SettingsTabDef` type, and the six nav-rail tab labels.
+- `settings_config.h`: Settings panel layout/animation constants, `SettingsFieldId` enum, `SettingsTabDef` type, and the eight nav-rail tab labels.
 - `rain_config.h`: `RainMode`/`RainParams` types, shared rain window/timing constants, plus per-sim `kMatrixRain*` and `kStilettoRain*` tuning constants.
 - `idle_config.h`: Idle recent-activity pulse and idle-overlay fade, logo-speed, and layer-namespace constants.
 - `lock_config.h`: Lock-screen card ratio, three-column and side-panel geometry, fetch/media/resources/notification-dock constants, dot/input/avatar sizes, entrance/exit animation timings, and per-property animation owner ids.
@@ -160,11 +160,17 @@
 
 - `wallpaper_tab.h`+`.cpp`: Per-tab settings UI and commit logic.
 - `displays_tab.h`+`.cpp`: Per-tab settings UI and commit logic.
+- `bar_tab.h`+`.cpp`: Per-tab settings UI and commit logic; `Islands`/`Okinami` bar-style selector tiles.
 - `idle_tab.h`+`.cpp`: Per-tab settings UI and commit logic.
 - `logout_tab.h`+`.cpp`: Per-tab settings UI and commit logic (central-logo static/animated toggle).
 - `visualizer_tab.h`+`.cpp`: Per-tab settings UI and commit logic; `Bar`/`Sphere` shape selector, then a per-`VisualizerParams`-knob number field row.
 - `rain_tab.h`+`.cpp`: Per-tab settings UI and commit logic; `Matrix`/`Stiletto` `RainMode` selector row plus an `Asynchronous fall speed` toggle row.
 - `animation_tab.h`+`.cpp`: Per-tab settings UI and commit logic; single `Disable Animations` toggle row.
+
+## src/modules/bar
+
+- `style.h`: `BarStyleSpec` per-style fill, border, padding, margin, and rail/island/fillet table, resolved by `bar_style_spec`.
+- `fillet.h`+`.cpp`: Pure per-pixel alpha mask of the concave rail-to-island flare; test-linked, no `EGL`.
 
 ## src/modules/bar/panel
 
@@ -241,6 +247,10 @@
 - `test_palette.cpp`: Compile-time hex parsing and alpha handling of palette colors.
 - `test_image_decode.cpp`: JPEG/PNG/SVG decode.
 - `test_text_elide.cpp`: End and middle string elision.
+
+## test/bar
+
+- `test_fillet.cpp`: Concave fillet mask geometry and mirroring.
 
 ## test/lock
 

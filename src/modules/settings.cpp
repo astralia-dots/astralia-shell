@@ -11,6 +11,7 @@
 
 #include "modules/settings.h"
 #include "modules/settings/animation_tab.h"
+#include "modules/settings/bar_tab.h"
 #include "modules/settings/displays_tab.h"
 #include "modules/settings/idle_tab.h"
 #include "modules/settings/logout_tab.h"
@@ -29,11 +30,12 @@ namespace {
 constexpr SettingsTabDef kSettingsTabs[kSettingsTabCount] = {
     {kSettingsTabLabels[0], icon::wallpaper},
     {kSettingsTabLabels[1], icon::device_desktop},
-    {kSettingsTabLabels[2], icon::moon_stars},
-    {kSettingsTabLabels[3], icon::power},
-    {kSettingsTabLabels[4], icon::wave_sine},
-    {kSettingsTabLabels[5], icon::code},
-    {kSettingsTabLabels[6], icon::adjustments},
+    {kSettingsTabLabels[2], icon::layout_navbar},
+    {kSettingsTabLabels[3], icon::moon_stars},
+    {kSettingsTabLabels[4], icon::power},
+    {kSettingsTabLabels[5], icon::wave_sine},
+    {kSettingsTabLabels[6], icon::code},
+    {kSettingsTabLabels[7], icon::adjustments},
 };
 
 } // namespace
@@ -193,7 +195,7 @@ void settings_handle_click(SettingsState &state, const Config &cfg, const Settin
             return;
         }
         case PanelClickKind::ToggleFlip:
-            if (!wallpaper_tab_handle_click(state, cfg, on_commit, region) && !displays_tab_handle_click(state, cfg, on_commit, region) && !idle_tab_handle_click(state, cfg, on_commit, region) && !visualizer_tab_handle_click(state, cfg, on_commit, region) && !rain_tab_handle_click(state, cfg, on_commit, region) && !logout_tab_handle_click(state, cfg, on_commit, region))
+            if (!wallpaper_tab_handle_click(state, cfg, on_commit, region) && !displays_tab_handle_click(state, cfg, on_commit, region) && !idle_tab_handle_click(state, cfg, on_commit, region) && !visualizer_tab_handle_click(state, cfg, on_commit, region) && !rain_tab_handle_click(state, cfg, on_commit, region) && !bar_tab_handle_click(state, cfg, on_commit, region) && !logout_tab_handle_click(state, cfg, on_commit, region))
                 animation_tab_handle_click(state, cfg, on_commit, region);
             return;
         case PanelClickKind::FieldFocus:
@@ -432,6 +434,11 @@ void settings_paint(SettingsState &state, const Config &cfg, const std::vector<s
         case SettingsTab::Displays: {
             float row_w = panel_x + panel_w - kPanelPadding - label_x;
             displays_tab_paint(state, tab_root, scale, label_x, y, row_w, cfg);
+            break;
+        }
+        case SettingsTab::Bar: {
+            float row_w = panel_x + panel_w - kPanelPadding - label_x;
+            bar_tab_paint(state, tab_root, scale, label_x, y, row_w, cfg);
             break;
         }
         case SettingsTab::Idle: {

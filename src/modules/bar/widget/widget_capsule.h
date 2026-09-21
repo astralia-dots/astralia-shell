@@ -8,6 +8,8 @@
 
 #include "config/bar_config.h"
 
+#include "modules/bar/style.h"
+
 #include "render/animation.h"
 #include "render/node.h"
 #include "render/palette.h"
@@ -48,6 +50,7 @@ struct WidgetCapsuleState {
     std::array<float, kPillCount> pill_expand_t{};
     std::array<bool, kPillCount> pill_expand_hovered_prev{};
     std::array<Color, kPillCount> pill_label_tint{};
+    float side_margin = 0.0f;
 
     PillId panel_pill_prev = PillId::None;
     PillId label_linger_pill = PillId::None;
@@ -56,7 +59,7 @@ struct WidgetCapsuleState {
 
 namespace bar_detail {
 
-float draw_static_pill_row(Node *root, float x, float height, const std::vector<const Texture *> &textures, const float tint[4], const float pill_bg[4]);
+float draw_static_pill_row(Node *root, float x, float height, const std::vector<const Texture *> &textures, const float tint[4], const BarStyleSpec &style);
 
 size_t pill_idx(PillId id);
 
@@ -66,13 +69,13 @@ PillId hit_test_pills(const WidgetCapsuleState &capsule, const PointerState &poi
 
 void update_pill_expand(WidgetCapsuleState &capsule, AnimationManager &animations, PillId id, bool hovered_now, bool instant = false);
 
-float pills_row_width(WidgetCapsuleState &capsule, AnimationManager &animations, const std::vector<Pill> &pills, PillId hovered, float height, PillId instant_pill = PillId::None);
+float pills_row_width(WidgetCapsuleState &capsule, AnimationManager &animations, const std::vector<Pill> &pills, PillId hovered, float height, const BarStyleSpec &style, PillId instant_pill = PillId::None);
 
-float draw_pills(Node *root, WidgetCapsuleState &capsule, AnimationManager &animations, float x, float height, const std::vector<Pill> &pills, const float tint[4], const float pill_bg[4], PillId hovered, PillId instant_pill = PillId::None);
+float draw_pills(Node *root, WidgetCapsuleState &capsule, AnimationManager &animations, float x, float height, const std::vector<Pill> &pills, const float tint[4], const BarStyleSpec &style, PillId hovered, PillId instant_pill = PillId::None);
 
-float pill_group_width(WidgetCapsuleState &capsule, AnimationManager &animations, const std::vector<Pill> &pills, PillId hovered, float height, PillId instant_pill = PillId::None);
+float pill_group_width(WidgetCapsuleState &capsule, AnimationManager &animations, const std::vector<Pill> &pills, PillId hovered, float height, const BarStyleSpec &style, PillId instant_pill = PillId::None);
 
-float draw_pill_group(Node *root, WidgetCapsuleState &capsule, AnimationManager &animations, float x, float height, const std::vector<Pill> &pills, const float tint[4], const float pill_bg[4], PillId hovered, PillId instant_pill = PillId::None);
+float draw_pill_group(Node *root, WidgetCapsuleState &capsule, AnimationManager &animations, float x, float height, const std::vector<Pill> &pills, const float tint[4], const BarStyleSpec &style, PillId hovered, PillId instant_pill = PillId::None);
 
 void dispatch_pill_click(WidgetCapsuleState &capsule, const PointerState &pointer, wl_surface *own_surface);
 

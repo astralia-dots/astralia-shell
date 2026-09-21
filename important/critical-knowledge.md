@@ -45,6 +45,10 @@ Drop an entry once newer knowledge fully supersedes it.
 - **Scissor rects should floor/ceil each edge independently, not truncate uniformly.** Flooring the origin then rounding the size can drop the last row or column.
 - **A narrower anti-aliasing band makes rounded-rect edges look crisper.** astralia-shell's 2px smoothstep band softened straight edges; matching a 1px band fixed it.
 - **A filled widget drawn at the same origin as an earlier label silently paints over it.** Two settings-tab tiles once started at the label's own `(x,y)`, hiding it under the first tile.
+- **Two overlapping translucent shapes of one colour double-darken where they overlap.** `Okinami`'s rail and islands use opaque `palette::base` so the overlap is invisible.
+- **`draw_texture_rect` rounds its `x`/`y`, but rects and rounded rects don't.** A texture abutting a shape at a half-pixel edge lands a pixel off; `std::round` the shared edge first.
+- **A multi-shape outline is two stacked layers: the whole silhouette in the border colour, then the inset silhouette in the fill.** Per-shape borders would cross the joins; a concave arc offsets inward by growing its radius by `border_width`.
+- **A rounded rect placed above the surface edge (negative `y`) shows only its bottom corners rounded.** The surface clips the rest, so `Okinami`'s islands need no shader.
 - **Drawing textures at fractional pixel positions blurs every glyph and icon.** GL_LINEAR sampling blends edge texels 50/50 at .5px offsets; round positions before drawing.
 - **`show_layout`'s current point is the top-left corner, not the baseline.** Adding ascent on top of that doubled the offset, rendering text clipped near the bottom.
 - **`set_opacity()` is a single global value per frame, not per-node.** Simultaneous different opacities need baking alpha into each element's own color instead.
@@ -106,7 +110,7 @@ Drop an entry once newer knowledge fully supersedes it.
 - **`Node`/`Scene` has no `z`; child claim order is paint order.** An overlay highlight must be claimed after every node it should sit above, not earlier.
 - **Skip the CPU BGRA→RGBA swizzle for shm capture buffers; `GL_EXT_texture_format_BGRA8888` uploads them directly.** A per-pixel swizzle per window per frame is a poll-loop stall; the GL path keeps recapture cheap.
 - **A settings tab's master toggle must early-`return` from its paint fn when off, not just render the switch.** `idle_tab_paint` kept drawing rows with idle disabled; click regions are paint-time, so gating paint gates input.
-- **A new settings tab must be appended to `SettingsTab`, `kSettingsTabs` and `kSettingsTabCount` in the same order.** `draw_nav_rail` maps rail row `i` to `SettingsTab(i)`, so a reordered list mis-routes tab clicks.
+- **A new settings tab must be added to `SettingsTab`, `kSettingsTabLabels`, `kSettingsTabs` and `kSettingsTabCount` at the same position.** `draw_nav_rail` maps rail row `i` to `SettingsTab(i)`, so a reordered list mis-routes tab clicks.
 - **An animated image's frame textures must be freed when its surface is off-screen, not held for the module's lifetime.** `AnimatedImage::hide` clears the textures and decode job; a later `show` re-uploads from the `.rgba` cache.
 - **One `dlopen`'d `libav` plugin (`media_plugin`) now decodes every animated surface, not only wallpaper.** The per-feature `ffmpeg` subprocess is gone; `animate_job_start` fills a `.rgba` frame cache.
 - **Hide the animated image after the close fade, not at close-start.** Clearing frames while `opacity` still tweens pops the image out; gate `hide` on fully closed.
@@ -264,6 +268,8 @@ Drop an entry once newer knowledge fully supersedes it.
 - **A generically-named `constexpr` constant can collide with an identical name in an unrelated header.** Two modules that never include each other can still land in the same translation unit transitively.
 - **A module can't include another module's header, and `astralia-shell.cpp` can't name a module's function directly.** Cross-module orchestration — IPC verb table, key-dispatch table — lives in `src/app/` instead.
 - **Removing a UI feature's draw code but leaving its click-kinds, state field, and handlers reads as live.** The settings dropdown kept `open_dropdown_id`, two `PanelClickKind`s, and handler cases after its last caller went.
+- **Bar geometry reads `BarStyleSpec` (`top_margin`, `side_margin`), never `kBarTopMargin` or `kPanelSideMargin` directly.** Each style attaches differently; a leftover constant misplaces panels and hit-testing.
+- **A bar style needs a row in `kBarStyleNames`, `kBarStyleLabels` and `kBarStyleSpecs`, plus a `kBarStyleCount` bump.** A too-short table silently zero-fills, leaving a null label pointer.
 - **A project rename can't reuse one identifier style everywhere.** `astralia-shell` is kebab-case for binary, paths and PAM; `ASTRALIA_SHELL_` macros; `astralia_shell_` symbols; D-Bus paths use underscores, as hyphens are forbidden.
 - **`config_path()` and `klog_open_file()` both use the bare `astralia` dir, not `astralia-shell`.** `~/.config/astralia/config.json` and `~/.local/state/astralia/astralia.log`; only the PAM service and D-Bus object path keep the `-shell`/`_shell_` form.
 

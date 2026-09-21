@@ -113,8 +113,11 @@ void apply_config_update(WaylandState &app, Config new_cfg) {
 
         bool new_autohide =
             autohide_effective_enabled(new_cfg, mon->output.name);
+        const BarStyleSpec &new_style = bar_style_spec(new_cfg.bar_style);
         if (new_autohide != mon->autohide.enabled)
-            bar_detail::monitor_autohide_apply(*mon, new_autohide);
+            bar_detail::monitor_autohide_apply(*mon, new_autohide, new_style);
+        else if (new_cfg.bar_style != app.cfg.bar_style)
+            bar_detail::bar_autohide_apply_geometry(*mon, mon->autohide.enabled, mon->autohide.collapsed, new_style);
 
         if (auto *nv = mon->module<NotificationViewPerMonitorModule>())
             nv->resync(app, *mon);

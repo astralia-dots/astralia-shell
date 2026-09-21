@@ -236,6 +236,7 @@ class DashboardModule final : public Module {
     bool is_open() const override { return state_.base.open; }
 
     bool create_surface(WaylandState &app, wl_output *output) override {
+        app_ = &app;
         output_ = output;
         want_ = dashboard_create_surface(state_, app.compositor, app.layer_shell, output);
         return want_;
@@ -254,7 +255,8 @@ class DashboardModule final : public Module {
     }
     wl_surface *surface() const override { return state_.base.surface; }
     void request_frame() override {
-        dashboard_request_frame(state_, static_cast<float>(bar_detail::kBarHeight), static_cast<float>(bar_detail::kBarTopMargin));
+        if (app_)
+            dashboard_request_frame(state_, static_cast<float>(bar_detail::kBarHeight), static_cast<float>(bar_top_margin(app_->cfg)));
     }
 
     bool timer_tick(WaylandState &app) override {
@@ -326,6 +328,7 @@ class DashboardModule final : public Module {
 
   private:
     DashboardState state_;
+    WaylandState *app_ = nullptr;
     wl_output *output_ = nullptr;
     bool want_ = false;
     bool hovering_clickable_ = false;

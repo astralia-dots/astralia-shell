@@ -193,7 +193,9 @@ astralia_shell_launcher_test_sources = [
   'src/modules/launcher/visit_store.cpp',
 ]
 
-astralia_shell_bar_test_sources = []
+astralia_shell_bar_test_sources = [
+  'src/modules/bar/fillet.cpp',
+]
 
 astralia_shell_bar_panels_main_only_sources = [
   'src/modules/bar/panel/tray_panel.cpp',
@@ -272,6 +274,7 @@ astralia_shell_settings_main_only_sources = [
   'src/modules/settings.cpp',
   'src/modules/settings/wallpaper_tab.cpp',
   'src/modules/settings/displays_tab.cpp',
+  'src/modules/settings/bar_tab.cpp',
   'src/modules/settings/idle_tab.cpp',
   'src/modules/settings/logout_tab.cpp',
   'src/modules/settings/visualizer_tab.cpp',
@@ -410,6 +413,7 @@ astralia_shell_test = executable(
   'test/render/test_palette.cpp',
   'test/render/test_image_decode.cpp',
   'test/render/test_text_elide.cpp',
+  'test/bar/test_fillet.cpp',
   'test/lock/test_layout.cpp',
   'test/visualizer/test_fft.cpp',
   include_directories: astralia_shell_inc,

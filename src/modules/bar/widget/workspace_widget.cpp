@@ -38,7 +38,7 @@ float workspace_row_width(WorkspaceWidgetState &wstate, AnimationManager &animat
 
 } // namespace
 
-float draw_workspace_row(Node *root, WorkspaceWidgetState &wstate, AnimationManager &animations, float x, float height, const std::vector<Workspace> &ws_list, int active_id, const float pill_bg[4], const Texture &overview_icon) {
+float draw_workspace_row(Node *root, WorkspaceWidgetState &wstate, AnimationManager &animations, float x, float height, const std::vector<Workspace> &ws_list, int active_id, const BarStyleSpec &style, const Texture &overview_icon) {
     wstate.pill_hits.clear();
     wstate.overview_hit = {};
 
@@ -49,11 +49,13 @@ float draw_workspace_row(Node *root, WorkspaceWidgetState &wstate, AnimationMana
 
     bool has_icon = overview_icon.id != 0;
     float icon_w = has_icon ? static_cast<float>(overview_icon.width) : 0.0f;
-    float row_w = ws_row_w + height + (has_icon ? kWorkspaceOverviewGap + icon_w : 0.0f);
+    float pad = height * style.pad_ratio;
+    float row_w = ws_row_w + 2.0f * pad + (has_icon ? kWorkspaceOverviewGap + icon_w : 0.0f);
 
-    node_add_rrect(root, x, 0, row_w, height, height / 2.0f, metrics::border_thin, pill_bg, rgba(palette::accent));
+    if (!bar_style_has_rail(style))
+        node_add_rrect(root, x, 0, row_w, height, height * style.radius_ratio, style.border_width, rgba(style.bg), rgba(style.border));
 
-    float wx = x + height / 2.0f;
+    float wx = x + pad;
     float wy = (height - kWorkspacePillHeight) / 2.0f;
     for (const Workspace &ws : ws_list) {
         bool is_active = ws.id == active_id;

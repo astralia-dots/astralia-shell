@@ -30,6 +30,7 @@
 
 enum class SettingsTab { Wallpaper,
                          Displays,
+                         Bar,
                          Idle,
                          Logout,
                          Visualizer,

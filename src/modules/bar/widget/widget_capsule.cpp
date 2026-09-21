@@ -12,14 +12,16 @@
 
 namespace bar_detail {
 
-float draw_static_pill_row(Node *root, float x, float height, const std::vector<const Texture *> &textures, const float tint[4], const float pill_bg[4]) {
+float draw_static_pill_row(Node *root, float x, float height, const std::vector<const Texture *> &textures, const float tint[4], const BarStyleSpec &style) {
     for (const Texture *tex : textures) {
         if (!tex || !tex->id)
             continue;
-        float pill_w = tex->width + height;
-        node_add_rrect(root, x, 0, pill_w, height, height / 2.0f, metrics::border_thin, pill_bg, rgba(palette::accent));
+        float pad = height * style.pad_ratio;
+        float pill_w = tex->width + 2.0f * pad;
+        if (!bar_style_has_rail(style))
+            node_add_rrect(root, x, 0, pill_w, height, height * style.radius_ratio, style.border_width, rgba(style.bg), rgba(style.border));
         float ty = (height - tex->height) / 2.0f;
-        node_add_texture(root, x + height / 2.0f, ty, *tex, tint);
+        node_add_texture(root, x + pad, ty, *tex, tint);
         x += pill_w + kCapsuleGap;
     }
     return x;
@@ -28,7 +30,7 @@ float draw_static_pill_row(Node *root, float x, float height, const std::vector<
 size_t pill_idx(PillId id) { return static_cast<size_t>(id); }
 
 float pill_center_x(const WidgetCapsuleState &capsule, PillId id) {
-    return kPanelSideMargin + capsule.pill_expanded_center_x[pill_idx(id)];
+    return capsule.side_margin + capsule.pill_expanded_center_x[pill_idx(id)];
 }
 
 PillId hit_test_pills(const WidgetCapsuleState &capsule, const PointerState &pointer, wl_surface *own_surface) {
@@ -77,8 +79,8 @@ const Texture &ensure_label_texture(WidgetCapsuleState &capsule, const Pill &p) 
     return tex;
 }
 
-float pill_collapsed_width(const Pill &p, float height) {
-    return p.icon->width + height;
+float pill_collapsed_width(const Pill &p, float pad) {
+    return p.icon->width + 2.0f * pad;
 }
 
 } // namespace
@@ -91,7 +93,8 @@ void update_pill_expand(WidgetCapsuleState &capsule, AnimationManager &animation
     animations.animate(capsule.pill_expand_t[idx], hovered_now ? 1.0f : 0.0f, instant ? 0.0f : kPillExpandMs, Easing::EaseOutCubic, [&capsule, idx](float v) { capsule.pill_expand_t[idx] = v; }, {}, static_cast<uint64_t>(idx));
 }
 
-float pills_row_width(WidgetCapsuleState &capsule, AnimationManager &animations, const std::vector<Pill> &pills, PillId hovered, float height, PillId instant_pill) {
+float pills_row_width(WidgetCapsuleState &capsule, AnimationManager &animations, const std::vector<Pill> &pills, PillId hovered, float height, const BarStyleSpec &style, PillId instant_pill) {
+    float pad = height * style.pad_ratio;
     float w = 0;
     bool first = true;
     for (const Pill &p : pills) {
@@ -100,12 +103,12 @@ float pills_row_width(WidgetCapsuleState &capsule, AnimationManager &animations,
         bool hovered_now = p.id == hovered && !p.label.empty();
         update_pill_expand(capsule, animations, p.id, hovered_now, hovered_now && p.id == instant_pill);
         float t = capsule.pill_expand_t[pill_idx(p.id)];
-        float collapsed_w = pill_collapsed_width(p, height);
+        float collapsed_w = pill_collapsed_width(p, pad);
         float pw = collapsed_w;
         if (t > 0.0f && !p.label.empty()) {
             const Texture &label_tex = ensure_label_texture(capsule, p);
             if (label_tex.id) {
-                float expanded_w = height + p.icon->width + kPillPad + label_tex.width;
+                float expanded_w = 2.0f * pad + p.icon->width + kPillPad + label_tex.width;
                 pw = collapsed_w + (expanded_w - collapsed_w) * t;
             }
         }
@@ -117,7 +120,8 @@ float pills_row_width(WidgetCapsuleState &capsule, AnimationManager &animations,
     return w;
 }
 
-float draw_pills(Node *root, WidgetCapsuleState &capsule, AnimationManager &animations, float x, float height, const std::vector<Pill> &pills, const float tint[4], const float pill_bg[4], PillId hovered, PillId instant_pill) {
+float draw_pills(Node *root, WidgetCapsuleState &capsule, AnimationManager &animations, float x, float height, const std::vector<Pill> &pills, const float tint[4], const BarStyleSpec &style, PillId hovered, PillId instant_pill) {
+    float pad = height * style.pad_ratio;
     for (const Pill &p : pills) {
         if (!p.icon || !p.icon->id)
             continue;
@@ -131,18 +135,19 @@ float draw_pills(Node *root, WidgetCapsuleState &capsule, AnimationManager &anim
         if (label_tex && !label_tex->id)
             label_tex = nullptr;
 
-        float collapsed_w = pill_collapsed_width(p, height);
+        float collapsed_w = pill_collapsed_width(p, pad);
         float expanded_w = collapsed_w;
         if (label_tex)
-            expanded_w = height + p.icon->width + kPillPad + label_tex->width;
+            expanded_w = 2.0f * pad + p.icon->width + kPillPad + label_tex->width;
         float pill_w = collapsed_w + (expanded_w - collapsed_w) * t;
 
         Node *pill_group = node_add_group(root, x, 0, pill_w, height, true);
-        node_add_rrect(pill_group, 0, 0, pill_w, height, height / 2.0f, metrics::border_thin, pill_bg, p.border_color ? p.border_color : rgba(palette::accent));
+        if (!bar_style_has_rail(style))
+            node_add_rrect(pill_group, 0, 0, pill_w, height, height * style.radius_ratio, style.border_width, rgba(style.bg), p.border_color ? p.border_color : rgba(style.border));
         float iy = (height - p.icon->height) / 2.0f;
-        node_add_texture(pill_group, height / 2.0f, iy, *p.icon, tint);
+        node_add_texture(pill_group, pad, iy, *p.icon, tint);
         if (label_tex) {
-            float lx = height / 2.0f + p.icon->width + kPillPad;
+            float lx = pad + p.icon->width + kPillPad;
             float ly = (height - label_tex->height) / 2.0f;
             capsule.pill_label_tint[idx] = {tint[0], tint[1], tint[2], t};
             node_add_texture(pill_group, lx, ly, *label_tex, rgba(capsule.pill_label_tint[idx]));
@@ -190,32 +195,34 @@ std::vector<const Pill *> visible_pills(const std::vector<Pill> &pills) {
 
 } // namespace
 
-float pill_group_width(WidgetCapsuleState &capsule, AnimationManager &animations, const std::vector<Pill> &pills, PillId hovered, float height, PillId instant_pill) {
+float pill_group_width(WidgetCapsuleState &capsule, AnimationManager &animations, const std::vector<Pill> &pills, PillId hovered, float height, const BarStyleSpec &style, PillId instant_pill) {
     std::vector<const Pill *> visible = visible_pills(pills);
     if (visible.empty())
         return 0.0f;
-    float w = height + kGroupSegmentGap * static_cast<float>(visible.size() - 1);
+    float w = 2.0f * height * style.pad_ratio + kGroupSegmentGap * static_cast<float>(visible.size() - 1);
     for (const Pill *p : visible)
         w += segment_layout(capsule, animations, *p, hovered, instant_pill).w;
     return w;
 }
 
-float draw_pill_group(Node *root, WidgetCapsuleState &capsule, AnimationManager &animations, float x, float height, const std::vector<Pill> &pills, const float tint[4], const float pill_bg[4], PillId hovered, PillId instant_pill) {
+float draw_pill_group(Node *root, WidgetCapsuleState &capsule, AnimationManager &animations, float x, float height, const std::vector<Pill> &pills, const float tint[4], const BarStyleSpec &style, PillId hovered, PillId instant_pill) {
     std::vector<const Pill *> visible = visible_pills(pills);
     if (visible.empty())
         return x;
 
     std::vector<SegmentLayout> layouts;
-    float group_w = height + kGroupSegmentGap * static_cast<float>(visible.size() - 1);
+    float pad = height * style.pad_ratio;
+    float group_w = 2.0f * pad + kGroupSegmentGap * static_cast<float>(visible.size() - 1);
     for (const Pill *p : visible) {
         layouts.push_back(segment_layout(capsule, animations, *p, hovered, instant_pill));
         group_w += layouts.back().w;
     }
 
     Node *group = node_add_group(root, x, 0, group_w, height, true);
-    node_add_rrect(group, 0, 0, group_w, height, height / 2.0f, metrics::border_thin, pill_bg, rgba(palette::accent));
+    if (!bar_style_has_rail(style))
+        node_add_rrect(group, 0, 0, group_w, height, height * style.radius_ratio, style.border_width, rgba(style.bg), rgba(style.border));
 
-    float cx = height / 2.0f;
+    float cx = pad;
     for (size_t i = 0; i < visible.size(); ++i) {
         const Pill &p = *visible[i];
         const SegmentLayout &seg = layouts[i];
