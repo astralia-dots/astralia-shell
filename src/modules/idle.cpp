@@ -200,7 +200,7 @@ bool idle_overlay_init_egl(IdleOverlayState &state, Renderer &renderer, EGLDispl
     }
     AnimatedImageStyle logo_style;
     logo_style.size = kIdleLogoSize;
-    logo_style.decode = {30, static_cast<int>(kIdleLogoSize)};
+    logo_style.decode = {30, static_cast<int>(kIdleLogoSize), AnimateFit::Fit};
     animated_image_set_source(state.logo, logo_path, logo_style);
     return true;
 }

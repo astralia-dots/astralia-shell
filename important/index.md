@@ -52,7 +52,7 @@
 - `text_elide.h`+`.cpp`: Pango-free character-count string elision, end (`elide`) and middle (`elide_middle`); linked into the test binary.
 - `marquee_scroll.h`+`.cpp`: `MarqueeTextState` and the pure pause/scroll/pause/snap loop state machine, driven by `AnimationManager`; no Node/texture dependency.
 - `marquee_text.h`+`.cpp`: `draw_marquee_text`, the Node-drawing wrapper around `marquee_scroll.h`; animates a clipped scroll only when text overflows.
-- `animated_image.h`+`.cpp`: `AnimatedImage` playable still/animated picture; wall-clock frame cycling over the `media_service` `.rgba` cache, `show`/`hide` releasing frame textures while off-screen, ring+circular-crop draw.
+- `animated_image.h`+`.cpp`: `AnimatedImage` playable still/animated picture; wall-clock frame cycling over the `media_service` `.rgba` cache, `show`/`hide` releasing frame textures while off-screen, ring+circular-crop or aspect-fit draw.
 - `renderer.h`+`.cpp`: GL draw calls, clip-stack and transform-stack management, shared across every surface; `draw_custom` runs a module-owned shader over the shared quad.
 - `rect.h`: Shared `Rect{x,y,w,h}` struct for hit-testing.
 - `panel_chrome.h`+`.cpp`: Shared box/header/confirm chrome, click-kind enum, `panel_region_hit`, `panel_draw_toggle_switch`, `panel_draw_centered_text`, and `panel_measure_row_actions`/`panel_draw_row_actions` (connect/forget pill or busy label) for on-demand panels.

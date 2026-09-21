@@ -281,6 +281,15 @@ AnimateSize animate_decode_size(int target_w, int target_h, int max_height) {
             max_height};
 }
 
+AnimateSize animate_fit_size(int src_w, int src_h, int px) {
+    int longest = std::max(src_w, src_h);
+    if (src_w <= 0 || src_h <= 0 || px <= 0 || longest <= px)
+        return {std::max(src_w, 0), std::max(src_h, 0)};
+    double ratio = static_cast<double>(px) / longest;
+    return {std::max(1, static_cast<int>(std::lround(src_w * ratio))),
+            std::max(1, static_cast<int>(std::lround(src_h * ratio)))};
+}
+
 std::string animate_scale_filter(int w, int h, AnimateFit fit) {
     std::string ws = std::to_string(w);
     std::string hs = std::to_string(h);
@@ -342,14 +351,15 @@ void animate_job_start(AnimateJob &job, const std::string &source_path, const An
         return;
     }
 
-    std::string key = animate_cache_key(source_path, st.st_mtime);
+    AnimateFit fit = params.fit;
+    std::string key = animate_cache_key(fit == AnimateFit::Fit ? source_path + "|fit" : source_path, st.st_mtime);
     std::string dir = animate_cache_home_dir() + "/astralia-shell/animated/" + key;
     int px = std::max(1, params.square_px);
     int fps = std::max(1, params.fps);
     bool still = is_still_image(source_path);
     int max_frames = still ? 1 : fps * kAnimateMaxSeconds;
 
-    job.worker = std::thread([&job, source_path, dir, px, fps, max_frames, still, on_ready = std::move(on_ready)] {
+    job.worker = std::thread([&job, source_path, dir, px, fps, max_frames, still, fit, on_ready = std::move(on_ready)] {
         std::error_code ec;
         int existing = count_rgba_frames(dir);
         if (existing == 0) {
@@ -360,7 +370,14 @@ void animate_job_start(AnimateJob &job, const std::string &source_path, const An
                 int w = 0, h = 0;
                 unsigned char *data =
                     decode_first_frame(source_path, w, h, px, px);
-                if (data) {
+                if (data && fit == AnimateFit::Fit) {
+                    AnimateSize size = animate_fit_size(w, h, px);
+                    auto *scaled = new unsigned char[static_cast<size_t>(size.w) * size.h * 4];
+                    box_downsample_rgba(data, w, h, scaled, size.w, size.h);
+                    delete[] data;
+                    rgba_write(tmp + "/f001.rgba", size.w, size.h, scaled);
+                    delete[] scaled;
+                } else if (data) {
                     int side = 0;
                     unsigned char *sq =
                         center_crop_square(data, w, h, px, side);
@@ -370,7 +387,7 @@ void animate_job_start(AnimateJob &job, const std::string &source_path, const An
             } else {
                 std::string filter =
                     "fps=" + std::to_string(fps) + "," +
-                    animate_scale_filter(px, px, AnimateFit::Crop);
+                    animate_scale_filter(px, px, fit);
                 std::vector<MediaFrame> frames =
                     media_decode_frames(source_path, filter, max_frames);
                 for (size_t i = 0; i < frames.size(); ++i) {

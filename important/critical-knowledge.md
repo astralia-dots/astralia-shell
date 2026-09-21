@@ -111,6 +111,8 @@ Drop an entry once newer knowledge fully supersedes it.
 - **One `dlopen`'d `libav` plugin (`media_plugin`) now decodes every animated surface, not only wallpaper.** The per-feature `ffmpeg` subprocess is gone; `animate_job_start` fills a `.rgba` frame cache.
 - **Hide the animated image after the close fade, not at close-start.** Clearing frames while `opacity` still tweens pops the image out; gate `hide` on fully closed.
 - **`animated_image_draw`'s `alpha` fades the whole image, border ring and ring-fill included, not just the frame texture.** It once skipped the ring, so `logout`'s logo frame lingered a beat after everything else faded.
+- **An `AnimatedImage` is bound to one source; use one instance per source, never re-point it.** `animated_image_set_source` leaves its `AnimateJob` stale and `animate_job_start` no-ops once `attempted`; `logout`'s static toggle kept showing gif frames.
+- **The `.rgba` cache key must include every decode-shaping param, such as `fit`.** Otherwise frames cached under the old shape (square-cropped) are silently reused after the decode changes.
 - **Every ad-hoc media-to-cache path is the same four steps: XDG-cache-dir, mtime hash key, decode, existence check.** `media_service` owns them; no per-feature copy.
 - **A bounded UI-gif decode still needs `fps * seconds` frames, not a fixed count.** A `36`-frame cap once showed only the first `2.4s` of a `7s` logo; keep a generous ceiling.
 - **Decode frames into a `.tmp` dir and rename on success, never straight into the cache dir.** A killed decode left a partial frame set that every later run reused as complete.

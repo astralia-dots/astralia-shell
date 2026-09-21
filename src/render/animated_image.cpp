@@ -70,6 +70,15 @@ void animated_image_draw(AnimatedImage &img, Node *parent, float x, float y, flo
     float inset = s.border_width;
     float ix = x + inset, iy = y + inset;
     float iw = w - 2 * inset, ih = h - 2 * inset;
+    if (s.decode.fit == AnimateFit::Fit && ft.width > 0 && ft.height > 0) {
+        float scale = std::min(iw / static_cast<float>(ft.width), ih / static_cast<float>(ft.height));
+        float fw = static_cast<float>(ft.width) * scale;
+        float fh = static_cast<float>(ft.height) * scale;
+        ix += (iw - fw) / 2.0f;
+        iy += (ih - fh) / 2.0f;
+        iw = fw;
+        ih = fh;
+    }
     if (s.circular)
         node_add_texture_rect_rounded(parent, ix, iy, iw, ih, iw * 0.5f, ft, img.draw_tint);
     else

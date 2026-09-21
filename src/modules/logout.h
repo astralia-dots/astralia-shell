@@ -87,7 +87,8 @@ struct LogoutState {
     std::array<Texture, kLogoutButtonCount> glyph_tex{};
 
     ThunderBurst thunder;
-    AnimatedImage logo;
+    AnimatedImage logo_gif;
+    AnimatedImage logo_png;
     bool logo_animated = true;
     bool logo_source_set = false;
 };

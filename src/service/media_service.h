@@ -92,6 +92,7 @@ enum class AnimateFit { Crop,
 struct AnimateDecodeParams {
     int fps = 15;
     int square_px = 200;
+    AnimateFit fit = AnimateFit::Crop;
 };
 
 struct AnimateJob {
@@ -127,6 +128,8 @@ struct AnimateSize {
 };
 
 AnimateSize animate_decode_size(int target_w, int target_h, int max_height);
+
+AnimateSize animate_fit_size(int src_w, int src_h, int px);
 
 std::string animate_scale_filter(int w, int h, AnimateFit fit);
 

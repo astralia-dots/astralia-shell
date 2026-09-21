@@ -217,8 +217,12 @@ void update_highlight(LogoutState &state, int i) {
     set_button_highlight(state, i, is_highlighted(state, i));
 }
 
+AnimatedImage &active_logo(LogoutState &state) {
+    return state.logo_animated ? state.logo_gif : state.logo_png;
+}
+
 void finish_close(LogoutState &state) {
-    animated_image_hide(state.logo);
+    animated_image_hide(active_logo(state));
     state.base.open = false;
     zwlr_layer_surface_v1_set_keyboard_interactivity(state.base.layer_surface, ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
     overlay_panel_update_input_region(state.base);
@@ -273,7 +277,7 @@ void start_slashes(LogoutState &state) {
 
 void start_open_sequence(LogoutState &state) {
     cancel_open_close_tweens(state);
-    animated_image_show(state.logo, [&state] { logout_request_frame(state); });
+    animated_image_show(active_logo(state), [&state] { logout_request_frame(state); });
     state.exiting = false;
     state.input_ready = false;
     state.logo_scale = 0.0f;
@@ -398,36 +402,28 @@ void logout_request_frame(LogoutState &state) {
 }
 
 void logout_apply_logo_config(LogoutState &state, bool animated) {
-    if (state.logo_source_set && animated == state.logo_animated)
-        return;
+    if (!state.logo_source_set) {
+        auto resolve = [](const char *installed, const char *dev) {
+            return std::string(std::filesystem::exists(installed) ? installed : dev);
+        };
 
-    const char *candidates[2];
-    if (animated) {
-        candidates[0] = ASTRALIA_SHELL_LOGOUT_LOGO;
-        candidates[1] = "assets/logout/logo.gif";
-    } else {
-        candidates[0] = ASTRALIA_SHELL_LOGOUT_LOGO_STATIC;
-        candidates[1] = "assets/logout/logo.png";
-    }
-    std::string path = candidates[1];
-    for (const char *candidate : candidates) {
-        if (std::filesystem::exists(candidate)) {
-            path = candidate;
-            break;
-        }
+        AnimatedImageStyle gif_style;
+        gif_style.size = kLogoutLogoSize;
+        gif_style.decode = {30, static_cast<int>(kLogoutLogoSize)};
+        gif_style.circular = true;
+        gif_style.border_width = kLogoutBorderWidth;
+        gif_style.border_color = rgba(palette::accent);
+        animated_image_set_source(state.logo_gif, resolve(ASTRALIA_SHELL_LOGOUT_LOGO, "assets/logout/logo.gif"), gif_style);
+
+        AnimatedImageStyle png_style;
+        png_style.size = kLogoutLogoSize;
+        png_style.decode = {1, static_cast<int>(kLogoutLogoSize), AnimateFit::Fit};
+        animated_image_set_source(state.logo_png, resolve(ASTRALIA_SHELL_LOGOUT_LOGO_STATIC, "assets/logout/logo.png"), png_style);
+        state.logo_source_set = true;
     }
 
-    AnimatedImageStyle style;
-    style.size = kLogoutLogoSize;
-    style.decode = {animated ? 30 : 1, static_cast<int>(kLogoutLogoSize)};
-    if (animated) {
-        style.circular = true;
-        style.border_width = kLogoutBorderWidth;
-        style.border_color = rgba(palette::accent);
-    }
-    animated_image_set_source(state.logo, path, style);
     state.logo_animated = animated;
-    state.logo_source_set = true;
+    animated_image_hide(animated ? state.logo_png : state.logo_gif);
 }
 
 void logout_toggle(LogoutState &state, bool by_widget) {
@@ -569,7 +565,7 @@ void logout_paint(LogoutState &state) {
         return;
     auto now = std::chrono::steady_clock::now();
     state.base.animations.tick(now);
-    animated_image_tick(state.logo, now);
+    animated_image_tick(active_logo(state), now);
     if (!gl_make_current(state.base.egl_display, state.base.egl_surface, state.base.egl_context))
         return;
     state.renderer->begin_frame(state.base.width, state.base.height, state.base.output_scale.scale);
@@ -647,7 +643,7 @@ void logout_paint(LogoutState &state) {
         float ls = kLogoutLogoSize;
         Node *logo_group = node_add_group(&state.scene.root, cx - ls / 2.0f, cy - ls / 2.0f, ls, ls);
         logo_group->scale = state.logo_scale;
-        animated_image_draw(state.logo, logo_group, 0.0f, 0.0f, ls, ls, state.exiting ? state.exit_fade : 1.0f);
+        animated_image_draw(active_logo(state), logo_group, 0.0f, 0.0f, ls, ls, state.exiting ? state.exit_fade : 1.0f);
     }
 
     state.renderer->set_opacity(state.base.opacity);
@@ -753,6 +749,6 @@ void logout_paint(LogoutState &state) {
     }
     prev = now;
 
-    if (state.base.animations.hasActive() || animated_image_animating(state.logo))
+    if (state.base.animations.hasActive() || animated_image_animating(active_logo(state)))
         overlay_panel_request_frame(state.base);
 }
