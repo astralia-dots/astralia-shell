@@ -172,12 +172,12 @@ struct SettingsTabDef {
 };
 
 inline constexpr const char *kSettingsTabLabels[kSettingsTabCount] = {
-    "Wallpaper",
-    "Displays",
+    "Animation",
     "Bar",
+    "Displays",
     "Idle",
     "Logout",
-    "Visualizer",
     "Rain",
-    "Animation",
+    "Visualizer",
+    "Wallpaper",
 };

@@ -28,14 +28,14 @@
 namespace {
 
 constexpr SettingsTabDef kSettingsTabs[kSettingsTabCount] = {
-    {kSettingsTabLabels[0], icon::wallpaper},
-    {kSettingsTabLabels[1], icon::device_desktop},
-    {kSettingsTabLabels[2], icon::layout_navbar},
+    {kSettingsTabLabels[0], icon::adjustments},
+    {kSettingsTabLabels[1], icon::layout_navbar},
+    {kSettingsTabLabels[2], icon::device_desktop},
     {kSettingsTabLabels[3], icon::moon_stars},
     {kSettingsTabLabels[4], icon::power},
-    {kSettingsTabLabels[5], icon::wave_sine},
-    {kSettingsTabLabels[6], icon::code},
-    {kSettingsTabLabels[7], icon::adjustments},
+    {kSettingsTabLabels[5], icon::code},
+    {kSettingsTabLabels[6], icon::wave_sine},
+    {kSettingsTabLabels[7], icon::wallpaper},
 };
 
 } // namespace

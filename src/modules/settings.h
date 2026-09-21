@@ -28,14 +28,14 @@
 
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 
-enum class SettingsTab { Wallpaper,
-                         Displays,
+enum class SettingsTab { Animation,
                          Bar,
+                         Displays,
                          Idle,
                          Logout,
-                         Visualizer,
                          Rain,
-                         Animation };
+                         Visualizer,
+                         Wallpaper };
 
 class Renderer;
 struct WaylandState;
