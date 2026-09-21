@@ -4,7 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 cmd_setup() {
-	sudo pacman -Syu --needed base-devel meson ninja mesa wayland wayland-protocols libxkbcommon sdbus-cpp freetype2 fontconfig cairo pango harfbuzz glib2 libsecret libsodium polkit pipewire wireplumber curl libqalculate libxml2 md4c nlohmann-json libical jemalloc stb ffmpeg
+	sudo pacman -Syu --needed base-devel cairo curl fd ffmpeg fontconfig freetype2 glib2 harfbuzz jemalloc libical libqalculate libsecret libsodium libxkbcommon libxml2 md4c mesa meson ninja nlohmann-json pango pipewire polkit sdbus-cpp stb wayland wayland-protocols wireplumber
 }
 
 cmd_build() {
