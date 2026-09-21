@@ -10,6 +10,14 @@ std::string shell_quote(const std::string &s);
 
 }
 
+namespace applications {
+inline constexpr const char *browser = "browser";
+inline constexpr const char *editor = "editor";
+inline constexpr const char *file_manager = "file-manager";
+inline constexpr const char *terminal = "terminal";
+inline constexpr const char *open = "xdg-open";
+} // namespace applications
+
 std::string make_search_url(const std::string &text, const std::string &base);
 
 std::string normalize_url(const std::string &text);

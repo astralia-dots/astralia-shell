@@ -26,6 +26,10 @@ std::string shell_quote(const std::string &s) {
 
 namespace {
 
+void spawn_with(const char *app, const std::string &arg) {
+    spawn_detached(std::string(app) + " " + launch_action_detail::shell_quote(arg));
+}
+
 std::string url_encode(const std::string &text) {
     static const char *hex = "0123456789ABCDEF";
     std::string out;
@@ -114,28 +118,28 @@ bool launch_non_drun(LauncherMode mode, const std::string &query) {
             make_search_url(query, "https://www.google.com/search?q=");
         if (url.empty())
             return false;
-        spawn_detached("xdg-open " + launch_action_detail::shell_quote(url));
+        spawn_with(applications::browser, url);
         return true;
     }
     case LauncherMode::DuckDuckGo: {
         std::string url = make_search_url(query, "https://duckduckgo.com/?q=");
         if (url.empty())
             return false;
-        spawn_detached("xdg-open " + launch_action_detail::shell_quote(url));
+        spawn_with(applications::browser, url);
         return true;
     }
     case LauncherMode::YouTube: {
         std::string url = make_search_url(query, "https://www.youtube.com/results?search_query=");
         if (url.empty())
             return false;
-        spawn_detached("xdg-open " + launch_action_detail::shell_quote(url));
+        spawn_with(applications::browser, url);
         return true;
     }
     case LauncherMode::Url: {
         std::string url = normalize_url(query);
         if (url.empty())
             return false;
-        spawn_detached("xdg-open " + launch_action_detail::shell_quote(url));
+        spawn_with(applications::browser, url);
         return true;
     }
     case LauncherMode::Drun:
@@ -147,19 +151,19 @@ bool launch_non_drun(LauncherMode mode, const std::string &query) {
 void launch_submenu_action(const SubmenuEntry &entry, VisitStore &visits) {
     switch (entry.action) {
     case SubmenuEntry::Action::FileOpen:
-        spawn_detached("xdg-open " + launch_action_detail::shell_quote(entry.path));
+        spawn_with(applications::open, entry.path);
         break;
     case SubmenuEntry::Action::DirOpenFileManager:
-        spawn_detached("xdg-open " + launch_action_detail::shell_quote(entry.path));
+        spawn_with(applications::file_manager, entry.path);
         break;
     case SubmenuEntry::Action::DirOpenEditor:
-        spawn_detached("code " + launch_action_detail::shell_quote(entry.path));
+        spawn_with(applications::editor, entry.path);
         break;
     case SubmenuEntry::Action::DirOpenTerminal:
-        spawn_detached("kitty " + launch_action_detail::shell_quote(entry.path));
+        spawn_with(applications::terminal, entry.path);
         break;
     case SubmenuEntry::Action::OpenContainingDir:
-        spawn_detached("xdg-open " + launch_action_detail::shell_quote(entry.path));
+        spawn_with(applications::open, entry.path);
         return;
     default:
         return;

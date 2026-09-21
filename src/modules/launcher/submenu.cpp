@@ -65,11 +65,8 @@ void submenu_open_directory_actions(SubmenuState &s, const std::string &path) {
     s.current_path = path;
     s.items.clear();
 
-    SubmenuEntry fm{"Open Directory in File Manager", path, true,
-                    icon::arrow_right,
-                    SubmenuEntry::Action::DirOpenFileManager};
-    SubmenuEntry editor{"Open Directory in Editor", path, true, icon::code,
-                        SubmenuEntry::Action::DirOpenEditor};
+    SubmenuEntry fm{"Open Directory in File Manager", path, true, icon::arrow_right, SubmenuEntry::Action::DirOpenFileManager};
+    SubmenuEntry editor{"Open Directory in Editor", path, true, icon::code, SubmenuEntry::Action::DirOpenEditor};
     SubmenuEntry terminal{"Open Directory in Terminal", path, true, icon::terminal, SubmenuEntry::Action::DirOpenTerminal};
     s.items = {fm, editor, terminal};
 }
