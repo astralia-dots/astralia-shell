@@ -124,6 +124,23 @@ bool client_order_differs(const std::vector<CompositorClient> &a, const std::vec
     return false;
 }
 
+int32_t parse_gaps_out_css(const std::string &reply) {
+    try {
+        std::string css = nlohmann::json::parse(reply).value("css", std::string());
+        return css.empty() ? 0 : std::stoi(css);
+    } catch (...) {
+        return 0;
+    }
+}
+
+int32_t parse_rounding_int(const std::string &reply) {
+    try {
+        return nlohmann::json::parse(reply).value("int", 0);
+    } catch (...) {
+        return 0;
+    }
+}
+
 std::vector<std::string> split(const std::string &s, char delim) {
     std::vector<std::string> parts;
     size_t start = 0;
@@ -222,6 +239,16 @@ bool hypr_refresh_clients(CompositorState &state) {
     return true;
 }
 
+int32_t hypr_bar_hug_radius_px(CompositorState &state) {
+    if (state.request_socket_path.empty())
+        return 0;
+    int32_t gaps_out =
+        parse_gaps_out_css(request(state.request_socket_path, "j/getoption general:gaps_out"));
+    int32_t rounding =
+        parse_rounding_int(request(state.request_socket_path, "j/getoption decoration:rounding"));
+    return gaps_out + rounding;
+}
+
 namespace {
 
 bool hypr_connect_events(CompositorState &state) {
@@ -253,6 +280,7 @@ bool hypr_init(CompositorState &state) {
         return false;
     }
     hypr_refresh(state);
+    state.hug_radius_px = hypr_bar_hug_radius_px(state);
     if (!hypr_connect_events(state)) {
         klog("hyprland: failed to connect event socket: %s", strerror(errno));
         return false;

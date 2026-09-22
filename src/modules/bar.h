@@ -11,6 +11,7 @@
 #include "app/text_input_client.h"
 #include "app/wayland_state.h"
 
+#include "modules/bar/autohide_geometry.h"
 #include "modules/bar/panel/battery_panel.h"
 #include "modules/bar/panel/bluetooth_panel.h"
 #include "modules/bar/panel/clock_panel.h"
@@ -25,6 +26,8 @@
 
 #include "render/renderer.h"
 #include "render/texture.h"
+
+#include "service/compositor_service.h"
 
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 
@@ -53,6 +56,13 @@ struct BarPerMonitorState {
     Texture fillet_inner_right;
     int fillet_px = 0;
     int fillet_inner_px = 0;
+    Texture hug_outer_left;
+    Texture hug_outer_right;
+    Texture hug_inner_left;
+    Texture hug_inner_right;
+    int hug_px = 0;
+    int hug_inner_px = 0;
+    int32_t applied_hug_radius_px = 0;
     StatusWidgetState status_widget;
 };
 
@@ -98,19 +108,17 @@ inline int32_t bar_top_margin(const Config &cfg) {
     return bar_style_spec(cfg.bar_style).top_margin;
 }
 
+inline int32_t bar_hug_radius_px(const MonitorOutput &mon) {
+    if (mon.app->cfg.bar_style != BarStyle::Okinami)
+        return 0;
+    return mon.app->compositor_state.hug_radius_px;
+}
+
 namespace bar_detail {
 
 void bar_autohide_set_surface_geometry(zwlr_layer_surface_v1 *layer_surface, wl_surface *surface, wl_egl_window *egl_window, int32_t width, int32_t height_px, int32_t margin_top, int32_t margin_right, int32_t margin_left, int32_t exclusive_zone, int32_t output_scale);
 
 void close_other_overlays(MonitorOutput &mon, PillId keep);
-
-struct BarGeometry {
-    int32_t height;
-    int32_t margin_top;
-    int32_t exclusive_zone;
-};
-
-BarGeometry bar_autohide_geometry(bool autohide, bool collapsed, int32_t cfg_height, int32_t top_margin);
 
 int32_t bar_current_height(const MonitorOutput &mon);
 

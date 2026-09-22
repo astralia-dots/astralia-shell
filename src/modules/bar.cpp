@@ -69,22 +69,14 @@ void close_other_overlays(MonitorOutput &mon, PillId keep) {
         clock_panel_toggle(bs.clock_panel);
 }
 
-BarGeometry bar_autohide_geometry(bool autohide, bool collapsed, int32_t cfg_height, int32_t top_margin) {
-    if (!autohide)
-        return {cfg_height, top_margin, cfg_height};
-    if (collapsed)
-        return {kAutoHideStripPx, 0, 0};
-    return {top_margin + cfg_height, 0, 0};
-}
-
 int32_t bar_current_height(const MonitorOutput &mon) {
-    return bar_autohide_geometry(mon.autohide.enabled, mon.autohide.collapsed, kBarHeight, bar_style_of(mon).top_margin)
+    return bar_autohide_geometry(mon.autohide.enabled, mon.autohide.collapsed, kBarHeight, bar_style_of(mon).top_margin, bar_hug_radius_px(mon))
         .height;
 }
 
 void bar_autohide_apply_geometry(MonitorOutput &mon, bool autohide, bool collapsed, const BarStyleSpec &style) {
     BarGeometry g =
-        bar_autohide_geometry(autohide, collapsed, kBarHeight, style.top_margin);
+        bar_autohide_geometry(autohide, collapsed, kBarHeight, style.top_margin, bar_hug_radius_px(mon));
     bar_autohide_set_surface_geometry(mon.layer_surface, mon.surface, mon.egl_window, mon.width, g.height, g.margin_top, style.side_margin, style.side_margin, g.exclusive_zone, mon.output_scale.scale);
 }
 
@@ -219,6 +211,26 @@ void ensure_fillets(BarPerMonitorState &bs, const BarStyleSpec &style, int32_t s
     bs.fillet_inner_px = inner_px;
 }
 
+void ensure_hug_corner_textures(BarPerMonitorState &bs, const BarStyleSpec &style, int32_t hug_radius, int32_t scale) {
+    int px = static_cast<int>(std::lround(static_cast<float>(hug_radius) * static_cast<float>(scale)));
+    int inner_px = static_cast<int>(std::lround((static_cast<float>(hug_radius) + style.border_width) * static_cast<float>(scale)));
+    if (px == bs.hug_px && inner_px == bs.hug_inner_px)
+        return;
+    if (px > 0) {
+        auto build = [scale](Texture &tex, int size, bool circle_on_right) {
+            std::vector<uint8_t> mask = fillet_rgba(size, circle_on_right);
+            tex = make_texture_rgba(size, size, mask.data());
+            tex.scale = scale;
+        };
+        build(bs.hug_outer_left, px, true);
+        build(bs.hug_outer_right, px, false);
+        build(bs.hug_inner_left, inner_px, true);
+        build(bs.hug_inner_right, inner_px, false);
+    }
+    bs.hug_px = px;
+    bs.hug_inner_px = inner_px;
+}
+
 } // namespace
 
 void bar_paint(MonitorOutput &mon) {
@@ -346,12 +358,14 @@ void bar_paint(MonitorOutput &mon) {
     x = draw_dock_capsule(content, bs.dock_widget, mon.animations, x, height, dock_entries, style);
     track_divider();
 
+    bool left_flush = false;
     if (rail && x > island_pad) {
         float left_end = std::round(x - kCapsuleGap + island_pad);
         place_island(left_island, 0.0f, left_end, true, false);
         for (size_t i = 0; i + 1 < left_dividers.size(); ++i)
             add_divider(left_dividers[i]);
         fillets.emplace_back(left_end, true);
+        left_flush = true;
     }
 
     bs.clock_rect = draw_clock_pill(content, height, mon.width, bs.clock_texture, white, style);
@@ -389,6 +403,7 @@ void bar_paint(MonitorOutput &mon) {
     if (cc_w > 0) {
         draw_pills(content, bs.capsule, mon.animations, cc_x, height, dashboard_pills, white, style, hovered);
     }
+    bool right_flush = false;
     if (rail && cc_w + status_w + stub_w > 0) {
         float leftmost = stub_w > 0 ? stub_x : status_w > 0 ? status_x
                                                             : cc_x;
@@ -399,11 +414,26 @@ void bar_paint(MonitorOutput &mon) {
         if (status_w > 0 && cc_w > 0)
             add_divider(status_x + status_w + kCapsuleGap / 2.0f);
         fillets.emplace_back(right_left, false);
+        right_flush = true;
     }
     for (const auto &[edge_x, right_of_island] : fillets)
         node_add_texture(content, right_of_island ? edge_x : edge_x - style.fillet_radius, style.rail_height, right_of_island ? bs.fillet_right : bs.fillet_left, rgba(style.border));
     for (const auto &[edge_x, right_of_island] : fillets)
         node_add_texture(content, right_of_island ? edge_x - bw : edge_x - style.fillet_radius, style.rail_height - bw, right_of_island ? bs.fillet_inner_right : bs.fillet_inner_left, rgba(style.bg));
+
+    int32_t hug_radius = bar_hug_radius_px(mon);
+    if (hug_radius > 0) {
+        ensure_hug_corner_textures(bs, style, hug_radius, mon.output_scale.scale);
+        float hf = static_cast<float>(hug_radius);
+        if (left_flush) {
+            node_add_texture(content, 0.0f, height, bs.hug_outer_left, rgba(style.border));
+            node_add_texture(content, -bw, height - bw, bs.hug_inner_left, rgba(style.bg));
+        }
+        if (right_flush) {
+            node_add_texture(content, width - hf, height, bs.hug_outer_right, rgba(style.border));
+            node_add_texture(content, width - hf, height - bw, bs.hug_inner_right, rgba(style.bg));
+        }
+    }
 
     mon.scene.draw(app.renderer);
     eglSwapBuffers(app.egl_display, mon.egl_surface);
@@ -427,10 +457,10 @@ bool BarPerMonitorModule::create_surface(WaylandState &app, MonitorOutput &mon, 
         .name_space = "astralia-shell",
         .anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT,
         .height = bar_detail::bar_current_height(mon),
-        .margin_top = bar_detail::bar_autohide_geometry(mon.autohide.enabled, mon.autohide.collapsed, bar_detail::kBarHeight, style.top_margin).margin_top,
+        .margin_top = bar_detail::bar_autohide_geometry(mon.autohide.enabled, mon.autohide.collapsed, bar_detail::kBarHeight, style.top_margin, bar_hug_radius_px(mon)).margin_top,
         .margin_right = style.side_margin,
         .margin_left = style.side_margin,
-        .exclusive_zone = bar_detail::bar_autohide_geometry(mon.autohide.enabled, mon.autohide.collapsed, bar_detail::kBarHeight, style.top_margin).exclusive_zone,
+        .exclusive_zone = bar_detail::bar_autohide_geometry(mon.autohide.enabled, mon.autohide.collapsed, bar_detail::kBarHeight, style.top_margin, bar_hug_radius_px(mon)).exclusive_zone,
     };
     mon.layer_surface = layer_surface_create(mon.surface, app.compositor, app.layer_shell, bar_cfg, &bar_layer_surface_listener, &mon, output);
     mon.output_scale.on_change = [&mon](int32_t scale) {
@@ -568,6 +598,14 @@ void BarPerMonitorModule::request_frame() {
 
 void BarPerMonitorModule::tick(WaylandState &, MonitorOutput &mon) {
     bar_detail::volume_pill_peek_tick(mon);
+
+    int32_t hug = bar_hug_radius_px(mon);
+    if (hug != state.applied_hug_radius_px) {
+        state.applied_hug_radius_px = hug;
+        bar_detail::bar_autohide_apply_geometry(mon, mon.autohide.enabled, mon.autohide.collapsed, bar_style_of(mon));
+        bar_request_frame(mon);
+    }
+
     if (state.tray_menu.base.done) {
         tray_menu_close(state.tray_menu);
         bar_request_frame(mon);

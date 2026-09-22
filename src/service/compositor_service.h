@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -57,6 +58,7 @@ struct CompositorState {
     std::vector<CompositorMonitor> monitors;
     std::vector<CompositorClient> clients;
     std::string clients_reply;
+    int32_t hug_radius_px = 0;
 };
 
 enum class CompositorEventResult {

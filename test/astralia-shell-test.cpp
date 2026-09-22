@@ -51,6 +51,7 @@ int main() {
         {"image_decode", test_image_decode},
         {"text_elide", test_text_elide},
         {"bar_fillet", test_bar_fillet},
+        {"bar_autohide_geometry", test_bar_autohide_geometry},
         {"lock_layout", test_lock_layout},
         {"visualizer_fft", test_visualizer_fft},
     };

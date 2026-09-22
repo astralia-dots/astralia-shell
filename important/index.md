@@ -89,8 +89,8 @@
 - `frame_service.h`+`.cpp`: Frame-callback paint pacing shared across surfaces; first paint synchronous, later repaints deferred to `frame_done`.
 - `input_service.h`+`.cpp`: All `wl_seat` input: `wl_keyboard`+xkbcommon key handling, `wl_pointer` hover/click/cursor-shape, and the shared seat-capabilities listener.
 - `text_input_service.h`+`.cpp`: `zwp_text_input_v3` client-role protocol glue for IME composition (fcitx5/ibus), focus tracking, preedit/commit/delete dispatch to the active `TextInputClient`.
-- `compositor_service.h`+`.cpp`: Compositor-neutral `CompositorState` workspace/monitor/client data; picks the Hyprland or Sway backend and dispatches focus, move, close, and workspace swap/move-in to it.
-- `hyprland_service.h`+`.cpp`: Hyprland backend: fills `CompositorState` via request+event sockets, plus `hypr_tile_*` tiling actions dispatched as Lua calls.
+- `compositor_service.h`+`.cpp`: Compositor-neutral `CompositorState` workspace/monitor/client data, including the Okinami bar's cached `hug_radius_px`; picks the Hyprland or Sway backend and dispatches focus, move, close, and workspace swap/move-in to it.
+- `hyprland_service.h`+`.cpp`: Hyprland backend: fills `CompositorState` via request+event sockets, plus `hypr_tile_*` tiling actions dispatched as Lua calls; `hypr_bar_hug_radius_px` sums `general:gaps_out`+`decoration:rounding` from `j/getoption` for the Okinami bar's corner flare, queried once at `hypr_init`.
 - `sway_service.h`+`.cpp`: Sway backend: `i3-ipc` request/subscribe client, pure `sway_parse_*` JSON-to-`CompositorState` parsers, `workspace number` focus, `con_id` move/kill, and workspace swap/move-in.
 - `capture_service.h`+`.cpp`: Per-window `hyprland-toplevel-export-v1` live capture; `wl_shm` buffer alloc/reuse and GL texture upload, throttled per window.
 - `output_service.h`+`.cpp`: Pure-data `Output` struct plus output-selection logic, and per-output fractional-scale listener tracking (`OutputScale`).
@@ -112,7 +112,7 @@
 
 ## src/modules
 
-- `bar.h`+`.cpp`: Bar rendering, autohide geometry, pill-click dispatch, bar surface's own EGL; shared `WaylandState`-wide helpers.
+- `bar.h`+`.cpp`: Bar rendering, autohide geometry, pill-click dispatch, bar surface's own EGL; shared `WaylandState`-wide helpers. On Okinami/Hyprland, the surface grows by `bar_hug_radius_px` and the two outer islands' bottom corners get an extra flare draw so the bar hugs the tiled window's rounded corner below; a per-tick catch-up reapplies surface geometry once the cached hug radius becomes available (it's unset until Hyprland's IPC connects, which can land after the first monitor's surface is created).
 - `launcher.h`+`.cpp`: `LauncherState`, surface/EGL/tick/toggle/key/click/pointer-hover/paint core only.
 - `osd.h`+`.cpp`: Volume/brightness popup, per-monitor, auto-hides, reactive to system state changes.
 - `notification.h`+`.cpp`: Notification renderer; rebuilds render/animation state from `notification_service` records, per-monitor card paint, and per-monitor close-button dismissal.
@@ -170,7 +170,8 @@
 ## src/modules/bar
 
 - `style.h`: `BarStyleSpec` per-style fill, border, padding, margin, and rail/island/fillet table, resolved by `bar_style_spec`.
-- `fillet.h`+`.cpp`: Pure per-pixel alpha mask of the concave rail-to-island flare; test-linked, no `EGL`.
+- `fillet.h`+`.cpp`: Pure per-pixel alpha mask of the concave rail-to-island flare; also reused, at a different size/position, for the Okinami bar's outer-corner hug flare; test-linked, no `EGL`.
+- `autohide_geometry.h`+`.cpp`: Pure `BarGeometry`/`bar_autohide_geometry`: autohide-state-to-surface-height/margin/exclusive-zone math, including the Okinami hug-radius addition; split out from `bar.h`/`.cpp` so it's test-linked without pulling in `EGL`/Wayland/`pipewire` headers.
 
 ## src/modules/bar/panel
 
@@ -230,7 +231,7 @@
 - `test_active_output.cpp`: Active-output selection logic.
 - `test_dock.cpp`: Dock entry list for a monitor's active workspace.
 - `test_sway.cpp`: Sway `get_workspaces`/`get_outputs`/`get_tree` parsing into `CompositorState`, and its dock entries.
-- `test_hyprland.cpp`: Hyprland client refresh against a fake request socket: timeout, changed reply, and unchanged-reply skip.
+- `test_hyprland.cpp`: Hyprland client refresh against a fake request socket: timeout, changed reply, and unchanged-reply skip; `hypr_bar_hug_radius_px` summing two sequential `j/getoption` replies, and its zero default with no socket connected.
 
 ## test/system
 
@@ -251,6 +252,7 @@
 ## test/bar
 
 - `test_fillet.cpp`: Concave fillet mask geometry and mirroring.
+- `test_autohide_geometry.cpp`: `bar_autohide_geometry`'s height/margin/exclusive-zone math across shown, hug-radius, revealed-autohide, and collapsed states.
 
 ## test/lock
 

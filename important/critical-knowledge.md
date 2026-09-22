@@ -144,6 +144,7 @@ Drop an entry once newer knowledge fully supersedes it.
 - **Driving `visualizer` from the poll-thread `FrameClock` instead deadlocked the frame pump on Mesa.** `visualizer_toggle` clears `base.frame_clock.surface` so nothing arms a `wl_surface_frame` behind the render thread's back.
 - **A global "instant" switch inside `AnimationManager` can't safely reach a perpetually self-re-arming `on_complete` chain.** Forcing every step to `0 ms` recurses synchronously inside `tick()` forever; `marquee_scroll` checks the switch itself and skips starting instead.
 - **`MarqueeTextState::marqueeing` means "currently scrolling," not "text overflows the box."** `draw_marquee_text` must clip on `tex->width > w`; gating on `marqueeing` lets long text overflow whenever scrolling is suppressed.
+- **A concave "hug" corner that flares a filled shape out to touch a surface's true corner is the same quarter-circle cutout as an ordinary convex fillet, just resized and repositioned.** `Okinami`'s outer-corner hug reuses `fillet_rgba` unchanged instead of a second mask function; only the tile size and draw position differ.
 
 ## 3. Wayland protocol
 
@@ -228,6 +229,7 @@ Drop an entry once newer knowledge fully supersedes it.
 - **Re-enabling idle management, or lowering a timeout mid-idle, must reset the per-monitor activity clock.** A stale `last_activity` otherwise fires the screensaver instantly; `apply_config_update` calls `idle_reset` on any idle-config change.
 - **A panel's staged dismissal must be coded identically in every dismiss path.** `Escape` collapsed the subpanel while outside-click closed the whole panel, because the branches were written separately.
 - **A closing overlay's `request_frame` call must run before its fade's `on_complete` flips `open` false, not after.** `overlay_panel_request_frame` no-ops once closed; a zero-duration animation runs `on_complete` synchronously, so a trailing call never arms the final frame.
+- **`compositor_init` (and thus `CompositorState`) isn't ready when the first monitor's `create_surface` runs.** `main()` creates the first output's surfaces before `build_services()`; anything sizing that surface from compositor state needs a later tick-driven catch-up, not just the create-time read.
 
 ## 5. Architecture and scale discipline
 
@@ -285,6 +287,7 @@ Drop an entry once newer knowledge fully supersedes it.
 - **The bar's per-monitor workspace pills carry the compositor's absolute workspace id.** Switching from a pill must call `compositor_focus_workspace` with `global=true`, or Hyprland's `resolve_workspace` remaps it.
 - **A bar widget that only emits scene nodes isn't clickable until its hit rects are recorded and routed.** `dispatch_pill_click` scans only the fixed `PillId` array; the workspace row stores and checks its own rects.
 - **A workspace grid spanning monitors must pass `global=true` to every `hypr_tile_*` call.** `resolve_workspace` otherwise remaps ids `1..10` onto the focused monitor's page.
+- **`hyprctl getoption <name> -j`'s `j/getoption <name>` command works unmodified over the existing request socket.** No need to shell out; live-verified `general:gaps_out`/`decoration:rounding` return the same JSON either way.
 
 ## 7. Sway IPC
 

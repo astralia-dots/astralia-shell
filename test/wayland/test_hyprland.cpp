@@ -49,6 +49,41 @@ class OneShotServer {
     std::thread thread_;
 };
 
+class SequencedServer {
+  public:
+    SequencedServer(const std::string &path, std::vector<std::string> replies) {
+        unlink(path.c_str());
+        listen_fd_ = socket(AF_UNIX, SOCK_STREAM, 0);
+        sockaddr_un addr{};
+        addr.sun_family = AF_UNIX;
+        strncpy(addr.sun_path, path.c_str(), sizeof(addr.sun_path) - 1);
+        int bound = bind(listen_fd_, reinterpret_cast<sockaddr *>(&addr), sizeof(addr));
+        int listening = listen(listen_fd_, static_cast<int>(replies.size()));
+        assert(bound == 0 && listening == 0);
+        (void)bound;
+        (void)listening;
+        thread_ = std::thread([this, replies] {
+            for (const std::string &reply : replies) {
+                int fd = accept(listen_fd_, nullptr, nullptr);
+                char buf[64];
+                while (read(fd, buf, sizeof(buf)) > 0) {
+                }
+                write(fd, reply.data(), reply.size());
+                close(fd);
+            }
+        });
+    }
+
+    ~SequencedServer() {
+        thread_.join();
+        close(listen_fd_);
+    }
+
+  private:
+    int listen_fd_ = -1;
+    std::thread thread_;
+};
+
 std::string socket_path() {
     return (std::filesystem::temp_directory_path() / ("astralia-test-hypr-" + std::to_string(getpid()) + ".sock")).string();
 }
@@ -87,6 +122,19 @@ void test_hyprland() {
         OneShotServer server(path, kOneClient, 0);
         assert(!hypr_refresh_clients(state));
         assert(state.clients.empty());
+    }
+
+    {
+        CompositorState state;
+        state.request_socket_path = path;
+        SequencedServer server(path, {R"({"option": "general:gaps_out", "css": "20 20 20 20", "set": true})",
+                                      R"({"option": "decoration:rounding", "int": 10, "set": true})"});
+        assert(hypr_bar_hug_radius_px(state) == 30);
+    }
+
+    {
+        CompositorState state;
+        assert(hypr_bar_hug_radius_px(state) == 0);
     }
 
     unlink(path.c_str());

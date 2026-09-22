@@ -36,5 +36,6 @@ void test_palette();
 void test_image_decode();
 void test_text_elide();
 void test_bar_fillet();
+void test_bar_autohide_geometry();
 void test_lock_layout();
 void test_visualizer_fft();

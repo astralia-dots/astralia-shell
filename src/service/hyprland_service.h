@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 
 #include "service/compositor_service.h"
@@ -7,6 +8,8 @@
 void hypr_refresh(CompositorState &state);
 
 bool hypr_refresh_clients(CompositorState &state);
+
+int32_t hypr_bar_hug_radius_px(CompositorState &state);
 
 bool hypr_init(CompositorState &state);
 
