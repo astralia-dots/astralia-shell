@@ -83,7 +83,7 @@ constexpr float kBrightnessSliderTrackHeight = 6.0f;
 constexpr float kBrightnessSliderPctGap = 8.0f;
 constexpr float kBrightnessPctTextWidth = 40.0f;
 constexpr float kBrightnessIconGap = 10.0f;
-constexpr float kBrightnessKeyStep = 0.05f;
+constexpr float kBrightnessKeyStep = 0.01f;
 
 // gauge colors
 constexpr const char *kGaugeColorCpuHex = "#ef4444";
