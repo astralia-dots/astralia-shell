@@ -109,7 +109,7 @@ inline int32_t bar_top_margin(const Config &cfg) {
 }
 
 inline int32_t bar_hug_radius_px(const MonitorOutput &mon) {
-    if (mon.app->cfg.bar_style != BarStyle::Okinami)
+    if (mon.app->cfg.bar_style != BarStyle::Okinami || mon.autohide.enabled)
         return 0;
     return mon.app->compositor_state.hug_radius_px;
 }
