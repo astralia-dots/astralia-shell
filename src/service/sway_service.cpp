@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <array>
 #include <cerrno>
 #include <cstdint>
 #include <cstdlib>
@@ -27,6 +28,29 @@ constexpr uint32_t kEventMask = 0x80000000u;
 
 constexpr const char *kSubscription = "[\"workspace\",\"window\",\"output\"]";
 constexpr const char *kSwapTempWorkspace = "astralia_swap_tmp";
+constexpr int kWorkspaceCount = 10;
+
+void pad_workspaces(CompositorState &state) {
+    for (const CompositorMonitor &mon : state.monitors) {
+        std::vector<Workspace> &workspaces = state.by_monitor[mon.name].workspaces;
+
+        std::array<bool, kWorkspaceCount + 1> present{};
+        for (const Workspace &ws : workspaces)
+            if (ws.id >= 1 && ws.id <= kWorkspaceCount)
+                present[static_cast<size_t>(ws.id)] = true;
+
+        for (int id = 1; id <= kWorkspaceCount; ++id) {
+            if (present[static_cast<size_t>(id)])
+                continue;
+            Workspace ws;
+            ws.id = id;
+            ws.name = std::to_string(id);
+            workspaces.push_back(std::move(ws));
+        }
+
+        std::sort(workspaces.begin(), workspaces.end(), [](const Workspace &a, const Workspace &b) { return a.id < b.id; });
+    }
+}
 
 std::string frame(uint32_t type, const std::string &payload) {
     std::string out(kMagic, kMagicLen);
@@ -309,6 +333,7 @@ void sway_refresh(CompositorState &state) {
     sway_parse_workspaces(request(state.request_socket_path, kGetWorkspaces), state);
     sway_parse_outputs(request(state.request_socket_path, kGetOutputs), state);
     sway_parse_tree(request(state.request_socket_path, kGetTree), state);
+    pad_workspaces(state);
 }
 
 bool sway_init(CompositorState &state) {
