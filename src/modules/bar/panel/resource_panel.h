@@ -20,11 +20,11 @@
 // panel
 constexpr float kResourcePanelWidth = 400.0f;
 constexpr float kResourcePanelMaxHeight = 680.0f;
+constexpr float kResourceCardGap = 10.0f;
 
 // gauge cards
 constexpr float kGaugeDiameter = 108.0f;
 constexpr float kGaugeStroke = 8.0f;
-constexpr float kGaugeColumnGap = 16.0f;
 constexpr float kGaugeRowGap = 16.0f;
 constexpr float kGaugeCenterLineGap = 2.0f;
 constexpr float kUsageWarnThreshold = 0.7f;

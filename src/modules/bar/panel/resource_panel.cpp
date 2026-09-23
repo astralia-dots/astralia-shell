@@ -70,7 +70,7 @@ float content_height(const std::vector<PanelRow> &rows) {
     float h = 0;
     for (size_t i = 0; i < rows.size(); ++i) {
         if (i > 0)
-            h += kPanelListSpacing;
+            h += kResourceCardGap;
         h += rows[i].height;
     }
     return h;
@@ -198,11 +198,11 @@ float draw_device_card(Node *root, TextureCache &tcache, int32_t scale, float x,
 }
 
 float draw_device_cards(Node *root, TextureCache &tcache, int32_t scale, float x, float y, float w, const CpuTempState &cpu_temp, const GpuTempState &gpu_temp, const SystemStatsState &stats) {
-    float card_w = (w - kGaugeColumnGap) / 2.0f;
+    float card_w = (w - kResourceCardGap) / 2.0f;
     DeviceSpec cpu{"CPU", stats.cpu_usage, stats.cpu_freq_ghz, cpu_temp_available(cpu_temp) ? cpu_temp.celsius : -1.0f, kGaugeColorCpu};
     DeviceSpec gpu{"GPU", gpu_temp.usage_percent < 0.0f ? -1.0f : gpu_temp.usage_percent / 100.0f, gpu_temp.clock_ghz, gpu_temp_available(gpu_temp) ? gpu_temp.celsius : -1.0f, kGaugeColorGpu};
     draw_device_card(root, tcache, scale, x, y, card_w, cpu);
-    return draw_device_card(root, tcache, scale, x + card_w + kGaugeColumnGap, y, card_w, gpu);
+    return draw_device_card(root, tcache, scale, x + card_w + kResourceCardGap, y, card_w, gpu);
 }
 
 float draw_memory_card(Node *root, TextureCache &tcache, int32_t scale, float x, float y, float w, const SystemStatsState &stats) {
@@ -290,7 +290,7 @@ void resource_panel_paint(ResourcePanelState &state, const CpuTempState &cpu_tem
     for (size_t i = 0; i < rows.size(); ++i) {
         const PanelRow &row = rows[i];
         if (i > 0)
-            y += kPanelListSpacing;
+            y += kResourceCardGap;
         float row_h = row.height;
         bool row_visible = y + row_h > content_top && y < content_bottom;
         if (!row_visible) {
