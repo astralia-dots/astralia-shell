@@ -181,7 +181,7 @@
 - `tray_panel.h`+`.cpp`: On-demand tray grid panel plus its context menu, a separate `xdg_popup` grabbed to the panel layer surface.
 - `battery_panel.h`+`.cpp`: On-demand battery panel: every UPower device with its charge level.
 - `system_monitor_panel.h`+`.cpp`: On-demand system-monitor panel: CPU/GPU temperature and usage, RAM, disk, and network throughput.
-- `clock_panel.h`+`.cpp`: On-demand centered month-grid calendar panel; header prev/today/next month nav, weekday row, `6x7` day grid with today highlighted.
+- `clock_panel.h`+`.cpp`: On-demand centered panel, two columns: today's weekday/month/year/day/ISO-week, and a `6x7` month grid (Monday-first) with its own prev/today/next nav row and today highlighted.
 
 ## src/modules/bar/widget
 

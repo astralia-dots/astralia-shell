@@ -167,7 +167,7 @@ void osd_show(OsdState &state, OsdKind kind, float level, bool muted) {
 
     const char *codepoint;
     if (kind == OsdKind::Brightness) {
-        codepoint = icon::adjustments;
+        codepoint = brightness_threshold_icon(level);
     } else if (kind == OsdKind::Mic) {
         codepoint = muted ? icon::mic_off : icon::mic_on;
     } else if (muted) {

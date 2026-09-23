@@ -2,6 +2,9 @@
 
 namespace icon {
 
+inline constexpr const char *brightness_down = "\ueb7d";
+inline constexpr const char *brightness_up = "\ueb7e";
+
 inline constexpr const char *adjustments = "\uea03";
 inline constexpr const char *bell = "\uea35";
 inline constexpr const char *device_desktop = "\uea89";
@@ -99,4 +102,8 @@ inline const char *volume_threshold_icon(bool muted, float level) {
     if (level < 0.5f)
         return icon::volume_low;
     return icon::volume_high;
+}
+
+inline const char *brightness_threshold_icon(float level) {
+    return level < 0.5f ? icon::brightness_down : icon::brightness_up;
 }

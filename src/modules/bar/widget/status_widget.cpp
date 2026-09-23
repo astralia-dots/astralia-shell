@@ -82,8 +82,6 @@ std::string volume_label(const PipewireState &pw) {
 }
 
 const char *battery_icon_glyph(const UpowerState &u) {
-    if (!u.present)
-        return icon::battery_disabled;
     if (u.full)
         return icon::plugged_in;
     if (u.charging)
@@ -187,9 +185,9 @@ std::vector<Pill> status_pills(MonitorOutput &mon) {
         sw.wifi_icon_texture = make_icon_texture(wifi_glyph);
         sw.wifi_icon_glyph_cached = wifi_glyph;
     }
-    const char *bluetooth_glyph = bluetooth_icon_glyph(app.bluetooth);
+    const char *bluetooth_glyph = app.bluetooth.adapter_present ? bluetooth_icon_glyph(app.bluetooth) : nullptr;
     if (bluetooth_glyph != sw.bluetooth_icon_glyph_cached) {
-        sw.bluetooth_icon_texture = make_icon_texture(bluetooth_glyph);
+        sw.bluetooth_icon_texture = bluetooth_glyph ? make_icon_texture(bluetooth_glyph) : Texture{};
         sw.bluetooth_icon_glyph_cached = bluetooth_glyph;
     }
     const char *volume_glyph = volume_icon_glyph(app.pipewire);
@@ -197,9 +195,9 @@ std::vector<Pill> status_pills(MonitorOutput &mon) {
         sw.volume_icon_texture = make_icon_texture(volume_glyph);
         sw.volume_icon_glyph_cached = volume_glyph;
     }
-    const char *battery_glyph = battery_icon_glyph(app.upower);
+    const char *battery_glyph = app.upower.present ? battery_icon_glyph(app.upower) : nullptr;
     if (battery_glyph != sw.battery_icon_glyph_cached) {
-        sw.battery_icon_texture = make_icon_texture(battery_glyph);
+        sw.battery_icon_texture = battery_glyph ? make_icon_texture(battery_glyph) : Texture{};
         sw.battery_icon_glyph_cached = battery_glyph;
     }
 

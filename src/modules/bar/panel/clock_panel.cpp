@@ -29,14 +29,35 @@ const std::array<const char *, 7> kWeekdays = {"Mo", "Tu", "We", "Th", "Fr", "Sa
 
 const float kClockTodayText[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 
-float content_width() { return kClockPanelWidth - 2.0f * kPanelPadding; }
+float grid_content_width() { return kClockPanelWidth - 2.0f * kPanelPadding - kClockLeftColWidth - kClockColumnGap; }
 
-float cell_size() { return content_width() / 7.0f; }
+float cell_size() { return grid_content_width() / 7.0f; }
+
+float left_col_height() {
+    return kClockWeekdayLineHeight + kClockLeftLineGap + kClockDateLineHeight + kClockLeftLineGap + kClockDateLineHeight + kClockBigDayGap + kClockBigDayRowHeight + kClockBigDayGap + kClockWeekLineHeight;
+}
+
+float grid_col_height() {
+    return kClockGridHeaderHeight + kClockGridHeaderGap + kClockWeekdayRowHeight + kClockGridTopGap + 6.0f * cell_size();
+}
 
 float panel_height() {
-    float body_h =
-        kClockWeekdayRowHeight + kClockGridTopGap + 6.0f * cell_size();
-    return kPanelPadding + kPanelHeaderHeight + kPanelHeaderDividerGap + 1.0f + kPanelContentGap + body_h + kPanelTrailingSpacerHeight + kPanelPadding;
+    return kPanelPadding + std::max(left_col_height(), grid_col_height()) + kPanelPadding;
+}
+
+const Texture *cached_big_day(TextureCache &cache, const std::string &s, int32_t scale) {
+    if (s.empty())
+        return nullptr;
+    return cache.get("big" + std::to_string(scale) + ":" + s, [&] { return rasterize_text_px(s, kClockBigDayFontPx, true, scale); });
+}
+
+int clock_panel_iso_week(int year, int month, int day) {
+    std::chrono::sys_days sd{std::chrono::year{year} / std::chrono::month{static_cast<unsigned>(month + 1)} / std::chrono::day{static_cast<unsigned>(day)}};
+    unsigned iso_wd = std::chrono::weekday{sd}.iso_encoding();
+    std::chrono::sys_days thursday = sd + std::chrono::days{4 - static_cast<int>(iso_wd)};
+    std::chrono::year thu_year = std::chrono::year_month_day{thursday}.year();
+    std::chrono::sys_days jan1{thu_year / std::chrono::January / std::chrono::day{1}};
+    return static_cast<int>((thursday - jan1).count() / 7) + 1;
 }
 
 void draw_nav_button(Node *root, TextureCache &cache, int32_t scale, std::vector<PanelClickRegion> &click_regions, float x, float y, const char *glyph, const std::string &tag) {
@@ -156,42 +177,81 @@ void clock_panel_paint(ClockPanelState &state, float pill_center_x, float bar_he
         clock_panel_month_shifted(today_y, today_m, state.month_offset);
 
     panel_draw_box(root, panel_x, panel_y, panel_w, panel_h);
-    float header_y = panel_y + kPanelPadding;
+
+    float content_x = panel_x + kPanelPadding;
+    float content_top = panel_y + kPanelPadding;
+    float content_h = std::max(left_col_height(), grid_col_height());
+
+    char weekday_buf[24];
+    std::strftime(weekday_buf, sizeof(weekday_buf), "%A", &local);
+    char month_buf[24];
+    std::strftime(month_buf, sizeof(month_buf), "%B", &local);
+
+    float ly = content_top + (content_h - left_col_height()) / 2.0f;
+    auto centered_x = [&](const Texture *tex) { return content_x + (kClockLeftColWidth - tex->width) / 2.0f; };
+
+    const Texture *weekday_tex = cached_text_large(state.tcache, weekday_buf, scale);
+    if (weekday_tex)
+        node_add_texture(root, centered_x(weekday_tex), ly + (kClockWeekdayLineHeight - weekday_tex->height) / 2.0f, *weekday_tex, rgba(palette::text));
+    ly += kClockWeekdayLineHeight + kClockLeftLineGap;
+
+    const Texture *month_tex = cached_text(state.tcache, month_buf, scale);
+    if (month_tex)
+        node_add_texture(root, centered_x(month_tex), ly + (kClockDateLineHeight - month_tex->height) / 2.0f, *month_tex, rgba(palette::text_muted));
+    ly += kClockDateLineHeight + kClockLeftLineGap;
+
+    const Texture *year_tex = cached_text(state.tcache, std::to_string(today_y), scale);
+    if (year_tex)
+        node_add_texture(root, centered_x(year_tex), ly + (kClockDateLineHeight - year_tex->height) / 2.0f, *year_tex, rgba(palette::text_muted));
+    ly += kClockDateLineHeight + kClockBigDayGap;
+
+    const Texture *big_day_tex = cached_big_day(state.tcache, std::to_string(today_d), scale);
+    if (big_day_tex)
+        node_add_texture(root, centered_x(big_day_tex), ly + (kClockBigDayRowHeight - big_day_tex->height) / 2.0f, *big_day_tex, rgba(palette::text));
+    ly += kClockBigDayRowHeight + kClockBigDayGap;
+
+    int week_no = clock_panel_iso_week(today_y, today_m, today_d);
+    const Texture *week_tex = cached_text(state.tcache, "Week " + std::to_string(week_no), scale);
+    if (week_tex)
+        node_add_texture(root, centered_x(week_tex), ly + (kClockWeekLineHeight - week_tex->height) / 2.0f, *week_tex, rgba(palette::text_dim));
+
+    float grid_x = content_x + kClockLeftColWidth + kClockColumnGap;
+    float cell = cell_size();
+    float grid_w = 7.0f * cell;
+
+    const Texture *first_weekday_tex = cached_text(state.tcache, kWeekdays[0], scale);
+    float grid_text_inset = first_weekday_tex ? (cell - first_weekday_tex->width) / 2.0f : 0.0f;
+
     std::string title =
         std::string(month_name(disp.month)) + " " + std::to_string(disp.year);
-    float header_right =
-        panel_draw_header(root, state.tcache, scale, title, panel_x, panel_y, panel_w, state.click_regions);
+    const Texture *title_tex = cached_text(state.tcache, title, scale);
+    if (title_tex)
+        node_add_texture(root, grid_x + grid_text_inset, content_top + (kClockGridHeaderHeight - title_tex->height) / 2.0f, *title_tex, rgba(palette::text));
 
-    float nav_y = header_y + (kPanelHeaderHeight - kClockNavButtonSize) / 2.0f;
-    float nav_x = header_right - kClockNavButtonSize;
+    float nav_y = content_top + (kClockGridHeaderHeight - kClockNavButtonSize) / 2.0f;
+    float nav_x = grid_x + grid_w - kClockNavButtonSize;
     draw_nav_button(root, state.tcache, scale, state.click_regions, nav_x, nav_y, icon::chevron_right, "next");
     nav_x -= kClockNavButtonSize + kClockNavButtonGap;
     draw_nav_button(root, state.tcache, scale, state.click_regions, nav_x, nav_y, nullptr, "today");
     nav_x -= kClockNavButtonSize + kClockNavButtonGap;
     draw_nav_button(root, state.tcache, scale, state.click_regions, nav_x, nav_y, icon::chevron_left, "prev");
 
-    float divider_y = header_y + kPanelHeaderHeight + kPanelHeaderDividerGap;
-    node_add_rect(root, panel_x + kPanelPadding, divider_y, panel_w - 2.0f * kPanelPadding, 1.0f, rgba(palette::text_alpha06));
-
-    float content_x = panel_x + kPanelPadding;
-    float content_top = divider_y + 1.0f + kPanelContentGap;
-    float cell = cell_size();
-
+    float weekday_row_y = content_top + kClockGridHeaderHeight + kClockGridHeaderGap;
     for (int col = 0; col < 7; ++col) {
         const Texture *tex = cached_text(state.tcache, kWeekdays[static_cast<size_t>(col)], scale);
         if (!tex)
             continue;
-        float cx = content_x + col * cell + (cell - tex->width) / 2.0f;
-        float cy = content_top + (kClockWeekdayRowHeight - tex->height) / 2.0f;
+        float cx = grid_x + col * cell + (cell - tex->width) / 2.0f;
+        float cy = weekday_row_y + (kClockWeekdayRowHeight - tex->height) / 2.0f;
         node_add_texture(root, cx, cy, *tex, rgba(palette::text));
     }
 
-    float grid_y = content_top + kClockWeekdayRowHeight + kClockGridTopGap;
+    float grid_y = weekday_row_y + kClockWeekdayRowHeight + kClockGridTopGap;
     std::array<CalendarDay, 42> cells =
         clock_panel_cells(disp.year, disp.month);
     for (int i = 0; i < 42; ++i) {
         const CalendarDay &day = cells[static_cast<size_t>(i)];
-        float cx = content_x + (i % 7) * cell;
+        float cx = grid_x + (i % 7) * cell;
         float cy = grid_y + (i / 7) * cell;
         bool is_today = clock_panel_same_day(day, today_y, today_m, today_d);
 

@@ -604,7 +604,7 @@ float draw_brightness_card(Node *root, TextureCache &tcache, int32_t scale, floa
     if (!present)
         return kCardGatedHeight;
 
-    const Texture *icon_tex = cached_icon(tcache, icon::sun, scale);
+    const Texture *icon_tex = cached_icon(tcache, brightness_threshold_icon(level), scale);
     float icon_h = icon_tex ? icon_tex->height : 0.0f;
     float content_h = std::max(icon_h, kBrightnessSliderRowHeight);
 
