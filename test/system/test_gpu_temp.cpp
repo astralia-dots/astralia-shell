@@ -21,4 +21,5 @@ void test_gpu_temp() {
 
     GpuTempState state;
     assert(!gpu_temp_available(state));
+    assert(state.clock_ghz < 0.0f);
 }

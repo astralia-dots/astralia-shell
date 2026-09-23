@@ -5,6 +5,10 @@
 #include "render/arc_gauge.h"
 #include "render/text.h"
 
+// segments
+constexpr int kArcGaugeSegments = 10;
+constexpr float kArcGaugeSegmentGapDeg = 6.0f;
+
 const Texture *cached_arc_gauge(TextureCache &tcache, int32_t scale, float diameter, float stroke, float value01, const Color &fill_color) {
     int px_diameter = static_cast<int>(diameter * scale);
     int bucket =
@@ -24,19 +28,26 @@ const Texture *cached_arc_gauge(TextureCache &tcache, int32_t scale, float diame
         float radius = px_diameter / 2.0f - px_stroke / 2.0f;
         float start = -static_cast<float>(M_PI) / 2.0f;
         float full = 2.0f * static_cast<float>(M_PI);
+        float step = full / kArcGaugeSegments;
+        float gap = kArcGaugeSegmentGapDeg * static_cast<float>(M_PI) / 180.0f;
+        float span = step - gap;
 
         cairo_set_line_width(cr, px_stroke);
-        cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+        cairo_set_line_cap(cr, CAIRO_LINE_CAP_BUTT);
 
-        cairo_set_source_rgba(cr, fill_color.r, fill_color.g, fill_color.b, 0.15f);
-        cairo_arc(cr, cx, cy, radius, 0.0, full);
-        cairo_stroke(cr);
-
-        float value = static_cast<float>(bucket) / 100.0f;
-        if (value > 0.0f) {
-            cairo_set_source_rgba(cr, fill_color.r, fill_color.g, fill_color.b, fill_color.a);
-            cairo_arc(cr, cx, cy, radius, start, start + full * value);
+        float lit = static_cast<float>(bucket) / 100.0f * kArcGaugeSegments;
+        for (int i = 0; i < kArcGaugeSegments; ++i) {
+            float seg_start = start + i * step + gap / 2.0f;
+            cairo_set_source_rgba(cr, fill_color.r, fill_color.g, fill_color.b, 0.15f);
+            cairo_arc(cr, cx, cy, radius, seg_start, seg_start + span);
             cairo_stroke(cr);
+
+            float seg_fill = std::clamp(lit - static_cast<float>(i), 0.0f, 1.0f);
+            if (seg_fill > 0.0f) {
+                cairo_set_source_rgba(cr, fill_color.r, fill_color.g, fill_color.b, fill_color.a);
+                cairo_arc(cr, cx, cy, radius, seg_start, seg_start + span * seg_fill);
+                cairo_stroke(cr);
+            }
         }
 
         cairo_surface_flush(surface);

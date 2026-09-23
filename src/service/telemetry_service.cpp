@@ -26,17 +26,6 @@ bool cpu_temp_detail_is_cpu_thermal_zone_type(const std::string &type) {
     return type.starts_with("cpu");
 }
 
-int cpu_temp_detail_core_label_index(const std::string &label) {
-    size_t space = label.rfind(' ');
-    if (space == std::string::npos)
-        return -1;
-    try {
-        return std::stoi(label.substr(space + 1));
-    } catch (...) {
-        return -1;
-    }
-}
-
 namespace {
 
 std::string read_trimmed(const std::filesystem::path &path) {
@@ -60,35 +49,6 @@ std::string find_cpu_hwmon_sensor() {
     return {};
 }
 
-std::vector<CpuCoreTemp> find_cpu_core_temp_sensors() {
-    std::vector<CpuCoreTemp> cores;
-    std::error_code ec;
-    if (!std::filesystem::exists("/sys/class/hwmon", ec))
-        return cores;
-    for (const auto &entry : std::filesystem::directory_iterator("/sys/class/hwmon", ec)) {
-        std::string name = read_trimmed(entry.path() / "name");
-        if (!cpu_temp_detail_is_cpu_hwmon_name(name))
-            continue;
-        for (const auto &sensor : std::filesystem::directory_iterator(entry.path(), ec)) {
-            const std::string filename = sensor.path().filename().string();
-            if (!filename.starts_with("temp") || !filename.ends_with("_label"))
-                continue;
-            std::string label = read_trimmed(sensor.path());
-            if (!label.starts_with("Core "))
-                continue;
-            std::string input_path =
-                sensor.path().parent_path() /
-                (filename.substr(0, filename.size() - 6) + "_input");
-            if (!std::filesystem::exists(input_path, ec))
-                continue;
-            cores.push_back({label, input_path, -1.0f});
-        }
-        break;
-    }
-    std::sort(cores.begin(), cores.end(), [](const CpuCoreTemp &a, const CpuCoreTemp &b) { return cpu_temp_detail_core_label_index(a.label) < cpu_temp_detail_core_label_index(b.label); });
-    return cores;
-}
-
 std::string find_thermal_zone_sensor() {
     std::error_code ec;
     if (!std::filesystem::exists("/sys/class/thermal", ec))
@@ -109,8 +69,6 @@ void cpu_temp_init(CpuTempState &state) {
     state.sensor_path = find_cpu_hwmon_sensor();
     if (state.sensor_path.empty())
         state.sensor_path = find_thermal_zone_sensor();
-    else
-        state.cores = find_cpu_core_temp_sensors();
 }
 
 void cpu_temp_poll(CpuTempState &state) {
@@ -124,11 +82,6 @@ void cpu_temp_poll(CpuTempState &state) {
         state.celsius = static_cast<float>(millidegrees) / 1000.0f;
     else
         state.celsius = -1.0f;
-    for (auto &core : state.cores) {
-        std::ifstream cf(core.sensor_path);
-        long core_millidegrees = 0;
-        core.celsius = (cf >> core_millidegrees) ? static_cast<float>(core_millidegrees) / 1000.0f : -1.0f;
-    }
 }
 
 bool cpu_temp_available(const CpuTempState &state) {
@@ -202,6 +155,43 @@ std::string find_gpu_usage_sensor(const std::string &temp_hwmon_path) {
     return std::filesystem::exists(busy, ec) ? busy.string() : std::string();
 }
 
+std::string find_drm_act_freq(const std::filesystem::path &drm_dir) {
+    std::error_code ec;
+    if (!std::filesystem::exists(drm_dir, ec))
+        return {};
+    for (const auto &entry : std::filesystem::directory_iterator(drm_dir, ec)) {
+        std::filesystem::path act = entry.path() / "gt_act_freq_mhz";
+        if (std::filesystem::exists(act, ec))
+            return act.string();
+    }
+    return {};
+}
+
+std::string find_gpu_clock_sensor(const std::string &temp_hwmon_path) {
+    if (!temp_hwmon_path.empty()) {
+        std::filesystem::path hwmon_dir =
+            std::filesystem::path(temp_hwmon_path).parent_path();
+        std::error_code ec;
+        std::filesystem::path freq = hwmon_dir / "freq1_input";
+        if (std::filesystem::exists(freq, ec))
+            return freq.string();
+        std::string act = find_drm_act_freq(hwmon_dir / "device" / "drm");
+        if (!act.empty())
+            return act;
+    }
+    return find_drm_act_freq("/sys/class/drm");
+}
+
+float read_gpu_clock_ghz(const std::string &path) {
+    std::ifstream f(path);
+    long value = 0;
+    if (!(f >> value))
+        return -1.0f;
+    if (path.ends_with("_mhz"))
+        return static_cast<float>(value) / 1000.0f;
+    return static_cast<float>(value) / 1e9f;
+}
+
 } // namespace
 
 void gpu_temp_init(GpuTempState &state) {
@@ -210,9 +200,13 @@ void gpu_temp_init(GpuTempState &state) {
         state.usage_sensor_path = find_gpu_usage_sensor(state.sensor_path);
     else
         state.nvidia_smi_present = nvidia_smi_on_path();
+    if (!state.nvidia_smi_present)
+        state.clock_sensor_path = find_gpu_clock_sensor(state.sensor_path);
 }
 
 void gpu_temp_poll(GpuTempState &state) {
+    if (!state.clock_sensor_path.empty())
+        state.clock_ghz = read_gpu_clock_ghz(state.clock_sensor_path);
     if (!state.sensor_path.empty()) {
         std::ifstream f(state.sensor_path);
         long millidegrees = 0;
@@ -231,18 +225,19 @@ void gpu_temp_poll(GpuTempState &state) {
     if (state.nvidia_smi_running) {
         if (async_process_poll(state.nvidia_smi_proc)) {
             state.nvidia_smi_running = false;
-            const std::string &out = state.nvidia_smi_proc.buffer;
-            size_t comma = out.find(',');
-            auto temp_parsed = gpu_temp_detail_parse_nvidia_smi_output(comma == std::string::npos ? out : out.substr(0, comma));
-            state.celsius = temp_parsed.value_or(-1.0f);
-            if (comma != std::string::npos) {
-                auto usage_parsed = gpu_temp_detail_parse_nvidia_smi_output(out.substr(comma + 1));
-                state.usage_percent = usage_parsed.value_or(-1.0f);
-            }
+            std::istringstream fields(state.nvidia_smi_proc.buffer);
+            std::string temp_field, usage_field, clock_field;
+            std::getline(fields, temp_field, ',');
+            std::getline(fields, usage_field, ',');
+            std::getline(fields, clock_field, ',');
+            state.celsius = gpu_temp_detail_parse_nvidia_smi_output(temp_field).value_or(-1.0f);
+            state.usage_percent = gpu_temp_detail_parse_nvidia_smi_output(usage_field).value_or(-1.0f);
+            auto clock_mhz = gpu_temp_detail_parse_nvidia_smi_output(clock_field);
+            state.clock_ghz = clock_mhz ? *clock_mhz / 1000.0f : -1.0f;
         }
         return;
     }
-    async_process_start(state.nvidia_smi_proc, {"nvidia-smi", "--query-gpu=temperature.gpu,utilization.gpu", "--format=csv,noheader,nounits"});
+    async_process_start(state.nvidia_smi_proc, {"nvidia-smi", "--query-gpu=temperature.gpu,utilization.gpu,clocks.gr", "--format=csv,noheader,nounits"});
     state.nvidia_smi_running = true;
 }
 

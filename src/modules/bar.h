@@ -16,7 +16,7 @@
 #include "modules/bar/panel/bluetooth_panel.h"
 #include "modules/bar/panel/clock_panel.h"
 #include "modules/bar/panel/network_panel.h"
-#include "modules/bar/panel/system_monitor_panel.h"
+#include "modules/bar/panel/resource_panel.h"
 #include "modules/bar/panel/tray_panel.h"
 #include "modules/bar/panel/volume_panel.h"
 #include "modules/bar/widget/dock_widget.h"
@@ -41,7 +41,7 @@ struct BarPerMonitorState {
     TrayPanelState tray_panel;
     TrayMenuState tray_menu;
     BatteryPanelState battery_panel;
-    SystemMonitorPanelState system_monitor_panel;
+    ResourcePanelState resource_panel;
     ClockPanelState clock_panel;
 
     Texture clock_texture;

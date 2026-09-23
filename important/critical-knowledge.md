@@ -145,6 +145,7 @@ Drop an entry once newer knowledge fully supersedes it.
 - **A global "instant" switch inside `AnimationManager` can't safely reach a perpetually self-re-arming `on_complete` chain.** Forcing every step to `0 ms` recurses synchronously inside `tick()` forever; `marquee_scroll` checks the switch itself and skips starting instead.
 - **`MarqueeTextState::marqueeing` means "currently scrolling," not "text overflows the box."** `draw_marquee_text` must clip on `tex->width > w`; gating on `marqueeing` lets long text overflow whenever scrolling is suppressed.
 - **A concave "hug" corner that flares a filled shape out to touch a surface's true corner is the same quarter-circle cutout as an ordinary convex fillet, just resized and repositioned.** `Okinami`'s outer-corner hug reuses `fillet_rgba` unchanged instead of a second mask function; only the tile size and draw position differ.
+- **`icons.h`'s Tabler glyph codepoints can't be safely extended without font-inspection tooling this environment lacks.** No `fontTools`/`otfinfo`/`ttx` installed; a guessed codepoint risks silently rendering the wrong glyph.
 
 ## 3. Wayland protocol
 
@@ -268,7 +269,7 @@ Drop an entry once newer knowledge fully supersedes it.
 - **Every bundled asset needs the installed-path-plus-dev-tree-fallback loading pattern.** A bare relative path resolves against the daemon's cwd, silently failing outside the source tree.
 - **A connect()-to-socket liveness probe is unreliable against a leftover socket file.** Prefer a flock()-guarded lock file, which the kernel releases automatically on process death.
 - **A generically-named `constexpr` constant can collide with an identical name in an unrelated header.** Two modules that never include each other can still land in the same translation unit transitively.
-- **A module can't include another module's header, and `astralia-shell.cpp` can't name a module's function directly.** Cross-module orchestration — IPC verb table, key-dispatch table — lives in `src/app/` instead.
+- **A module can't include another module's header, and `main.cpp` can't name a module's function directly.** Cross-module orchestration — IPC verb table, key-dispatch table — lives in `src/app/` instead.
 - **Removing a UI feature's draw code but leaving its click-kinds, state field, and handlers reads as live.** The settings dropdown kept `open_dropdown_id`, two `PanelClickKind`s, and handler cases after its last caller went.
 - **Bar geometry reads `BarStyleSpec` (`top_margin`, `side_margin`), never `kBarTopMargin` or `kPanelSideMargin` directly.** Each style attaches differently; a leftover constant misplaces panels and hit-testing.
 - **A bar style needs a row in `kBarStyleNames`, `kBarStyleLabels` and `kBarStyleSpecs`, plus a `kBarStyleCount` bump.** A too-short table silently zero-fills, leaving a null label pointer.
@@ -295,3 +296,4 @@ Drop an entry once newer knowledge fully supersedes it.
 - **Sway keeps floating windows under a workspace's `floating_nodes` and scratchpad windows under a `num == -1` workspace.** `walk_tree` recurses both lists and skips negative `num`.
 - **Sway has no global focus history, so `focus_history_id` is derived.** `0` marks the `focused` leaf, tree order ranks the rest; `dock_service` reads only `== 0`.
 - **Sway emits `window::move` for an intra-workspace reorder, unlike Hyprland.** The one-second client re-read in `timer_tick` is Hyprland-only; sway's event path already refreshes.
+- **Intel iGPUs often expose no GPU `hwmon`, yet still have `/sys/class/drm/card*/gt_act_freq_mhz`.** `find_gpu_clock_sensor` falls back to scanning `/sys/class/drm` so the clock still shows.

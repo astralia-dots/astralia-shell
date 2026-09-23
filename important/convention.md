@@ -2,11 +2,11 @@
 
 ## Commenting
 
-- No comments across the code base
+- No comments across the code base.
 - Exceptions:
-  - Namespace comment,
-  - Config comments to group constants together,
-  - License/attribution notices for third-party code
+  - Namespace comment.
+  - Config comments to group constants together.
+  - License/attribution notices for third-party code.
 
 ## Formatting the shell
 
@@ -17,8 +17,8 @@
 
 - A module is `src/modules/<name>.h`+`.cpp` plus, when split, its private components under `src/modules/<name>/`.
 - A module is not allowed to include files from another module, its private components included.
-- A module shall manage its internal works, without bleeding into `astralia-shell.cpp`.
-- `astralia-shell.cpp` shall not include specific components belonging to a module.
+- A module shall manage its internal works, without bleeding into `main.cpp`.
+- `main.cpp` shall not include specific components belonging to a module.
 
 ## Config headers
 

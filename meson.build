@@ -204,7 +204,7 @@ astralia_shell_bar_panels_main_only_sources = [
   'src/modules/bar/panel/bluetooth_panel.cpp',
   'src/modules/bar/panel/volume_panel.cpp',
   'src/modules/bar/panel/battery_panel.cpp',
-  'src/modules/bar/panel/system_monitor_panel.cpp',
+  'src/modules/bar/panel/resource_panel.cpp',
   'src/modules/bar/panel/clock_panel.cpp',
 ]
 
@@ -216,7 +216,7 @@ astralia_shell_bar_main_only_sources = [
   'src/modules/bar/widget/logout_widget.cpp',
   'src/modules/bar/widget/dashboard_widget.cpp',
   'src/modules/bar/widget/dock_widget.cpp',
-  'src/modules/bar/widget/system_monitor_widget.cpp',
+  'src/modules/bar/widget/resource_widget.cpp',
   'src/modules/bar/widget/status_widget.cpp',
 ]
 
@@ -337,7 +337,7 @@ media_plugin = shared_module(
 
 executable(
   'astralia',
-  'src/astralia-shell.cpp',
+  'src/main.cpp',
   astralia_shell_split_sources,
   proto_gen_all,
   include_directories: astralia_shell_inc,
@@ -386,7 +386,7 @@ executable(
 
 astralia_shell_test = executable(
   'astralia-shell-test',
-  'test/astralia-shell-test.cpp',
+  'test/test.cpp',
   astralia_shell_test_split_sources,
   proto_gen_test,
   'test/app/test_config.cpp',

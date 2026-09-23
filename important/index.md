@@ -13,7 +13,7 @@
 - `config.h`+`.cpp`: JSON config loader/saver with atomic write and inotify hot-reload.
 - `single_instance_lock.h`+`.cpp`: `flock()`-based single-instance lock.
 - `ipc.h`+`.cpp`: Astralia Shell's own control socket, client/server request handling; verb table from each module.
-- `key_dispatch.h`+`.cpp`: Routes key events to whichever module owns the surface `KeyboardState::focused_surface` currently names, so `astralia-shell.cpp` never names a module's key handler.
+- `key_dispatch.h`+`.cpp`: Routes key events to whichever module owns the surface `KeyboardState::focused_surface` currently names, so `main.cpp` never names a module's key handler.
 - `monitor_output.h`+`.cpp`: `MonitorOutput` per-output state, monitor create/activate/destroy lifecycle, config-apply orchestration, settings retarget.
 - `module.h`: `Module` interface: per-surface overlay boundary, default no-op virtuals, plus `apply_config` and `on_output_removed` hooks.
 - `per_monitor_module.h`: `PerMonitorModule` interface, the per-surface per-monitor boundary; default no-op virtuals, unnamed params.
@@ -55,7 +55,7 @@
 - `animated_image.h`+`.cpp`: `AnimatedImage` playable still/animated picture; wall-clock frame cycling over the `media_service` `.rgba` cache, `show`/`hide` releasing frame textures while off-screen, ring+circular-crop or aspect-fit draw.
 - `renderer.h`+`.cpp`: GL draw calls, clip-stack and transform-stack management, shared across every surface; `draw_custom` runs a module-owned shader over the shared quad.
 - `rect.h`: Shared `Rect{x,y,w,h}` struct for hit-testing.
-- `panel_chrome.h`+`.cpp`: Shared box/header/card/confirm chrome, click-kind enum, `panel_region_hit`, `panel_draw_card` (bordered titled card, shared by `dashboard` and `system_monitor_panel`), `panel_draw_toggle_switch`, `panel_draw_centered_text`, and `panel_measure_row_actions`/`panel_draw_row_actions` (connect/forget pill or busy label) for on-demand panels.
+- `panel_chrome.h`+`.cpp`: Shared box/header/card/confirm chrome, click-kind enum, `panel_region_hit`, `panel_draw_card` (bordered titled card, shared by `dashboard` and `resource_panel`), `panel_draw_toggle_switch`, `panel_draw_centered_text`, and `panel_measure_row_actions`/`panel_draw_row_actions` (connect/forget pill or busy label) for on-demand panels.
 - `node.h`+`.cpp`: `Node` retained-allocation scene graph with per-frame node pooling; kinds are rect/rounded-rect/texture/rounded-texture/video-texture/group; per-node `rotation`/`scale` about the node centre.
 - `video_texture.h`+`.cpp`: `VideoTexture` RAII `EGLImageKHR`/`GL` handle plus `DrmFrameImport` dma-buf import for zero-copy `VAAPI` playback, and the `EGL_EXT_image_dma_buf_import` cap probe.
 - `gl.h`+`.cpp`: Labelled shader compile/link helpers, reading `assets/shaders/` with an installed-then-dev-tree fallback, plus a `glGetError`-draining `gl_check`.
@@ -71,7 +71,7 @@
 - `text_field.h`+`.cpp`: Shared single-line editable text buffer core, plus every shell input's shared caret, per-character pop, and row-slide animations.
 - `animation.h`+`.cpp`: `AnimationManager`, wall-clock tween/easing engine, owner-tag auto-cancel.
 - `slider.h`+`.cpp`: `draw_slider_track`, shared track+fill+click-region drawing for any slider.
-- `arc_gauge.h`+`.cpp`: Shared cached circular arc-gauge texture plus icon/value/sub-label layout; diameter, stroke, and colors are caller params.
+- `arc_gauge.h`+`.cpp`: Shared cached 10-segment circular arc-gauge texture plus icon/value/sub-label layout; diameter, stroke, and colors are caller params.
 - `progress_bar.h`+`.cpp`: Shared track+fill rounded-bar drawing with a caller-set minimum fill width; no click regions or panel dependency.
 - `dock_row.h`+`.cpp`: Per-window-class icon-texture cache and the icon-row draw with focus opacity and reorder slide; shared by `dock_widget` and `overview`.
 
@@ -85,7 +85,7 @@
 - `mpris_service.h`+`.cpp`: Minimal MPRIS client, async player scan and selection policy, transport control methods.
 - `upower_service.h`+`.cpp`: UPower D-Bus client; single display device for the bar's battery pill, plus full device enumeration for the battery panel.
 - `pipewire_service.h`+`.cpp`: Direct libpipewire client for OSD volume/mic triggers and volume-panel writes; also `DraggedSlider`, tag-to-node-id resolution, and drag-to-volume application.
-- `telemetry_service.h`+`.cpp`: CPU/GPU temperature and usage via hwmon/thermal-zone/`nvidia-smi`, plus CPU frequency, CPU/RAM/disk usage, and network throughput.
+- `telemetry_service.h`+`.cpp`: CPU/GPU temperature and usage via hwmon/thermal-zone/`nvidia-smi`, GPU clock via hwmon `freq1_input`/`gt_act_freq_mhz`/`nvidia-smi`, plus CPU frequency, CPU/RAM/disk usage, and network throughput.
 - `frame_service.h`+`.cpp`: Frame-callback paint pacing shared across surfaces; first paint synchronous, later repaints deferred to `frame_done`.
 - `input_service.h`+`.cpp`: All `wl_seat` input: `wl_keyboard`+xkbcommon key handling, `wl_pointer` hover/click/cursor-shape, and the shared seat-capabilities listener.
 - `text_input_service.h`+`.cpp`: `zwp_text_input_v3` client-role protocol glue for IME composition (fcitx5/ibus), focus tracking, preedit/commit/delete dispatch to the active `TextInputClient`.
@@ -117,7 +117,7 @@
 - `osd.h`+`.cpp`: Volume/brightness popup, per-monitor, auto-hides, reactive to system state changes.
 - `notification.h`+`.cpp`: Notification renderer; rebuilds render/animation state from `notification_service` records, per-monitor card paint, and per-monitor close-button dismissal.
 - `logout.h`+`.cpp`: Logout ring overlay: entry/exit lightning-slash/shockwave choreography, animated centre logo, and its two custom shader effects.
-- `dashboard.h`+`.cpp`: Dashboard singleton state: fixed top-right overlay, IPC/widget-triggered open, scrollable card layout (profile, battery, brightness, volume, media), no resource/temperature cards (moved to `system_monitor_panel`).
+- `dashboard.h`+`.cpp`: Dashboard singleton state: fixed top-right overlay, IPC/widget-triggered open, scrollable card layout (profile, battery, brightness, volume, media), no resource/temperature cards (moved to `resource_panel`).
 - `overview.h`+`.cpp`: `Tab`-switched local or global workspace grid; live thumbnails on Hyprland, icon tiles on Sway; click/drag/keyboard focus-move-close.
 - `wallpaper.h`+`.cpp`: Per-monitor wallpaper surface: static or animated columns per config, cross-transition on image change, shared by `lock` and idle ambient.
 - `idle.h`+`.cpp`: Recent-activity idle clock feeding the per-monitor ambient/screensaver overlay surface; screensaver bounces an `AnimatedImage` logo, freed while not shown.
@@ -180,7 +180,7 @@
 - `volume_panel.h`+`.cpp`: On-demand volume panel: output and input device sliders written through PipeWire.
 - `tray_panel.h`+`.cpp`: On-demand tray grid panel plus its context menu, a separate `xdg_popup` grabbed to the panel layer surface.
 - `battery_panel.h`+`.cpp`: On-demand battery panel: every UPower device with its charge level.
-- `system_monitor_panel.h`+`.cpp`: On-demand system-monitor panel: a vertical arc-gauge card (CPU/GPU/RAM/Disk) beside a CPU/GPU/RAM/Disk/network stats-list card, then full-width CPU (4-column core grid) and GPU temperature cards below.
+- `resource_panel.h`+`.cpp`: On-demand resource panel: side-by-side CPU/GPU cards, each a clock-over-usage gauge above a temperature gauge (over 100°C), then a "Memory" card (RAM/disk `used / cap` bars).
 - `clock_panel.h`+`.cpp`: On-demand centered panel, two columns: today's weekday/month/year/day/ISO-week, and a `6x7` month grid (Monday-first) with its own prev/today/next nav row and today highlighted.
 
 ## src/modules/bar/widget
@@ -192,16 +192,15 @@
 - `logout_widget.h`+`.cpp`: Logout pill that toggles the logout overlay.
 - `status_widget.h`+`.cpp`: One shared capsule of tray, network, Bluetooth, volume, and battery segments, each opening its own panel; volume wheel and peek.
 - `dashboard_widget.h`+`.cpp`: Dashboard pill that toggles the dashboard overlay.
-- `system_monitor_widget.h`+`.cpp`: CPU pill opening the system-monitor panel.
+- `resource_widget.h`+`.cpp`: CPU pill opening the resource panel.
 
 ## src
 
-- `astralia-shell.cpp`: Orchestration, Wayland/EGL bootstrap, poll loop, CLI entry point, daemonize/debug/`start-lock`/IPC-client dispatch.
+- `main.cpp`: Orchestration, Wayland/EGL bootstrap, poll loop, CLI entry point, daemonize/debug/`start-lock`/IPC-client dispatch.
 
 ## test
 
-- `astralia-shell-test.cpp`: Test runner `main`, calling every test function from one `astralia-shell-test` binary.
-- `astralia-shell-test.hpp`: Declarations of every test function the runner calls.
+- `test.cpp`: Test runner: declares every test function and its `main` calls each from one `astralia-shell-test` binary.
 
 ## test/app
 
@@ -236,7 +235,7 @@
 ## test/system
 
 - `test_rfkill.cpp`: `sysfs` string/uint readers behind the `rfkill` soft-block check.
-- `test_cpu_temp.cpp`: CPU `hwmon`/thermal-zone name matching and core-label indexing.
+- `test_cpu_temp.cpp`: CPU `hwmon`/thermal-zone name matching.
 - `test_gpu_temp.cpp`: GPU `hwmon` name matching and `nvidia-smi` output parsing.
 - `test_system_stats.cpp`: CPU, RAM, disk, and network throughput stats.
 
