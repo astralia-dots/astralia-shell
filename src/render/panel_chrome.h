@@ -36,6 +36,16 @@ constexpr float kPanelTrailingSpacerHeight = 4.0f;
 constexpr float kPanelSubLabelHeight = 20.0f;
 constexpr float kPanelSideMargin = 20.0f;
 
+// card chrome
+constexpr float kCardBorderWidth = 2.0f;
+constexpr float kCardTopPadding = 10.0f;
+constexpr float kCardBottomPadding = 12.0f;
+constexpr float kCardHorizontalPadding = 12.0f;
+constexpr float kCardHeaderHeight = 32.0f;
+constexpr float kCardHeaderContentGap = 8.0f;
+constexpr float kCardRadius = 12.0f;
+constexpr float kCardGatedHeight = 0.0f;
+
 inline constexpr float kPanelNoBorder[4] = {0, 0, 0, 0};
 
 enum class PanelClickKind {
@@ -89,6 +99,16 @@ const Texture *cached_text_large(TextureCache &cache, const std::string &s, int3
 } // namespace panel_chrome_detail
 
 Node *panel_draw_box(Node *parent, float x, float y, float w, float h, float border_width = metrics::border_thin);
+
+struct PanelCardChrome {
+    float content_x;
+    float content_y;
+    float box_h;
+};
+
+float panel_card_box_height(float content_h);
+
+PanelCardChrome panel_draw_card(Node *root, TextureCache &tcache, int32_t scale, float x, float y, float w, float content_h, const std::string &title);
 
 float panel_draw_header(Node *parent, TextureCache &cache, int32_t scale, const std::string &title, float panel_x, float panel_y, float panel_w, std::vector<PanelClickRegion> &click_regions);
 

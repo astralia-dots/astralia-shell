@@ -30,6 +30,25 @@ Node *panel_draw_box(Node *parent, float x, float y, float w, float h, float bor
     return node_add_rrect(parent, x, y, w, h, metrics::radius_md, border_width, rgba(palette::overlay), rgba(palette::accent));
 }
 
+float panel_card_box_height(float content_h) {
+    return kCardTopPadding + kCardHeaderHeight + kCardHeaderContentGap + content_h + kCardBottomPadding;
+}
+
+PanelCardChrome panel_draw_card(Node *root, TextureCache &tcache, int32_t scale, float x, float y, float w, float content_h, const std::string &title) {
+    using namespace panel_chrome_detail;
+    float box_h = panel_card_box_height(content_h);
+    node_add_rrect(root, x, y, w, box_h, kCardRadius, kCardBorderWidth, rgba(palette::overlay), rgba(palette::accent));
+
+    float header_y = y + kCardTopPadding;
+    const Texture *title_tex = cached_text(tcache, title, scale);
+    if (title_tex)
+        node_add_texture(root, x + kCardHorizontalPadding, header_y + (kCardHeaderHeight - title_tex->height) / 2.0f, *title_tex, rgba(palette::text));
+
+    float content_x = x + kCardHorizontalPadding;
+    float content_y = header_y + kCardHeaderHeight + kCardHeaderContentGap;
+    return {content_x, content_y, box_h};
+}
+
 bool panel_region_hit(const std::vector<PanelClickRegion> &click_regions, double x, double y) {
     for (const PanelClickRegion &region : click_regions) {
         const Rect &r = region.rect;

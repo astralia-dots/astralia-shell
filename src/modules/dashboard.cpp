@@ -9,7 +9,6 @@
 
 #include "modules/dashboard.h"
 
-#include "render/arc_gauge.h"
 #include "render/gl.h"
 #include "render/icon.h"
 #include "render/icons.h"
@@ -24,14 +23,7 @@
 
 #include "service/mpris_service.h"
 #include "service/pipewire_service.h"
-#include "service/telemetry_service.h"
 #include "service/upower_service.h"
-
-constexpr Color kGaugeColorCpu = color(kGaugeColorCpuHex);
-constexpr Color kGaugeColorGpu = color(kGaugeColorGpuHex);
-constexpr Color kGaugeColorRam = color(kGaugeColorRamHex);
-constexpr Color kGaugeColorDisk = color(kGaugeColorDiskHex);
-constexpr Color kTempWarnColor = color(kTempWarnColorHex);
 
 bool dashboard_create_surface(DashboardState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output) {
     return overlay_panel_create_surface(state.base, compositor, layer_shell, "astralia-shell-dashboard", output);
@@ -84,9 +76,6 @@ std::vector<IpcHandler> dashboard_ipc_handlers(DashboardState &dashboard, Waylan
                  MonitorOutput *target = app_detail::active_target_monitor(state);
                  if (target && (target->output.wl != dashboard.bound_output || !dashboard.base.layer_surface))
                      dashboard_retarget(dashboard, state.compositor, state.layer_shell, state.display, state.renderer, state, state.egl_display, state.egl_config, state.egl_context, target->output.wl, target->output.name.c_str());
-                 cpu_temp_poll(state.cpu_temp);
-                 system_stats_poll(state.system_stats);
-                 gpu_temp_poll(state.gpu_temp);
              }
              dashboard_toggle(dashboard);
          },
@@ -220,26 +209,6 @@ using namespace panel_chrome_detail;
 
 namespace {
 
-struct CardChrome {
-    float content_x;
-    float content_y;
-    float box_h;
-};
-
-CardChrome card_chrome_draw(Node *root, TextureCache &tcache, int32_t scale, float x, float y, float w, float content_h, const std::string &title) {
-    float box_h = kCardTopPadding + kCardHeaderHeight + kCardHeaderContentGap + content_h + kCardBottomPadding;
-    node_add_rrect(root, x, y, w, box_h, kCardRadius, kCardBorderWidth, rgba(palette::overlay), rgba(palette::accent));
-
-    float header_y = y + kCardTopPadding;
-    const Texture *title_tex = cached_text(tcache, title, scale);
-    if (title_tex)
-        node_add_texture(root, x + kCardHorizontalPadding, header_y + (kCardHeaderHeight - title_tex->height) / 2.0f, *title_tex, rgba(palette::text));
-
-    float content_x = x + kCardHorizontalPadding;
-    float content_y = header_y + kCardHeaderHeight + kCardHeaderContentGap;
-    return {content_x, content_y, box_h};
-}
-
 float draw_profile_card(Node *root, TextureCache &tcache, int32_t scale, float x, float y, float w, AnimatedImage &profile_pic, std::vector<PanelClickRegion> &regions) {
     const Texture *name_tex = cached_text(tcache, user_info::username(), scale);
     const Texture *uptime_tex =
@@ -308,8 +277,8 @@ float draw_battery_card(Node *root, TextureCache &tcache, int32_t scale, float x
         std::max(icon_tex ? icon_tex->height : 0.0f, label_tex ? static_cast<float>(label_tex->height) : 0.0f);
     float content_h = header_h + kBatteryRowSpacing + kBatteryBarHeight;
 
-    CardChrome chrome =
-        card_chrome_draw(root, tcache, scale, x, y, w, content_h, "Battery");
+    PanelCardChrome chrome =
+        panel_draw_card(root, tcache, scale, x, y, w, content_h, "Battery");
     float cx = chrome.content_x, cy = chrome.content_y;
     float content_w = w - 2 * kCardHorizontalPadding;
 
@@ -327,128 +296,6 @@ float draw_battery_card(Node *root, TextureCache &tcache, int32_t scale, float x
     return chrome.box_h;
 }
 
-const Color &temp_color(float celsius) {
-    if (celsius >= 85.0f)
-        return palette::critical;
-    if (celsius >= 70.0f)
-        return kTempWarnColor;
-    return palette::text;
-}
-
-float draw_system_stats_card(Node *root, TextureCache &tcache, int32_t scale, float x, float y, float w, const SystemStatsState &stats, const GpuTempState &gpu_temp) {
-    bool show_gpu = gpu_stats_available(gpu_temp);
-    bool show_disk = stats.disk_pct >= 0.0f;
-    int gauge_count = 2 + (show_gpu ? 1 : 0) + (show_disk ? 1 : 0);
-    float total_gauge_w = kGaugeDiameter * gauge_count;
-    float content_w = w - 2 * kCardHorizontalPadding;
-    float gap = kStatsColumnGap;
-    const Texture *label_h_tex = cached_text(tcache, "CPU", scale);
-    float content_h = kGaugeDiameter + kStatsGaugeLabelSpacing + (label_h_tex ? label_h_tex->height : 0.0f);
-
-    CardChrome chrome =
-        card_chrome_draw(root, tcache, scale, x, y, w, content_h, "Resources");
-    float cx = chrome.content_x, cy = chrome.content_y;
-
-    float row_w = total_gauge_w + gap * (gauge_count - 1);
-    float gx = cx + (content_w - row_w) / 2.0f;
-
-    auto gauge = [&](float gx01, const Color &color, const char *icon_glyph, const std::string &value_label, const char *label) {
-        const Texture *icon_tex = cached_icon(tcache, icon_glyph, scale);
-        const Texture *value_tex = cached_text_clipped(tcache, value_label, scale, static_cast<int>(kGaugeDiameter));
-        const Texture *sub_tex = cached_text(tcache, label, scale);
-        return draw_arc_gauge(root, tcache, scale, gx, cy, kGaugeDiameter, kGaugeStroke, gx01, color, icon_tex, rgba(color), value_tex, rgba(palette::text), sub_tex, rgba(palette::text_dim), kGaugeIconValueGap, kStatsGaugeLabelSpacing);
-    };
-
-    float cpu01 = std::max(0.0f, stats.cpu_usage);
-    gauge(cpu01, kGaugeColorCpu, icon::cpu, stats.cpu_usage >= 0.0f ? std::to_string(static_cast<int>(cpu01 * 100.0f)) + "%" : "--", "CPU");
-    gx += kGaugeDiameter + gap;
-
-    if (show_gpu) {
-        float gpu01 = std::max(0.0f, gpu_temp.usage_percent / 100.0f);
-        gauge(gpu01, kGaugeColorGpu, icon::gpu, std::to_string(static_cast<int>(gpu_temp.usage_percent)) + "%", "GPU");
-        gx += kGaugeDiameter + gap;
-    }
-
-    float mem01 = std::max(0.0f, stats.mem_usage);
-    gauge(mem01, kGaugeColorRam, icon::settings, stats.mem_usage >= 0.0f ? std::to_string(static_cast<int>(mem01 * 100.0f)) + "%" : "--", "RAM");
-    gx += kGaugeDiameter + gap;
-
-    if (show_disk) {
-        float disk01 = std::clamp(stats.disk_pct / 100.0f, 0.0f, 1.0f);
-        gauge(disk01, kGaugeColorDisk, icon::folder, std::to_string(static_cast<int>(stats.disk_pct)) + "%", "DISK");
-    }
-
-    return chrome.box_h;
-}
-
-float draw_cpu_temp_card(Node *root, TextureCache &tcache, int32_t scale, float x, float y, float w, const CpuTempState &cpu_temp) {
-    std::vector<const CpuCoreTemp *> cores;
-    for (const CpuCoreTemp &core : cpu_temp.cores)
-        if (core.celsius >= 0.0f)
-            cores.push_back(&core);
-
-    std::string headline =
-        (cpu_temp_available(cpu_temp) ? std::to_string(static_cast<int>(cpu_temp.celsius)) : "--") +
-        "°C";
-    const Texture *headline_tex = cached_text_large(tcache, headline, scale);
-    float headline_h =
-        std::max(headline_tex ? static_cast<float>(headline_tex->height) : 0.0f, kTempRowHeight);
-
-    float content_w = w - 2 * kCardHorizontalPadding;
-    float cell_w = (content_w - (kCpuCoreColumns - 1) * kCpuCoreColumnSpacing) / kCpuCoreColumns;
-    int rows = cores.empty() ? 0 : static_cast<int>((cores.size() + kCpuCoreColumns - 1) / kCpuCoreColumns);
-    float grid_h = cores.empty() ? 0.0f : kCpuTempGridTopMargin + rows * kCpuCoreItemHeight + std::max(0, rows - 1) * kCpuCoreRowSpacing;
-    float content_h = headline_h + grid_h;
-
-    CardChrome chrome = card_chrome_draw(root, tcache, scale, x, y, w, content_h, "CPU Temperature");
-    float cx = chrome.content_x, cy = chrome.content_y;
-
-    if (headline_tex)
-        node_add_texture(root, cx, cy, *headline_tex, rgba(temp_color(cpu_temp.celsius)));
-
-    float grid_y = cy + headline_h + kCpuTempGridTopMargin;
-    for (size_t i = 0; i < cores.size(); ++i) {
-        const CpuCoreTemp &core = *cores[i];
-        int col = static_cast<int>(i) % kCpuCoreColumns;
-        int row = static_cast<int>(i) / kCpuCoreColumns;
-        float cell_x = cx + col * (cell_w + kCpuCoreColumnSpacing);
-        float cell_y = grid_y + row * (kCpuCoreItemHeight + kCpuCoreRowSpacing);
-        node_add_rrect(root, cell_x, cell_y, cell_w, kCpuCoreItemHeight, kCpuCoreItemRadius, 0.0f, rgba(palette::text_alpha08), kPanelNoBorder);
-
-        const Texture *name_tex =
-            cached_text(tcache, "Core " + std::to_string(i), scale);
-        if (name_tex)
-            node_add_texture(root, cell_x + kCpuCoreTextMargin, cell_y + (kCpuCoreItemHeight - name_tex->height) / 2.0f, *name_tex, rgba(palette::text_dim));
-
-        std::string value_label =
-            std::to_string(static_cast<int>(core.celsius)) + "°C";
-        const Texture *value_tex = cached_text(tcache, value_label, scale);
-        if (value_tex)
-            node_add_texture(root, cell_x + cell_w - kCpuCoreTextMargin - value_tex->width, cell_y + (kCpuCoreItemHeight - value_tex->height) / 2.0f, *value_tex, rgba(temp_color(core.celsius)));
-    }
-
-    return chrome.box_h;
-}
-
-float draw_gpu_temp_card(Node *root, TextureCache &tcache, int32_t scale, float x, float y, float w, const GpuTempState &gpu_temp) {
-    if (!gpu_temp_available(gpu_temp))
-        return kCardGatedHeight;
-
-    std::string headline =
-        std::to_string(static_cast<int>(gpu_temp.celsius)) + "°C";
-    const Texture *headline_tex = cached_text_large(tcache, headline, scale);
-    float content_h =
-        std::max(headline_tex ? static_cast<float>(headline_tex->height) : 0.0f, kTempRowHeight);
-
-    CardChrome chrome = card_chrome_draw(root, tcache, scale, x, y, w, content_h, "GPU Temperature");
-    float cx = chrome.content_x, cy = chrome.content_y;
-
-    if (headline_tex)
-        node_add_texture(root, cx, cy, *headline_tex, rgba(temp_color(gpu_temp.celsius)));
-
-    return chrome.box_h;
-}
-
 Rect draw_media_button(Node *root, TextureCache &tcache, int32_t scale, float x, float y, float size, float radius, const char *glyph, std::vector<PanelClickRegion> &regions, PanelClickKind kind) {
     Rect rect = {x, y, size, size};
     node_add_rrect(root, rect.x, rect.y, rect.w, rect.h, radius, 0.0f, rgba(palette::overlay), kPanelNoBorder);
@@ -462,8 +309,8 @@ Rect draw_media_button(Node *root, TextureCache &tcache, int32_t scale, float x,
 float draw_media_card(Node *root, TextureCache &tcache, int32_t scale, float x, float y, float w, const MprisState &mpris, std::unordered_map<std::string, Texture> &art_cache, AnimationManager &anim, MarqueeTextState &title_marquee, MarqueeTextState &artist_marquee, std::vector<PanelClickRegion> &regions) {
     float content_h = kMediaThumbSize + kMediaProgressTopMargin + kMediaProgressRowHeight + kMediaCtrlTopMargin + kMediaCtrlRowHeight;
 
-    CardChrome chrome =
-        card_chrome_draw(root, tcache, scale, x, y, w, content_h, "Media");
+    PanelCardChrome chrome =
+        panel_draw_card(root, tcache, scale, x, y, w, content_h, "Media");
     float cx = chrome.content_x, cy = chrome.content_y;
     float content_w = w - 2 * kCardHorizontalPadding;
 
@@ -582,8 +429,8 @@ float draw_volume_card(Node *root, TextureCache &tcache, int32_t scale, float x,
     float row_h = (probe ? probe->height : 0.0f) + kVolumeRowSpacing + kVolumeSliderRowHeight;
     float content_h = 2 * row_h + kVolumeCardSpacing;
 
-    CardChrome chrome =
-        card_chrome_draw(root, tcache, scale, x, y, w, content_h, "Volume");
+    PanelCardChrome chrome =
+        panel_draw_card(root, tcache, scale, x, y, w, content_h, "Volume");
     float cx = chrome.content_x, cy = chrome.content_y;
     float content_w = w - 2 * kCardHorizontalPadding;
 
@@ -608,8 +455,8 @@ float draw_brightness_card(Node *root, TextureCache &tcache, int32_t scale, floa
     float icon_h = icon_tex ? icon_tex->height : 0.0f;
     float content_h = std::max(icon_h, kBrightnessSliderRowHeight);
 
-    CardChrome chrome =
-        card_chrome_draw(root, tcache, scale, x, y, w, content_h, "Brightness");
+    PanelCardChrome chrome =
+        panel_draw_card(root, tcache, scale, x, y, w, content_h, "Brightness");
     float cx = chrome.content_x, cy = chrome.content_y;
     float content_w = w - 2 * kCardHorizontalPadding;
 
@@ -701,18 +548,6 @@ void dashboard_paint(DashboardState &state, WaylandState &app, float bar_height,
 
     float media_y = content_y + kPanelColumnSpacing;
     content_y = media_y + draw_media_card(scroll_content, state.tcache, scale, panel_x, media_y, panel_w, app.mpris, state.art_cache, state.base.animations, state.media_title_marquee, state.media_artist_marquee, state.click_regions);
-
-    float stats_y = content_y + kPanelColumnSpacing;
-    content_y = stats_y + draw_system_stats_card(scroll_content, state.tcache, scale, panel_x, stats_y, panel_w, app.system_stats, app.gpu_temp);
-
-    float cpu_y = content_y + kPanelColumnSpacing;
-    content_y =
-        cpu_y + draw_cpu_temp_card(scroll_content, state.tcache, scale, panel_x, cpu_y, panel_w, app.cpu_temp);
-
-    float gpu_y = content_y + kPanelColumnSpacing;
-    float gpu_h = draw_gpu_temp_card(scroll_content, state.tcache, scale, panel_x, gpu_y, panel_w, app.gpu_temp);
-    if (gpu_h > 0.0f)
-        content_y = gpu_y + gpu_h;
 
     state.content_height = content_y - panel_y;
     state.visible_height = visible_height;

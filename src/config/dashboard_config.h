@@ -1,15 +1,5 @@
 #pragma once
 
-// card chrome
-constexpr float kCardBorderWidth = 2.0f;
-constexpr float kCardTopPadding = 10.0f;
-constexpr float kCardBottomPadding = 12.0f;
-constexpr float kCardHorizontalPadding = 12.0f;
-constexpr float kCardHeaderHeight = 32.0f;
-constexpr float kCardHeaderContentGap = 8.0f;
-constexpr float kCardRadius = 12.0f;
-constexpr float kCardGatedHeight = 0.0f;
-
 // panel layout
 constexpr float kDashboardPanelWidth = 360.0f;
 constexpr float kPanelColumnSpacing = 10.0f;
@@ -30,24 +20,6 @@ constexpr float kBatteryBarHeight = 6.0f;
 constexpr float kBatteryBarRadius = 3.0f;
 constexpr float kBatteryHeaderSpacing = 10.0f;
 constexpr float kBatteryRowSpacing = 8.0f;
-
-// gauge & stats layout
-constexpr float kGaugeDiameter = 68.0f;
-constexpr float kGaugeStroke = 6.0f;
-constexpr float kGaugeIconValueGap = 2.0f;
-constexpr float kStatsColumnGap = 16.0f;
-constexpr float kStatsGaugeLabelSpacing = 4.0f;
-constexpr float kStatsSpacing = 10.0f;
-
-// cpu temp grid
-constexpr float kTempRowHeight = 26.0f;
-constexpr int kCpuCoreColumns = 2;
-constexpr float kCpuCoreColumnSpacing = 8.0f;
-constexpr float kCpuCoreItemHeight = 24.0f;
-constexpr float kCpuCoreItemRadius = 6.0f;
-constexpr float kCpuCoreRowSpacing = 6.0f;
-constexpr float kCpuCoreTextMargin = 8.0f;
-constexpr float kCpuTempGridTopMargin = 8.0f;
 
 // media
 constexpr float kMediaThumbSize = 72.0f;
@@ -84,10 +56,3 @@ constexpr float kBrightnessSliderPctGap = 8.0f;
 constexpr float kBrightnessPctTextWidth = 40.0f;
 constexpr float kBrightnessIconGap = 10.0f;
 constexpr float kBrightnessKeyStep = 0.01f;
-
-// gauge colors
-constexpr const char *kGaugeColorCpuHex = "#ef4444";
-constexpr const char *kGaugeColorGpuHex = "#a855f7";
-constexpr const char *kGaugeColorRamHex = "#3b82f6";
-constexpr const char *kGaugeColorDiskHex = "#22c55e";
-constexpr const char *kTempWarnColorHex = "#f97316";

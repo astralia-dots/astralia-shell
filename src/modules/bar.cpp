@@ -712,7 +712,7 @@ void BarPerMonitorModule::handle_scroll(WaylandState &app, MonitorOutput &mon, w
         battery_panel_handle_scroll(state.battery_panel, app.upower, dy);
         battery_panel_dispatch(app);
     } else if (surface == state.system_monitor_panel.base.surface) {
-        system_monitor_panel_handle_scroll(state.system_monitor_panel, app.gpu_temp, dy);
+        system_monitor_panel_handle_scroll(state.system_monitor_panel, app.cpu_temp, app.gpu_temp, app.system_stats, dy);
         system_monitor_panel_dispatch(app);
     } else if (surface == mon.surface && bar_detail::hit_test_pills(state.capsule, app.pointer, mon.surface) == PillId::Volume) {
         bar_detail::volume_pill_handle_wheel(mon, dy);

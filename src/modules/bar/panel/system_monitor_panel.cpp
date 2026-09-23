@@ -4,26 +4,82 @@
 
 #include "modules/bar/panel/system_monitor_panel.h"
 
+#include "render/arc_gauge.h"
 #include "render/gl.h"
 #include "render/icon.h"
 #include "render/icons.h"
 #include "render/layer_surface.h"
 #include "render/palette.h"
 #include "render/panel_scroll.h"
-#include "render/progress_bar.h"
 #include "render/text.h"
+
+constexpr Color kGaugeColorCpu = color(kGaugeColorCpuHex);
+constexpr Color kGaugeColorGpu = color(kGaugeColorGpuHex);
+constexpr Color kGaugeColorRam = color(kGaugeColorRamHex);
+constexpr Color kGaugeColorDisk = color(kGaugeColorDiskHex);
+constexpr Color kTempWarnColor = color(kTempWarnColorHex);
+
+using namespace panel_chrome_detail;
 
 namespace system_monitor_panel_detail {
 
-std::vector<PanelRow> build_rows(const GpuTempState &gpu) {
+namespace {
+
+const Color &temp_color(float celsius) {
+    if (celsius >= 85.0f)
+        return palette::critical;
+    if (celsius >= 70.0f)
+        return kTempWarnColor;
+    return palette::text;
+}
+
+float measure_resources_content_h(TextureCache &tcache, int32_t scale, const SystemStatsState &stats, const GpuTempState &gpu_temp) {
+    bool show_gpu = gpu_stats_available(gpu_temp);
+    bool show_disk = stats.disk_pct >= 0.0f;
+    int gauge_count = 2 + (show_gpu ? 1 : 0) + (show_disk ? 1 : 0);
+    const Texture *label_h_tex = cached_text(tcache, "CPU", scale);
+    float label_h = label_h_tex ? static_cast<float>(label_h_tex->height) : 0.0f;
+    float gauge_unit_h = kGaugeDiameter + kStatsGaugeLabelSpacing + label_h;
+    int rows = (gauge_count + 1) / 2;
+    return rows * gauge_unit_h + (rows - 1) * kGaugeColumnGap;
+}
+
+float measure_cpu_temp_content_h(TextureCache &tcache, int32_t scale, const CpuTempState &cpu_temp) {
+    int core_count = 0;
+    for (const CpuCoreTemp &core : cpu_temp.cores)
+        if (core.celsius >= 0.0f)
+            ++core_count;
+
+    std::string headline =
+        (cpu_temp_available(cpu_temp) ? std::to_string(static_cast<int>(cpu_temp.celsius)) : "--") +
+        "°C";
+    const Texture *headline_tex = cached_text_large(tcache, headline, scale);
+    float headline_h =
+        std::max(headline_tex ? static_cast<float>(headline_tex->height) : 0.0f, kTempRowHeight);
+
+    int rows = core_count == 0 ? 0 : (core_count + kCpuCoreColumns - 1) / kCpuCoreColumns;
+    float grid_h = core_count == 0 ? 0.0f : kCpuTempGridTopMargin + rows * kCpuCoreItemHeight + std::max(0, rows - 1) * kCpuCoreRowSpacing;
+    return headline_h + grid_h;
+}
+
+float measure_gpu_temp_content_h(TextureCache &tcache, int32_t scale, const GpuTempState &gpu_temp) {
+    std::string headline = std::to_string(static_cast<int>(gpu_temp.celsius)) + "°C";
+    const Texture *headline_tex = cached_text_large(tcache, headline, scale);
+    return std::max(headline_tex ? static_cast<float>(headline_tex->height) : 0.0f, kTempRowHeight);
+}
+
+} // namespace
+
+std::vector<PanelRow> build_rows(const CpuTempState &cpu, const GpuTempState &gpu, const SystemStatsState &stats, TextureCache &tcache, int32_t scale) {
     std::vector<PanelRow> rows;
-    rows.push_back({RowKind::Cpu, kSysMonRowHeight});
-    if (gpu_stats_available(gpu))
-        rows.push_back({RowKind::Gpu, kSysMonRowHeight});
-    rows.push_back({RowKind::Ram, kSysMonRowHeight});
-    rows.push_back({RowKind::Disk, kSysMonRowHeight});
-    rows.push_back({RowKind::Divider, 1.0f});
-    rows.push_back({RowKind::Network, kSysMonNetRowHeight});
+
+    rows.push_back({RowKind::ResourcesCard, panel_card_box_height(measure_resources_content_h(tcache, scale, stats, gpu))});
+
+    rows.push_back({RowKind::CpuTempCard, panel_card_box_height(measure_cpu_temp_content_h(tcache, scale, cpu))});
+
+    if (gpu_temp_available(gpu))
+        rows.push_back({RowKind::GpuTempCard, panel_card_box_height(measure_gpu_temp_content_h(tcache, scale, gpu))});
+
     rows.push_back({RowKind::Spacer, kPanelTrailingSpacerHeight});
     return rows;
 }
@@ -72,9 +128,10 @@ void system_monitor_panel_toggle(SystemMonitorPanelState &state, float pill_cent
             panel_reveal_close(state.reveal, state.base, [&state] { state.locked_center_x = -1.0f; }); });
 }
 
-void system_monitor_panel_handle_scroll(SystemMonitorPanelState &state, const GpuTempState &gpu, double dy) {
+void system_monitor_panel_handle_scroll(SystemMonitorPanelState &state, const CpuTempState &cpu, const GpuTempState &gpu, const SystemStatsState &stats, double dy) {
+    using namespace system_monitor_panel_detail;
     state.scroll_offset =
-        panel_clamp_scroll(state.scroll_offset, static_cast<float>(dy), system_monitor_panel_detail::content_height(system_monitor_panel_detail::build_rows(gpu)), state.visible_content_height);
+        panel_clamp_scroll(state.scroll_offset, static_cast<float>(dy), content_height(build_rows(cpu, gpu, stats, state.tcache, state.base.output_scale.scale)), state.visible_content_height);
 }
 
 void system_monitor_panel_handle_click(SystemMonitorPanelState &state, double px, double py) {
@@ -103,18 +160,133 @@ using namespace system_monitor_panel_detail;
 
 namespace {
 
-const float *stat_bar_color(float pct) {
-    if (pct > 0.9f)
-        return rgba(palette::critical);
-    if (pct > 0.7f)
-        return rgba(palette::warn);
-    return rgba(palette::accent);
+struct GaugeSpec {
+    float value01;
+    Color color;
+    const char *icon_glyph;
+    std::string value_label;
+    const char *label;
+};
+
+float draw_resources_card(Node *root, TextureCache &tcache, int32_t scale, float x, float y, float w, const SystemStatsState &stats, const GpuTempState &gpu_temp, float origin_x, float origin_y) {
+    x -= origin_x;
+    y -= origin_y;
+
+    const Texture *label_h_tex = cached_text(tcache, "CPU", scale);
+    float label_h = label_h_tex ? static_cast<float>(label_h_tex->height) : 0.0f;
+    float gauge_unit_h = kGaugeDiameter + kStatsGaugeLabelSpacing + label_h;
+    float content_h = measure_resources_content_h(tcache, scale, stats, gpu_temp);
+
+    PanelCardChrome chrome = panel_draw_card(root, tcache, scale, x, y, w, content_h, "Resources");
+    float cx = chrome.content_x, cy = chrome.content_y;
+    float content_w = w - 2 * kCardHorizontalPadding;
+    float col_w = (content_w - kGaugeColumnGap) / 2.0f;
+
+    std::vector<GaugeSpec> gauges;
+    float cpu01 = std::max(0.0f, stats.cpu_usage);
+    gauges.push_back({cpu01, kGaugeColorCpu, icon::cpu, stats.cpu_usage >= 0.0f ? std::to_string(static_cast<int>(cpu01 * 100.0f)) + "%" : "--", "CPU"});
+
+    if (gpu_stats_available(gpu_temp)) {
+        float gpu01 = std::max(0.0f, gpu_temp.usage_percent / 100.0f);
+        gauges.push_back({gpu01, kGaugeColorGpu, icon::gpu, std::to_string(static_cast<int>(gpu_temp.usage_percent)) + "%", "GPU"});
+    }
+
+    float mem01 = std::max(0.0f, stats.mem_usage);
+    gauges.push_back({mem01, kGaugeColorRam, icon::settings, stats.mem_usage >= 0.0f ? std::to_string(static_cast<int>(mem01 * 100.0f)) + "%" : "--", "RAM"});
+
+    if (stats.disk_pct >= 0.0f) {
+        float disk01 = std::clamp(stats.disk_pct / 100.0f, 0.0f, 1.0f);
+        gauges.push_back({disk01, kGaugeColorDisk, icon::folder, std::to_string(static_cast<int>(stats.disk_pct)) + "%", "DISK"});
+    }
+
+    for (size_t i = 0; i < gauges.size(); ++i) {
+        const GaugeSpec &g = gauges[i];
+        int col = static_cast<int>(i) % 2;
+        int row = static_cast<int>(i) / 2;
+        float col_x = cx + col * (col_w + kGaugeColumnGap);
+        float gauge_x = col_x + (col_w - kGaugeDiameter) / 2.0f;
+        float gauge_y = cy + row * (gauge_unit_h + kGaugeColumnGap);
+
+        const Texture *icon_tex = cached_icon(tcache, g.icon_glyph, scale);
+        const Texture *value_tex = cached_text_clipped(tcache, g.value_label, scale, static_cast<int>(kGaugeDiameter));
+        const Texture *sub_tex = cached_text(tcache, g.label, scale);
+        draw_arc_gauge(root, tcache, scale, gauge_x, gauge_y, kGaugeDiameter, kGaugeStroke, g.value01, g.color, icon_tex, rgba(g.color), value_tex, rgba(palette::text), sub_tex, rgba(palette::text_dim), kGaugeIconValueGap, kStatsGaugeLabelSpacing);
+    }
+
+    return chrome.box_h;
+}
+
+float draw_cpu_temp_card(Node *root, TextureCache &tcache, int32_t scale, float x, float y, float w, const CpuTempState &cpu_temp, float origin_x, float origin_y) {
+    x -= origin_x;
+    y -= origin_y;
+
+    std::vector<const CpuCoreTemp *> cores;
+    for (const CpuCoreTemp &core : cpu_temp.cores)
+        if (core.celsius >= 0.0f)
+            cores.push_back(&core);
+
+    std::string headline =
+        (cpu_temp_available(cpu_temp) ? std::to_string(static_cast<int>(cpu_temp.celsius)) : "--") +
+        "°C";
+    const Texture *headline_tex = cached_text_large(tcache, headline, scale);
+    float headline_h =
+        std::max(headline_tex ? static_cast<float>(headline_tex->height) : 0.0f, kTempRowHeight);
+
+    float content_w = w - 2 * kCardHorizontalPadding;
+    float cell_w = (content_w - (kCpuCoreColumns - 1) * kCpuCoreColumnSpacing) / kCpuCoreColumns;
+    float content_h = measure_cpu_temp_content_h(tcache, scale, cpu_temp);
+
+    PanelCardChrome chrome = panel_draw_card(root, tcache, scale, x, y, w, content_h, "CPU Temperature");
+    float cx = chrome.content_x, cy = chrome.content_y;
+
+    if (headline_tex)
+        node_add_texture(root, cx, cy, *headline_tex, rgba(temp_color(cpu_temp.celsius)));
+
+    float grid_y = cy + headline_h + kCpuTempGridTopMargin;
+    for (size_t i = 0; i < cores.size(); ++i) {
+        const CpuCoreTemp &core = *cores[i];
+        int col = static_cast<int>(i) % kCpuCoreColumns;
+        int row = static_cast<int>(i) / kCpuCoreColumns;
+        float cell_x = cx + col * (cell_w + kCpuCoreColumnSpacing);
+        float cell_y = grid_y + row * (kCpuCoreItemHeight + kCpuCoreRowSpacing);
+        node_add_rrect(root, cell_x, cell_y, cell_w, kCpuCoreItemHeight, kCpuCoreItemRadius, 0.0f, rgba(palette::text_alpha08), kPanelNoBorder);
+
+        const Texture *name_tex =
+            cached_text(tcache, "#" + std::to_string(i), scale);
+        if (name_tex)
+            node_add_texture(root, cell_x + kCpuCoreTextMargin, cell_y + (kCpuCoreItemHeight - name_tex->height) / 2.0f, *name_tex, rgba(palette::text_dim));
+
+        std::string value_label =
+            std::to_string(static_cast<int>(core.celsius)) + "°C";
+        const Texture *value_tex = cached_text(tcache, value_label, scale);
+        if (value_tex)
+            node_add_texture(root, cell_x + cell_w - kCpuCoreTextMargin - value_tex->width, cell_y + (kCpuCoreItemHeight - value_tex->height) / 2.0f, *value_tex, rgba(temp_color(core.celsius)));
+    }
+
+    return chrome.box_h;
+}
+
+float draw_gpu_temp_card(Node *root, TextureCache &tcache, int32_t scale, float x, float y, float w, const GpuTempState &gpu_temp, float origin_x, float origin_y) {
+    x -= origin_x;
+    y -= origin_y;
+
+    std::string headline =
+        std::to_string(static_cast<int>(gpu_temp.celsius)) + "°C";
+    const Texture *headline_tex = cached_text_large(tcache, headline, scale);
+    float content_h = measure_gpu_temp_content_h(tcache, scale, gpu_temp);
+
+    PanelCardChrome chrome = panel_draw_card(root, tcache, scale, x, y, w, content_h, "GPU Temperature");
+    float cx = chrome.content_x, cy = chrome.content_y;
+
+    if (headline_tex)
+        node_add_texture(root, cx, cy, *headline_tex, rgba(temp_color(gpu_temp.celsius)));
+
+    return chrome.box_h;
 }
 
 } // namespace
 
 void system_monitor_panel_paint(SystemMonitorPanelState &state, const CpuTempState &cpu_temp, const GpuTempState &gpu_temp, const SystemStatsState &stats, float pill_center_x, float bar_height, float bar_top_margin) {
-    using namespace panel_chrome_detail;
     if (state.base.egl_surface == EGL_NO_SURFACE)
         return;
     state.base.animations.tick(std::chrono::steady_clock::now());
@@ -136,7 +308,7 @@ void system_monitor_panel_paint(SystemMonitorPanelState &state, const CpuTempSta
 
     Node *root = &state.scene.root;
 
-    std::vector<PanelRow> rows = build_rows(gpu_temp);
+    std::vector<PanelRow> rows = build_rows(cpu_temp, gpu_temp, stats, state.tcache, scale);
     float panel_w = kPanelWidth;
     if (state.locked_center_x < 0.0f)
         state.locked_center_x = pill_center_x;
@@ -146,9 +318,6 @@ void system_monitor_panel_paint(SystemMonitorPanelState &state, const CpuTempSta
     float panel_x = std::clamp(state.locked_center_x - panel_w / 2.0f, kPanelSideMargin, static_cast<float>(state.base.width) - panel_w - kPanelSideMargin);
     float panel_y = bar_height + bar_top_margin + kPanelGap;
     state.panel_rect = {panel_x, panel_y, panel_w, panel_h};
-
-    const float *white = rgba(palette::text);
-    const float *dim = rgba(palette::text_dim);
 
     panel_draw_box(root, panel_x, panel_y, panel_w, panel_h);
     float header_y = panel_y + kPanelPadding;
@@ -169,29 +338,11 @@ void system_monitor_panel_paint(SystemMonitorPanelState &state, const CpuTempSta
     Node *scroll_clip =
         node_add_group(root, panel_x, content_top, panel_w, std::max(0.0f, content_bottom - content_top), true);
 
-    auto rx = [&](float v) { return v - panel_x; };
-    auto ry = [&](float v) { return v - content_top; };
-
-    auto draw_stat_row = [&](Node *clip, float y, const std::string &label, const std::string &extra, const std::string &value, float pct) {
-        const float *bar_color = stat_bar_color(pct);
-        std::string full_label = extra.empty() ? label : label + "  " + extra;
-        const Texture *label_tex = cached_text(state.tcache, full_label, scale);
-        if (label_tex)
-            node_add_texture(clip, rx(content_x), ry(y + (kSysMonTextRowHeight - label_tex->height) / 2.0f), *label_tex, dim);
-        const Texture *value_tex = cached_text(state.tcache, value, scale);
-        if (value_tex)
-            node_add_texture(clip, rx(content_x + content_w - value_tex->width), ry(y + (kSysMonTextRowHeight - value_tex->height) / 2.0f), *value_tex, bar_color);
-
-        float bar_y = y + kSysMonTextRowHeight + kSysMonBarTopGap;
-        draw_flat_bar(clip, rx(content_x), ry(bar_y), content_w, kSysMonBarHeight, kSysMonBarRadius, pct, kSysMonBarRadius * 2, rgba(palette::text_alpha08), bar_color);
-    };
-
     float y = content_top - state.scroll_offset;
     for (size_t i = 0; i < rows.size(); ++i) {
         const PanelRow &row = rows[i];
         if (i > 0)
             y += kPanelListSpacing;
-        Node *clip = scroll_clip;
         float row_h = row.height;
         bool row_visible = y + row_h > content_top && y < content_bottom;
         if (!row_visible) {
@@ -200,73 +351,15 @@ void system_monitor_panel_paint(SystemMonitorPanelState &state, const CpuTempSta
         }
 
         switch (row.kind) {
-        case RowKind::Cpu: {
-            std::string extra =
-                (cpu_temp_available(cpu_temp) ? std::to_string(static_cast<int>(cpu_temp.celsius)) + "\xC2\xB0"
-                                                                                                     "C \xE2\x80\x94 "
-                                              : std::string()) +
-                (stats.cpu_freq_ghz > 0.0f ? std::to_string(stats.cpu_freq_ghz).substr(0, 3) + "GHz" : std::string());
-            int pct = stats.cpu_usage >= 0.0f ? static_cast<int>(std::lround(stats.cpu_usage * 100)) : 0;
-            draw_stat_row(clip, y, "CPU", extra, std::to_string(pct) + "%", std::max(0.0f, stats.cpu_usage));
+        case RowKind::ResourcesCard:
+            draw_resources_card(scroll_clip, state.tcache, scale, content_x, y, content_w, stats, gpu_temp, panel_x, content_top);
             break;
-        }
-        case RowKind::Gpu: {
-            std::string extra =
-                gpu_temp_available(gpu_temp)
-                    ? std::to_string(static_cast<int>(gpu_temp.celsius)) + "\xC2\xB0"
-                                                                           "C"
-                    : std::string();
-            int pct = static_cast<int>(std::max(0.0f, gpu_temp.usage_percent));
-            draw_stat_row(clip, y, "GPU", extra, std::to_string(pct) + "%", gpu_temp.usage_percent / 100.0f);
+        case RowKind::CpuTempCard:
+            draw_cpu_temp_card(scroll_clip, state.tcache, scale, content_x, y, content_w, cpu_temp, panel_x, content_top);
             break;
-        }
-        case RowKind::Ram: {
-            std::string extra =
-                stats.mem_total_gb > 0.0f
-                    ? std::to_string(stats.mem_used_gb).substr(0, 3) + " GiB / " + std::to_string(stats.mem_total_gb).substr(0, 3) + " GiB"
-                    : std::string();
-            int pct = stats.mem_usage >= 0.0f ? static_cast<int>(std::lround(stats.mem_usage * 100)) : 0;
-            draw_stat_row(clip, y, "RAM", extra, std::to_string(pct) + "%", std::max(0.0f, stats.mem_usage));
+        case RowKind::GpuTempCard:
+            draw_gpu_temp_card(scroll_clip, state.tcache, scale, content_x, y, content_w, gpu_temp, panel_x, content_top);
             break;
-        }
-        case RowKind::Disk: {
-            std::string extra =
-                stats.disk_total_gb > 0.0f
-                    ? std::to_string(stats.disk_used_gb).substr(0, 3) + " GiB / " + std::to_string(stats.disk_total_gb).substr(0, 3) + " GiB"
-                    : std::string();
-            int pct =
-                static_cast<int>(std::lround(std::max(0.0f, stats.disk_pct)));
-            draw_stat_row(clip, y, "Disk", extra, std::to_string(pct) + "%", std::max(0.0f, stats.disk_pct) / 100.0f);
-            break;
-        }
-        case RowKind::Divider:
-            node_add_rect(clip, rx(content_x), ry(y), content_w, 1.0f, rgba(palette::text_alpha06));
-            break;
-        case RowKind::Network: {
-            const Texture *down_icon =
-                cached_icon(state.tcache, icon::arrow_narrow_down, scale);
-            const Texture *up_icon =
-                cached_icon(state.tcache, icon::arrow_narrow_up, scale);
-            std::string rx_str = system_stats_detail_format_speed(std::max(0.0, stats.net_rx_bps));
-            std::string tx_str = system_stats_detail_format_speed(std::max(0.0, stats.net_tx_bps));
-            float ix = content_x;
-            if (down_icon) {
-                node_add_texture(clip, rx(ix), ry(y), *down_icon, dim);
-                ix += static_cast<float>(down_icon->width) + kPanelTightGap;
-            }
-            const Texture *rx_tex = cached_text(state.tcache, rx_str, scale);
-            if (rx_tex)
-                node_add_texture(clip, rx(ix), ry(y), *rx_tex, white);
-            ix = content_x + kSysMonNetLabelWidth;
-            if (up_icon) {
-                node_add_texture(clip, rx(ix), ry(y), *up_icon, dim);
-                ix += static_cast<float>(up_icon->width) + kPanelTightGap;
-            }
-            const Texture *tx_tex = cached_text(state.tcache, tx_str, scale);
-            if (tx_tex)
-                node_add_texture(clip, rx(ix), ry(y), *tx_tex, white);
-            break;
-        }
         case RowKind::Spacer:
             break;
         }

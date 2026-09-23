@@ -17,14 +17,29 @@
 
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 
-constexpr float kSysMonTextRowHeight = 18.0f;
-constexpr float kSysMonBarHeight = 6.0f;
-constexpr float kSysMonBarRadius = 3.0f;
-constexpr float kSysMonBarTopGap = 12.0f;
-constexpr float kSysMonRowBottomPad = 10.0f;
-constexpr float kSysMonRowHeight = kSysMonTextRowHeight + kSysMonBarTopGap + kSysMonBarHeight + kSysMonRowBottomPad;
-constexpr float kSysMonNetRowHeight = 18.0f;
-constexpr float kSysMonNetLabelWidth = 90.0f;
+// resources card
+constexpr float kGaugeDiameter = 68.0f;
+constexpr float kGaugeStroke = 6.0f;
+constexpr float kGaugeIconValueGap = 2.0f;
+constexpr float kGaugeColumnGap = 16.0f;
+constexpr float kStatsGaugeLabelSpacing = 4.0f;
+
+// cpu temp grid card
+constexpr float kTempRowHeight = 26.0f;
+constexpr int kCpuCoreColumns = 4;
+constexpr float kCpuCoreColumnSpacing = 8.0f;
+constexpr float kCpuCoreItemHeight = 24.0f;
+constexpr float kCpuCoreItemRadius = 6.0f;
+constexpr float kCpuCoreRowSpacing = 6.0f;
+constexpr float kCpuCoreTextMargin = 8.0f;
+constexpr float kCpuTempGridTopMargin = 8.0f;
+
+// gauge colors
+constexpr const char *kGaugeColorCpuHex = "#ef4444";
+constexpr const char *kGaugeColorGpuHex = "#a855f7";
+constexpr const char *kGaugeColorRamHex = "#3b82f6";
+constexpr const char *kGaugeColorDiskHex = "#22c55e";
+constexpr const char *kTempWarnColorHex = "#f97316";
 
 struct SystemMonitorPanelState {
     OverlayPanelBase base;
@@ -47,12 +62,9 @@ struct SystemMonitorPanelState {
 namespace system_monitor_panel_detail {
 
 enum class RowKind {
-    Cpu,
-    Gpu,
-    Ram,
-    Disk,
-    Divider,
-    Network,
+    ResourcesCard,
+    CpuTempCard,
+    GpuTempCard,
     Spacer,
 };
 
@@ -61,7 +73,7 @@ struct PanelRow {
     float height;
 };
 
-std::vector<PanelRow> build_rows(const GpuTempState &gpu);
+std::vector<PanelRow> build_rows(const CpuTempState &cpu, const GpuTempState &gpu, const SystemStatsState &stats, TextureCache &tcache, int32_t scale);
 
 float content_height(const std::vector<PanelRow> &rows);
 
@@ -77,7 +89,7 @@ void system_monitor_panel_request_frame(SystemMonitorPanelState &state, float pi
 
 void system_monitor_panel_toggle(SystemMonitorPanelState &state, float pill_center_x = -1.0f);
 
-void system_monitor_panel_handle_scroll(SystemMonitorPanelState &state, const GpuTempState &gpu, double dy);
+void system_monitor_panel_handle_scroll(SystemMonitorPanelState &state, const CpuTempState &cpu, const GpuTempState &gpu, const SystemStatsState &stats, double dy);
 
 void system_monitor_panel_handle_click(SystemMonitorPanelState &state, double px, double py);
 
