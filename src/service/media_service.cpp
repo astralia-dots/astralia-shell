@@ -99,6 +99,11 @@ unsigned char *rgba_read(const std::string &cache_path, int &out_width, int &out
     int width = static_cast<int>(header[0]);
     int height = static_cast<int>(header[1]);
     size_t pixel_bytes = static_cast<size_t>(width) * height * 4;
+    struct stat st{};
+    if (width <= 0 || height <= 0 || fstat(fileno(fp), &st) != 0 || static_cast<size_t>(st.st_size) != sizeof(header) + pixel_bytes) {
+        fclose(fp);
+        return nullptr;
+    }
     auto *data = new unsigned char[pixel_bytes];
     size_t read = fread(data, 1, pixel_bytes, fp);
     fclose(fp);

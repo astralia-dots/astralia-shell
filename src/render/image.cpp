@@ -1,10 +1,10 @@
+#include <csetjmp>
 #include <cstdio>
 #include <filesystem>
 #include <jpeglib.h>
 #include <librsvg/rsvg.h>
 #include <png.h>
 #include <string_view>
-#include <vector>
 
 #include "core/log.h"
 
@@ -13,62 +13,43 @@
 namespace {
 
 unsigned char *decode_png(FILE *fp, int &width, int &height) {
-    png_byte header[8];
-    if (fread(header, 1, 8, fp) != 8 || png_sig_cmp(header, 0, 8))
+    png_image image{};
+    image.version = PNG_IMAGE_VERSION;
+    if (!png_image_begin_read_from_stdio(&image, fp))
         return nullptr;
+    image.format = PNG_FORMAT_RGBA;
 
-    png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
-    if (!png)
-        return nullptr;
-    png_infop info = png_create_info_struct(png);
-    if (!info) {
-        png_destroy_read_struct(&png, nullptr, nullptr);
-        return nullptr;
-    }
-    if (setjmp(png_jmpbuf(png))) {
-        png_destroy_read_struct(&png, &info, nullptr);
+    auto *data = new unsigned char[PNG_IMAGE_SIZE(image)];
+    if (!png_image_finish_read(&image, nullptr, data, 0, nullptr)) {
+        delete[] data;
         return nullptr;
     }
-
-    png_init_io(png, fp);
-    png_set_sig_bytes(png, 8);
-    png_read_info(png, info);
-
-    width = static_cast<int>(png_get_image_width(png, info));
-    height = static_cast<int>(png_get_image_height(png, info));
-    png_byte color_type = png_get_color_type(png, info);
-    png_byte bit_depth = png_get_bit_depth(png, info);
-
-    if (bit_depth == 16)
-        png_set_strip_16(png);
-    if (color_type == PNG_COLOR_TYPE_PALETTE)
-        png_set_palette_to_rgb(png);
-    if (color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8)
-        png_set_expand_gray_1_2_4_to_8(png);
-    if (png_get_valid(png, info, PNG_INFO_tRNS))
-        png_set_tRNS_to_alpha(png);
-    if (color_type == PNG_COLOR_TYPE_RGB || color_type == PNG_COLOR_TYPE_GRAY || color_type == PNG_COLOR_TYPE_PALETTE)
-        png_set_filler(png, 0xFF, PNG_FILLER_AFTER);
-    if (color_type == PNG_COLOR_TYPE_GRAY || color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
-        png_set_gray_to_rgb(png);
-
-    png_read_update_info(png, info);
-
-    auto *data = new unsigned char[static_cast<size_t>(width) * height * 4];
-    std::vector<png_bytep> rows(static_cast<size_t>(height));
-    for (int y = 0; y < height; ++y)
-        rows[static_cast<size_t>(y)] =
-            data + static_cast<size_t>(y) * width * 4;
-    png_read_image(png, rows.data());
-
-    png_destroy_read_struct(&png, &info, nullptr);
+    width = static_cast<int>(image.width);
+    height = static_cast<int>(image.height);
     return data;
+}
+
+struct JpegError {
+    jpeg_error_mgr mgr;
+    jmp_buf jump;
+};
+
+void jpeg_error_exit(j_common_ptr cinfo) {
+    (*cinfo->err->output_message)(cinfo);
+    longjmp(reinterpret_cast<JpegError *>(cinfo->err)->jump, 1);
 }
 
 unsigned char *decode_jpeg(FILE *fp, int &width, int &height) {
     struct jpeg_decompress_struct cinfo;
-    struct jpeg_error_mgr jerr;
-    cinfo.err = jpeg_std_error(&jerr);
+    JpegError jerr;
+    cinfo.err = jpeg_std_error(&jerr.mgr);
+    jerr.mgr.error_exit = jpeg_error_exit;
+    unsigned char *volatile data = nullptr;
+    if (setjmp(jerr.jump)) {
+        delete[] data;
+        jpeg_destroy_decompress(&cinfo);
+        return nullptr;
+    }
     jpeg_create_decompress(&cinfo);
     jpeg_stdio_src(&cinfo, fp);
 
@@ -86,28 +67,20 @@ unsigned char *decode_jpeg(FILE *fp, int &width, int &height) {
     width = static_cast<int>(cinfo.output_width);
     height = static_cast<int>(cinfo.output_height);
 
-    auto *data = new unsigned char[static_cast<size_t>(width) * height * 4];
-#ifdef JCS_EXTENSIONS
+    data = new unsigned char[static_cast<size_t>(width) * height * 4];
     while (cinfo.output_scanline < cinfo.output_height) {
         unsigned char *row =
             data + static_cast<size_t>(cinfo.output_scanline) * width * 4;
         jpeg_read_scanlines(&cinfo, &row, 1);
-    }
-#else
-    std::vector<unsigned char> row_buf(static_cast<size_t>(width) * 3);
-    while (cinfo.output_scanline < cinfo.output_height) {
-        int y = static_cast<int>(cinfo.output_scanline);
-        unsigned char *row_ptr = row_buf.data();
-        jpeg_read_scanlines(&cinfo, &row_ptr, 1);
-        unsigned char *out = data + static_cast<size_t>(y) * width * 4;
-        for (int x = 0; x < width; ++x) {
-            out[x * 4 + 0] = row_buf[static_cast<size_t>(x) * 3 + 0];
-            out[x * 4 + 1] = row_buf[static_cast<size_t>(x) * 3 + 1];
-            out[x * 4 + 2] = row_buf[static_cast<size_t>(x) * 3 + 2];
-            out[x * 4 + 3] = 0xFF;
+#ifndef JCS_EXTENSIONS
+        for (int x = width - 1; x >= 0; --x) {
+            row[x * 4 + 3] = 0xFF;
+            row[x * 4 + 2] = row[x * 3 + 2];
+            row[x * 4 + 1] = row[x * 3 + 1];
+            row[x * 4 + 0] = row[x * 3 + 0];
         }
-    }
 #endif
+    }
     jpeg_finish_decompress(&cinfo);
     jpeg_destroy_decompress(&cinfo);
     return data;

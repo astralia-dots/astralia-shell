@@ -46,7 +46,25 @@ static void test_decode_svg() {
     std::filesystem::remove(path);
 }
 
+static void test_decode_truncated() {
+    std::filesystem::path path =
+        std::filesystem::temp_directory_path() / "astralia-shell-test-truncated";
+    std::filesystem::copy_file(ASTRALIA_SHELL_DEFAULT_WALLPAPER, path, std::filesystem::copy_options::overwrite_existing);
+    std::filesystem::resize_file(path, std::filesystem::file_size(path) / 2);
+    int width = 0, height = 0;
+    assert(!load_image_decode(path.string(), width, height));
+
+    std::FILE *f = std::fopen(path.c_str(), "wb");
+    assert(f);
+    std::fputs("\xFF\xD8\xFF\xE0garbage", f);
+    std::fclose(f);
+    assert(!load_image_decode(path.string(), width, height));
+
+    std::filesystem::remove(path);
+}
+
 void test_image_decode() {
     test_decode_png();
     test_decode_svg();
+    test_decode_truncated();
 }

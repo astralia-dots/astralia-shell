@@ -245,7 +245,7 @@
 - `test_animated_image.cpp`: Animated-image frame indexing, scale filter choice, and frame-count ceiling.
 - `test_marquee_scroll.cpp`: Marquee pause/scroll/snap state machine.
 - `test_palette.cpp`: Compile-time hex parsing and alpha handling of palette colors.
-- `test_image_decode.cpp`: JPEG/PNG/SVG decode.
+- `test_image_decode.cpp`: JPEG/PNG/SVG decode, and truncated PNG/JPEG returning `nullptr` instead of leaking or exiting.
 - `test_text_elide.cpp`: End and middle string elision.
 
 ## test/bar

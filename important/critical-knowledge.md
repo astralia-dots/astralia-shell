@@ -146,6 +146,9 @@ Drop an entry once newer knowledge fully supersedes it.
 - **`MarqueeTextState::marqueeing` means "currently scrolling," not "text overflows the box."** `draw_marquee_text` must clip on `tex->width > w`; gating on `marqueeing` lets long text overflow whenever scrolling is suppressed.
 - **A concave "hug" corner that flares a filled shape out to touch a surface's true corner is the same quarter-circle cutout as an ordinary convex fillet, just resized and repositioned.** `Okinami`'s outer-corner hug reuses `fillet_rgba` unchanged instead of a second mask function; only the tile size and draw position differ.
 - **`icons.h`'s Tabler glyph codepoints can't be safely extended without font-inspection tooling this environment lacks.** No `fontTools`/`otfinfo`/`ttx` installed; a guessed codepoint risks silently rendering the wrong glyph.
+- **libpng/libjpeg report errors by `longjmp`, skipping every `delete[]` and C++ destructor after the `setjmp`.** PNG uses `png_image`; JPEG holds its buffer in a `volatile` pointer freed in the `setjmp` branch.
+- **libjpeg's default `error_exit` calls `exit()`, so one corrupt JPEG kills the shell.** `decode_jpeg` installs `jpeg_error_exit`, which `longjmp`s back and returns `nullptr`.
+- **Never size an allocation from an on-disk header without checking the file size.** A corrupt `.rgba` cache header made `new[]` throw on a worker thread, calling `std::terminate`.
 
 ## 3. Wayland protocol
 
