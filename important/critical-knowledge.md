@@ -248,12 +248,14 @@ Drop an entry once newer knowledge fully supersedes it.
 - **A decoder can hold a frame back internally, released only by the next `send_packet` or a flush.** Flushing before draining drops it; send a nullptr flush packet and drain first.
 - **A glyph missing from the primary font shifts an entire line's baseline, not just that glyph.** `U+00B7` isn't in the shell's font; Pango's fallback inflates line ascent. Use the em dash.
 - **`~` in a path is a display convention, never a real path.** `std::filesystem` never expands it; `core/path_home.h` collapses `$HOME` at UI/JSON edges, and every path passes `path_expand_home` before use.
+- **`Config` path defaults must already be absolute, not `~`-prefixed.** `load_config()` returns the default `Config` unexpanded when no file exists, and the wallpaper picker scans it directly.
 - **A default-plus-override config value must be cached on the consumer's own per-monitor state.** Re-resolving the tier chain on every hot-path read would turn 15 reads into map lookups.
 - **A resolved-with-fallback accessor and a raw-override accessor answer different questions.** A "remove override" control needs the raw override only; the fallback resolver makes it no-op wrongly.
 - **Porting a singleton overlay to per-monitor rendering must split process-wide from per-monitor state.** A D-Bus connection is one per process; the render surface is one per monitor.
 - **Extending a fallback-inclusive resolver to a second mode needs its own raw-override accessor too.** Adding an animated-column fallback required a matching `_override` accessor to avoid the same pitfall.
 - **A fallback gated on `column_index == 0` isn't global, it's whichever monitor resolves column 0 first.** A truly global toggle needs the same check on every column, everywhere.
 - **A single-instance overlay bound to one output must not have its open-state read per-monitor.** Every monitor's `bar_paint` saw `logout` open and expanded everywhere; gate on `bound_output() == mon.output.wl`.
+- **A per-monitor `apply_config` must read its `new_cfg` argument, never `app.cfg`.** `apply_config_update` assigns `app.cfg` only after the fan-out, so `app.cfg` is still the old config.
 - **A per-monitor module's `create_surface()` must not gate on config state.** It runs once with no re-entry; wallpaper gated surface creation on a startup check, breaking toggle-on.
 - **A "prepare" step that pre-scales/fps-caps a video duplicates work the live decode filter graph already does.** The software `libx264` transcode caused the CPU spike it aimed to avoid; removed.
 - **A zero-copy DRM delivery path bypasses the filter graph entirely, so an `fps=` filter there fixes nothing.** `media_plugin.cpp`'s VAAPI zero-copy branch delivers straight from the decoder, skipping `ensure_filter_graph`.

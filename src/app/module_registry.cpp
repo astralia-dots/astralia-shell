@@ -33,6 +33,16 @@ void draw_named_wallpaper(WaylandState &app, const std::string &output_name, Nod
     }
 }
 
+MediaDecodeStatus wallpaper_decode_status(WaylandState &app, const std::string &output_name, int column) {
+    for (auto &mon : app.outputs) {
+        if (mon->output.name != output_name)
+            continue;
+        if (auto *wp = mon->module<WallpaperPerMonitorModule>())
+            return wp->decode_status(column);
+    }
+    return MediaDecodeStatus::Idle;
+}
+
 void set_wallpaper_paused(MonitorOutput &mon, bool paused) {
     auto *wp = mon.module<WallpaperPerMonitorModule>();
     if (!wp)
@@ -51,7 +61,7 @@ std::vector<std::unique_ptr<Module>> build_app_modules() {
     modules.push_back(make_logout_module());
     modules.push_back(make_dashboard_module());
     modules.push_back(make_overview_module());
-    modules.push_back(make_settings_module());
+    modules.push_back(make_settings_module(wallpaper_decode_status));
     modules.push_back(make_rain_module());
     modules.push_back(make_visualizer_module());
     modules.push_back(make_lock_module(draw_named_wallpaper));
@@ -63,7 +73,7 @@ std::vector<std::unique_ptr<PerMonitorModule>> build_per_monitor_modules() {
     std::vector<std::unique_ptr<PerMonitorModule>> modules;
     modules.push_back(std::make_unique<BarPerMonitorModule>());
     modules.push_back(std::make_unique<WallpaperPerMonitorModule>());
-    modules.push_back(std::make_unique<OsdPerMonitorModule>());
+    modules.push_back(make_osd_per_monitor_module());
     modules.push_back(std::make_unique<NotificationViewPerMonitorModule>());
     modules.push_back(make_idle_per_monitor_module({draw_monitor_wallpaper, set_wallpaper_paused}));
     return modules;

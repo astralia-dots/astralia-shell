@@ -11,7 +11,6 @@
 #include <wayland-egl.h>
 
 #include "app/module.h"
-#include "app/text_input_client.h"
 
 #include "config/launcher_config.h"
 
@@ -30,6 +29,7 @@
 #include "service/frame_service.h"
 #include "service/input_service.h"
 #include "service/output_service.h"
+#include "service/text_input_service.h"
 
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 

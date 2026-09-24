@@ -11,7 +11,6 @@
 #include "app/config.h"
 #include "app/ipc.h"
 #include "app/module.h"
-#include "app/text_input_client.h"
 
 #include "config/settings_config.h"
 
@@ -27,6 +26,7 @@
 
 #include "service/input_service.h"
 #include "service/media_service.h"
+#include "service/text_input_service.h"
 
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 
@@ -43,9 +43,13 @@ class Renderer;
 struct WaylandState;
 
 using SettingsCommitFn = std::function<void(Config)>;
+using SettingsDecodeStatusFn = std::function<MediaDecodeStatus(WaylandState &app, const std::string &monitor, int column)>;
 
 struct SettingsState {
     OverlayPanelBase base;
+    bool enabled = false;
+    wl_output *bound_output = nullptr;
+    SettingsDecodeStatusFn decode_status_source;
     Renderer *renderer = nullptr;
     Scene scene;
     Scene tab_scene;
@@ -109,4 +113,4 @@ void draw_toggle_switch(SettingsState &state, Node *parent, float x, float y, bo
 
 void draw_toggle_row(SettingsState &state, Node *parent, int32_t scale, float x, float y, float w, const std::string &label, bool value, const char *tag, bool tiled);
 
-std::unique_ptr<Module> make_settings_module();
+std::unique_ptr<Module> make_settings_module(SettingsDecodeStatusFn decode_status_source);

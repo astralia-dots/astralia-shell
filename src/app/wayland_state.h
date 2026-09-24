@@ -10,7 +10,6 @@
 #include "app/module.h"
 #include "app/service.h"
 
-#include "modules/idle.h"
 #include "modules/notification.h"
 
 #include "render/renderer.h"
@@ -18,6 +17,7 @@
 #include "service/bluetooth_service.h"
 #include "service/brightness_service.h"
 #include "service/compositor_service.h"
+#include "service/idle_service.h"
 #include "service/input_service.h"
 #include "service/mpris_service.h"
 #include "service/network_service.h"
@@ -79,8 +79,6 @@ struct WaylandState {
     int config_watch_fd = -1;
     bool config_own_write_pending = false;
     MonitorOutput *last_pointer_monitor = nullptr;
-    bool settings_enabled = false;
-    wl_output *settings_bound_output = nullptr;
     CompositorState compositor_state;
     std::vector<std::unique_ptr<MonitorOutput>> outputs;
 };

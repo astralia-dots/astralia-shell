@@ -174,6 +174,7 @@ astralia_shell_service_main_only_sources = [
   'src/service/pipewire_service.cpp',
   'src/service/frame_service.cpp',
   'src/service/capture_service.cpp',
+  'src/service/idle_service.cpp',
   'src/service/text_input_service.cpp',
   'src/service/notification_service.cpp',
   'src/service/polkit_service.cpp',
@@ -232,6 +233,7 @@ astralia_shell_lock_test_sources = [
 
 astralia_shell_lock_main_only_sources = [
   'src/modules/lock.cpp',
+  'src/modules/lock/card.cpp',
   'src/modules/lock/pam_authenticator.cpp',
 ]
 

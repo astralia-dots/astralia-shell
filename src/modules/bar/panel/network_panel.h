@@ -7,8 +7,6 @@
 #include <vector>
 #include <wayland-client.h>
 
-#include "app/text_input_client.h"
-
 #include "render/marquee_scroll.h"
 #include "render/overlay_panel.h"
 #include "render/panel_chrome.h"
@@ -21,6 +19,7 @@
 
 #include "service/input_service.h"
 #include "service/network_service.h"
+#include "service/text_input_service.h"
 
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 

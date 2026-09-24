@@ -461,8 +461,8 @@ bool NotificationViewPerMonitorModule::wants_pointing_hand_cursor() const {
     return state_.hovered_close_id != 0;
 }
 
-void NotificationViewPerMonitorModule::apply_config(WaylandState &app, MonitorOutput &mon, const Config &) {
-    bool want = notifications_effective_enabled(app.cfg, mon.output.name);
+void NotificationViewPerMonitorModule::apply_config(WaylandState &app, MonitorOutput &mon, const Config &new_cfg) {
+    bool want = notifications_effective_enabled(new_cfg, mon.output.name);
     bool have = state_.layer_surface != nullptr;
     if (want && !have) {
         if (notification_view_create_surface(state_, app.compositor, app.layer_shell, mon.output.wl)) {

@@ -8,7 +8,6 @@
 
 #include "core/log.h"
 
-#include "modules/idle.h"
 #include "modules/notification.h"
 #include "modules/osd.h"
 #include "modules/polkit.h"
@@ -16,6 +15,7 @@
 #include "service/bluetooth_service.h"
 #include "service/brightness_service.h"
 #include "service/compositor_service.h"
+#include "service/idle_service.h"
 #include "service/mpris_service.h"
 #include "service/network_service.h"
 #include "service/notification_service.h"
@@ -106,13 +106,7 @@ class BrightnessOsdService final : public Service {
             if (!brightness_watch_poll(app.brightness_watch_fd))
                 return;
             float level = brightness_get(app.brightness);
-            for (auto &mon : app.outputs) {
-                if (!osd_effective_enabled(app.cfg, mon->output.name))
-                    continue;
-                OsdState &osd = mon->module<OsdPerMonitorModule>()->state();
-                osd_show(osd, OsdKind::Brightness, level, false);
-                osd_request_frame(osd);
-            }
+            osd_show_on_monitors(app, OsdKind::Brightness, level, false);
         });
         return sources;
     }
@@ -136,24 +130,12 @@ class PipewireOsdService final : public Service {
             if (change.sink) {
                 bool muted = false;
                 float level = pipewire_sink_level(app.pipewire, muted);
-                for (auto &mon : app.outputs) {
-                    if (!osd_effective_enabled(app.cfg, mon->output.name))
-                        continue;
-                    OsdState &osd = mon->module<OsdPerMonitorModule>()->state();
-                    osd_show(osd, OsdKind::Volume, level, muted);
-                    osd_request_frame(osd);
-                }
+                osd_show_on_monitors(app, OsdKind::Volume, level, muted);
             }
             if (change.source) {
                 bool muted = false;
                 float level = pipewire_source_level(app.pipewire, muted);
-                for (auto &mon : app.outputs) {
-                    if (!osd_effective_enabled(app.cfg, mon->output.name))
-                        continue;
-                    OsdState &osd = mon->module<OsdPerMonitorModule>()->state();
-                    osd_show(osd, OsdKind::Mic, level, muted);
-                    osd_request_frame(osd);
-                }
+                osd_show_on_monitors(app, OsdKind::Mic, level, muted);
             }
             if (change.sink || change.source)
                 redraw_and_present(app);

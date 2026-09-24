@@ -8,7 +8,6 @@
 
 #include "app/monitor_output.h"
 #include "app/per_monitor_module.h"
-#include "app/text_input_client.h"
 #include "app/wayland_state.h"
 
 #include "modules/bar/panel/battery_panel.h"
@@ -33,6 +32,7 @@
 #include "service/compositor_service.h"
 #include "service/frame_service.h"
 #include "service/output_service.h"
+#include "service/text_input_service.h"
 
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 

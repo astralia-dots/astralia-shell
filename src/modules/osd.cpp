@@ -207,6 +207,23 @@ void osd_hide(OsdState &state) {
     osd_request_frame(state);
 }
 
+namespace {
+
+class OsdPerMonitorModule final : public PerMonitorModule {
+  public:
+    OsdState &state() { return state_; }
+
+    bool create_surface(WaylandState &app, MonitorOutput &mon, wl_output *output) override;
+    bool configured() const override;
+    bool init_egl(WaylandState &app, MonitorOutput &mon) override;
+    void destroy(WaylandState &app, MonitorOutput &mon) override;
+    bool owns_surface(wl_surface *surface) const override;
+    void tick(WaylandState &app, MonitorOutput &mon) override;
+
+  private:
+    OsdState state_;
+};
+
 bool OsdPerMonitorModule::create_surface(WaylandState &app, MonitorOutput &mon, wl_output *output) {
     if (!osd_create_surface(state_, app.compositor, app.layer_shell, output))
         klog("osd: failed to create layer surface on '%s'", mon.output.name.c_str());
@@ -234,4 +251,22 @@ bool OsdPerMonitorModule::owns_surface(wl_surface *surface) const {
 void OsdPerMonitorModule::tick(WaylandState &, MonitorOutput &) {
     if (state_.visible && std::chrono::steady_clock::now() >= state_.hide_at)
         osd_hide(state_);
+}
+
+} // namespace
+
+std::unique_ptr<PerMonitorModule> make_osd_per_monitor_module() {
+    return std::make_unique<OsdPerMonitorModule>();
+}
+
+void osd_show_on_monitors(WaylandState &app, OsdKind kind, float level, bool muted) {
+    for (auto &mon : app.outputs) {
+        if (!osd_effective_enabled(app.cfg, mon->output.name))
+            continue;
+        auto *m = mon->module<OsdPerMonitorModule>();
+        if (!m)
+            continue;
+        osd_show(m->state(), kind, level, muted);
+        osd_request_frame(m->state());
+    }
 }

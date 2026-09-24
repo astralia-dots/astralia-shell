@@ -4,7 +4,6 @@
 #include <chrono>
 #include <cstdint>
 #include <functional>
-#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -14,8 +13,6 @@
 #include "app/per_monitor_module.h"
 
 #include "config/idle_config.h"
-
-#include "ext-idle-notify-v1-client-protocol.h"
 
 #include "render/animated_image.h"
 #include "render/animation.h"
@@ -30,14 +27,6 @@
 
 struct MonitorOutput;
 struct Node;
-
-struct IdleState {
-    ext_idle_notifier_v1 *notifier = nullptr;
-
-    ext_idle_notification_v1 *recent_activity_notification = nullptr;
-    bool recent_activity_idled = false;
-    std::map<std::string, std::chrono::steady_clock::time_point> last_activity;
-};
 
 struct IdleOverlayState {
     wl_surface *surface = nullptr;
@@ -71,14 +60,6 @@ struct IdleOverlayState {
 
     std::function<void(Node &root, float w, float h)> draw_ambient;
 };
-
-bool idle_init(IdleState &state, wl_seat *seat);
-
-void idle_tick(IdleState &state, const std::string &focused_monitor);
-
-void idle_reset(IdleState &state, const std::vector<std::string> &monitor_names);
-
-bool is_idle(const IdleState &state, const std::string &monitor, uint32_t timeout_seconds);
 
 bool idle_overlay_create_surface(IdleOverlayState &state, wl_compositor *compositor, zwlr_layer_shell_v1 *layer_shell, wl_output *output);
 

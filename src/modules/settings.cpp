@@ -136,14 +136,43 @@ void settings_toggle(SettingsState &state, const Config &cfg, const SettingsComm
     settings_request_frame(state);
 }
 
+namespace {
+
+bool settings_init_egl_for(SettingsState &s, WaylandState &app) {
+    auto monitor_names = [&app] {
+        std::vector<std::string> names;
+        for (const auto &mon : app.outputs)
+            names.push_back(mon->output.name);
+        return names;
+    };
+    auto focused_monitor = [&app] {
+        return app.compositor_state.focused_monitor;
+    };
+    auto decode_status = [&s, &app](const std::string &name, int column) {
+        return s.decode_status_source ? s.decode_status_source(app, name, column) : MediaDecodeStatus::Idle;
+    };
+    return settings_init_egl(s, app.cfg, app.renderer, app.egl_display, app.egl_config, app.egl_context, monitor_names, focused_monitor, decode_status);
+}
+
+void settings_retarget(WaylandState &app, SettingsState &s, MonitorOutput &target) {
+    wl_output *bound = overlay_panel_retarget(s.base, app.display, s.bound_output, target.output.wl, target.output.name.c_str(), [&](wl_output *out) { return settings_create_surface(s, app.compositor, app.layer_shell, out); }, [&] { return settings_init_egl_for(s, app); });
+    if (bound)
+        s.bound_output = bound;
+    else
+        s.enabled = false;
+    app_detail::rest_egl_current(app);
+}
+
+} // namespace
+
 std::vector<IpcHandler> settings_ipc_handlers(SettingsState &settings, WaylandState &state) {
     return {
         {"settings",
          [&settings, &state] {
-             if (!settings.base.open && state.settings_enabled) {
+             if (!settings.base.open && settings.enabled) {
                  MonitorOutput *target = app_detail::active_target_monitor(state);
-                 if (target && (target->output.wl != state.settings_bound_output || !settings.base.layer_surface))
-                     app_detail::settings_retarget(state, settings, *target);
+                 if (target && (target->output.wl != settings.bound_output || !settings.base.layer_surface))
+                     settings_retarget(state, settings, *target);
              }
              settings_toggle(settings, state.cfg, [&state](Config c) { app_detail::save_and_apply_config_update(state, c); });
          },
@@ -518,18 +547,22 @@ namespace {
 
 class SettingsModule final : public Module, public TextInputClient {
   public:
+    explicit SettingsModule(SettingsDecodeStatusFn decode_status_source) {
+        state_.decode_status_source = std::move(decode_status_source);
+    }
+
     const char *name() const override { return "settings"; }
     bool is_open() const override { return state_.base.open; }
 
     void on_output_removed(WaylandState &app, wl_output *out) override {
-        if (!out || app.settings_bound_output != out)
+        if (!out || state_.bound_output != out)
             return;
         if (state_.sync_text_input_focus)
             state_.sync_text_input_focus(false);
-        wl_output *bound = app.settings_bound_output;
+        wl_output *bound = state_.bound_output;
         overlay_panel_release_output(state_.base, bound, out);
-        app.settings_bound_output = nullptr;
-        app.settings_enabled = false;
+        state_.bound_output = nullptr;
+        state_.enabled = false;
         state_.focused_field = SettingsFieldId::None;
     }
 
@@ -540,11 +573,10 @@ class SettingsModule final : public Module, public TextInputClient {
     }
 
     bool init_egl(WaylandState &app) override {
-        SettingsEnv env = settings_env(app);
-        if (!settings_init_egl(state_, app.cfg, app.renderer, app.egl_display, app.egl_config, app.egl_context, env.monitor_names_fn, env.focused_monitor_fn, env.decode_status_fn))
+        if (!settings_init_egl_for(state_, app))
             return false;
-        app.settings_bound_output = output_;
-        app.settings_enabled = true;
+        state_.bound_output = output_;
+        state_.enabled = true;
         state_.sync_text_input_focus = [this, &app](bool focused) {
             if (focused)
                 app.text_input.set_focused_client(state_.base.surface, this);
@@ -614,6 +646,6 @@ class SettingsModule final : public Module, public TextInputClient {
 
 } // namespace
 
-std::unique_ptr<Module> make_settings_module() {
-    return std::make_unique<SettingsModule>();
+std::unique_ptr<Module> make_settings_module(SettingsDecodeStatusFn decode_status_source) {
+    return std::make_unique<SettingsModule>(std::move(decode_status_source));
 }

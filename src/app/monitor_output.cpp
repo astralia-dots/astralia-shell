@@ -5,11 +5,7 @@
 
 #include "core/log.h"
 
-#include "modules/settings.h"
-#include "modules/wallpaper.h"
-
 #include "render/animation.h"
-#include "render/overlay_panel.h"
 
 #include "service/settings_service.h"
 
@@ -140,39 +136,4 @@ MonitorOutput *active_target_monitor(WaylandState &app) {
     return target ? find_monitor_by_name_wl(app, target) : nullptr;
 }
 
-void settings_retarget(WaylandState &app, SettingsState &settings, MonitorOutput &target) {
-    SettingsState &s = settings;
-    SettingsEnv env = settings_env(app);
-    wl_output *bound = overlay_panel_retarget(s.base, app.display, app.settings_bound_output, target.output.wl, target.output.name.c_str(), [&](wl_output *out) { return settings_create_surface(s, app.compositor, app.layer_shell, out); }, [&] { return settings_init_egl(s, app.cfg, app.renderer, app.egl_display, app.egl_config, app.egl_context, env.monitor_names_fn, env.focused_monitor_fn, env.decode_status_fn); });
-    if (bound)
-        app.settings_bound_output = bound;
-    else
-        app.settings_enabled = false;
-
-    rest_egl_current(app);
-}
-
 } // namespace app_detail
-
-SettingsEnv settings_env(WaylandState &app) {
-    return {
-        [&app] {
-            std::vector<std::string> names;
-            for (const auto &mon : app.outputs)
-                names.push_back(mon->output.name);
-            return names;
-        },
-        [&app] {
-            return app.compositor_state.focused_monitor;
-        },
-        [&app](const std::string &name, int column) -> MediaDecodeStatus {
-            for (auto &mon : app.outputs) {
-                if (mon->output.name != name)
-                    continue;
-                if (auto *wp = mon->module<WallpaperPerMonitorModule>())
-                    return wp->decode_status(column);
-            }
-            return MediaDecodeStatus::Idle;
-        },
-    };
-}

@@ -5,7 +5,7 @@
 - No comments across the code base.
 - Exceptions:
   - Namespace comment.
-  - Config comments to group constants together.
+  - Comments that group constants together, wherever those constants live (`src/config/` or a file's own constants).
   - License/attribution notices for third-party code.
 
 ## Formatting the shell
@@ -37,9 +37,9 @@
 - `test/**` includes `src/` headers the same root-relative way, e.g. `#include "app/config.h"`.
 - Generated Wayland protocol headers stay bare filenames since they build outside `src/`.
 - Header order:
-    - system headers (`<header>`)
+    - system headers (`<header>`), one block; a blank line may split it only where include order matters and `clang-format` would otherwise reorder it (e.g. `<GLES2/gl2ext.h>` after the GL core header, an `extern "C"` block)
     - one blank line
     - local headers:
         - `"dir1/local_header.h"`
         - blank
-        - `"dir2/local_header.h`
+        - `"dir2/local_header.h"`

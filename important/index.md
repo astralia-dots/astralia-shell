@@ -14,16 +14,15 @@
 - `single_instance_lock.h`+`.cpp`: `flock()`-based single-instance lock.
 - `ipc.h`+`.cpp`: Astralia Shell's own control socket, client/server request handling; verb table from each module.
 - `key_dispatch.h`+`.cpp`: Routes key events to whichever module owns the surface `KeyboardState::focused_surface` currently names, so `main.cpp` never names a module's key handler.
-- `monitor_output.h`+`.cpp`: `MonitorOutput` pure per-output state plus its module list, create/activate/destroy lifecycle, config-apply fan-out, `rest_egl_current`, settings retarget, `settings_env`.
+- `monitor_output.h`+`.cpp`: `MonitorOutput` pure per-output state plus its module list, create/activate/destroy lifecycle, config-apply fan-out, and `rest_egl_current`.
 - `module.h`: `Module` interface: per-surface overlay boundary, default no-op virtuals, plus `apply_config` and `on_output_removed` hooks.
 - `per_monitor_module.h`: `PerMonitorModule` interface, the per-surface per-monitor boundary; default no-op virtuals including `apply_config`, unnamed params.
-- `module_registry.h`+`.cpp`: `build_app_modules`/`build_per_monitor_modules` composition root calling each module's factory, injecting wallpaper hooks into `lock`/`idle`; `start_session_lock` for `main.cpp`.
+- `module_registry.h`+`.cpp`: `build_app_modules`/`build_per_monitor_modules` composition root calling each module's factory, injecting wallpaper hooks into `lock`/`idle`/`settings`; `start_session_lock` for `main.cpp`.
 - `wayland_registry.h`+`.cpp`: Wayland global registry bind/listener wiring, EGL bootstrap with surfaceless-or-pbuffer rest surface; notifies `lock` of output hotplug.
 - `wayland_state.h`: `WaylandState`, shared Wayland/EGL globals including `egl_rest_surface`, and every process-wide service's owned state; forward-declares `MonitorOutput`.
 - `service.h`: `Service` interface, the process-wide boundary for cross-cutting services: `init`/`timer_tick`/`poll_sources`.
 - `service_registry.h`+`.cpp`: `build_services` composition root, one `Service` subclass per cross-cutting service.
 - `user_info.h`+`.cpp`: `getpwuid`-based username, `/etc/os-release` `PRETTY_NAME`, `sysinfo`-based uptime string, and `profile_media_path` resolution, shared across modules.
-- `text_input_client.h`: `TextInputClient` interface, `TextInputState`/`TextInputEdit`, implemented by each field-owning module's wrapper class.
 
 ## src/config
 
@@ -87,7 +86,7 @@
 - `telemetry_service.h`+`.cpp`: CPU/GPU temperature and usage via hwmon/thermal-zone/`nvidia-smi`, GPU clock via hwmon `freq1_input`/`gt_act_freq_mhz`/`nvidia-smi`, plus CPU frequency, CPU/RAM/disk usage, and network throughput.
 - `frame_service.h`+`.cpp`: Frame-callback paint pacing shared across surfaces; first paint synchronous, later repaints deferred to `frame_done`.
 - `input_service.h`+`.cpp`: All `wl_seat` input: `wl_keyboard`+xkbcommon key handling, `wl_pointer` hover/click/cursor-shape, and the shared seat-capabilities listener.
-- `text_input_service.h`+`.cpp`: `zwp_text_input_v3` client-role protocol glue for IME composition (fcitx5/ibus), focus tracking, preedit/commit/delete dispatch to the active `TextInputClient`.
+- `text_input_service.h`+`.cpp`: `zwp_text_input_v3` client-role protocol glue for IME composition (fcitx5/ibus), focus tracking, preedit/commit/delete dispatch to the active `TextInputClient`; also defines the `TextInputClient` interface and `TextInputState`/`TextInputEdit` its clients implement.
 - `compositor_service.h`+`.cpp`: Compositor-neutral `CompositorState` workspace/monitor/client data, including the Okinami bar's cached `hug_radius_px`; picks the Hyprland or Sway backend and dispatches focus, move, close, and workspace swap/move-in to it.
 - `hyprland_service.h`+`.cpp`: Hyprland backend: fills `CompositorState` via request+event sockets, plus `hypr_tile_*` tiling actions dispatched as Lua calls; `hypr_bar_hug_radius_px` sums `general:gaps_out`+`decoration:rounding` from `j/getoption` for the Okinami bar's corner flare, queried once at `hypr_init`.
 - `sway_service.h`+`.cpp`: Sway backend: `i3-ipc` request/subscribe client, pure `sway_parse_*` JSON-to-`CompositorState` parsers, `workspace number` focus, `con_id` move/kill, and workspace swap/move-in.
@@ -98,6 +97,7 @@
 - `settings_service.h`+`.cpp`: Settings field-text parsing into `Config` and the config-save wrapper.
 - `icon_service.h`+`.cpp`: App icon path resolution across GTK icon themes; `resolve_window_icon_path` maps a window class to an icon via `.desktop` ids.
 - `dock_service.h`+`.cpp`: `DockEntry` list for a monitor's active workspace from `CompositorState`, sorted by window `x`, `focused` = `focus_history_id == 0`; pure, test-linked.
+- `idle_service.h`+`.cpp`: `ext-idle-notify-v1` recent-activity client: `IdleState`, per-monitor last-activity clock, `idle_init`/`idle_tick`/`idle_reset`/`is_idle`.
 - `polkit_service.h`+`.cpp`: `PolkitAgent`, an in-session polkit authentication agent on its own nested `GMainContext`; `PolkitPollSource` bridges it into the poll loop.
 
 ## src/plugin
@@ -116,17 +116,17 @@
 
 - `bar.h`+`.cpp`: Bar rendering, autohide geometry, pill-click dispatch; `BarPerMonitorState` owns the bar's layer surface, EGL window, scene, scale, and `AutoHideState`. On Okinami/Hyprland, the surface grows by `bar_hug_radius_px` and the two outer islands' bottom corners get an extra flare draw so the bar hugs the tiled window's rounded corner below; a per-tick catch-up reapplies surface geometry once the cached hug radius becomes available (it's unset until Hyprland's IPC connects, which can land after the first monitor's surface is created).
 - `launcher.h`+`.cpp`: `LauncherState`, surface/EGL/tick/toggle/key/click/pointer-hover/paint core, and its `Module` adapter via `make_launcher_module`.
-- `osd.h`+`.cpp`: Volume/brightness popup, per-monitor, auto-hides, reactive to system state changes; `OsdPerMonitorModule` adapter.
+- `osd.h`+`.cpp`: Volume/brightness popup, per-monitor, auto-hides, reactive to system state changes; `osd_show_on_monitors` entry point, private per-monitor adapter via `make_osd_per_monitor_module`.
 - `notification.h`+`.cpp`: Notification renderer from `notification_service` records, per-monitor card paint and close-button dismissal; `NotificationViewPerMonitorModule` adapter.
 - `logout.h`+`.cpp`: Logout ring overlay: lightning-slash/shockwave choreography, animated centre logo, two custom shader effects; `make_logout_module`.
 - `dashboard.h`+`.cpp`: Blank `xdg_toplevel` dashboard window toggled by the `dashboard` IPC verb; `make_dashboard_module`.
 - `overview.h`+`.cpp`: `Tab`-switched local/global workspace grid; live thumbnails on Hyprland, icon tiles on Sway; `make_overview_module`.
 - `wallpaper.h`+`.cpp`: Per-monitor wallpaper surface, static or animated columns, cross-transition on change; `WallpaperPerMonitorModule` adapter.
-- `idle.h`+`.cpp`: Idle clock feeding the per-monitor ambient/screensaver overlay; `make_idle_per_monitor_module` takes `IdleWallpaperHooks`.
-- `settings.h`+`.cpp`: Settings panel core: per-tab hosting, responsive nav rail, shared toggle widgets, faded active-tab scene; `make_settings_module`.
+- `idle.h`+`.cpp`: Per-monitor ambient/screensaver overlay driven by `idle_service`'s clock; `make_idle_per_monitor_module` takes `IdleWallpaperHooks`.
+- `settings.h`+`.cpp`: Settings panel core: per-tab hosting, responsive nav rail, shared toggle widgets, faded active-tab scene; owns its bound output and retarget; `make_settings_module` takes a wallpaper decode-status source.
 - `rain.h`+`.cpp`: Rain `xdg_toplevel` window hosting the `MatrixRain`/`StilettoRain` sims, live mode/speed config; `make_rain_module`.
 - `visualizer.h`+`.cpp`: Audio visualizer window; self-pacing render thread draws `SphereVisualizer` or `BarVisualizer`; `make_visualizer_module`.
-- `lock.h`+`.cpp`: `ext-session-lock-v1` lock, per-output surfaces, `PAM` worker auth, info card; `make_lock_module` plus hotplug/start bridges.
+- `lock.h`+`.cpp`: `ext-session-lock-v1` lock, per-output surfaces and frame pacing, entrance/unlock animations, `PAM` worker auth; `make_lock_module` plus hotplug/start bridges.
 - `polkit.h`+`.cpp`: Reactive polkit password overlay card with dot-masked field; `make_polkit_module` and `polkit_notify_state_changed`.
 
 ## src/modules/visualizer
@@ -141,6 +141,7 @@
 ## src/modules/lock
 
 - `layout.h`+`.cpp`: Pure lock-panel geometry math: card size, three-column split, content-stack height, and dot row; test-linked, no `EGL`.
+- `card.h`+`.cpp`: `lock_card_build`, the lock card's scene: icon box, three columns (fetch, media, resources, notification dock, battery, clock, avatar, password pill), and hit rects.
 - `pam_authenticator.h`+`.cpp`: `pam_start_confdir`-based password check against the shipped `astralia-shell` `PAM` service, with a `login` fallback; runs off the poll thread.
 
 ## src/modules/rain
