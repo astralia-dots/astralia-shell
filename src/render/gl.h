@@ -15,3 +15,7 @@ void gl_check(const char *where);
 bool gl_make_current(EGLDisplay display, EGLSurface surface, EGLContext context);
 
 void gl_release_if_current(EGLDisplay display, EGLSurface surface);
+
+void gl_reset_detection_init();
+
+bool gl_poll_graphics_reset(const char *where);

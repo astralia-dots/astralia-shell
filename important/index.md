@@ -18,8 +18,8 @@
 - `module.h`: `Module` interface: per-surface overlay boundary, default no-op virtuals, plus `apply_config` and `on_output_removed` hooks.
 - `per_monitor_module.h`: `PerMonitorModule` interface, the per-surface per-monitor boundary; default no-op virtuals including `apply_config`, unnamed params.
 - `module_registry.h`+`.cpp`: `build_app_modules`/`build_per_monitor_modules` composition root calling each module's factory, injecting wallpaper hooks into `lock`/`idle`/`settings`; `start_session_lock` for `main.cpp`.
-- `wayland_registry.h`+`.cpp`: Wayland global registry bind/listener wiring, EGL bootstrap with surfaceless-or-pbuffer rest surface; notifies `lock` of output hotplug.
-- `wayland_state.h`: `WaylandState`, shared Wayland/EGL globals including `egl_rest_surface`, and every process-wide service's owned state; forward-declares `MonitorOutput`.
+- `wayland_registry.h`+`.cpp`: Wayland global registry bind/listener wiring, EGL bootstrap with a robust (lose-on-reset, NV video-memory-purge) context falling back to plain, and a surfaceless-or-pbuffer rest surface; notifies `lock` of output hotplug.
+- `wayland_state.h`: `WaylandState`, shared Wayland/EGL globals including `egl_rest_surface` and `egl_context_attribs` (reused by share contexts), and every process-wide service's owned state; forward-declares `MonitorOutput`.
 - `service.h`: `Service` interface, the process-wide boundary for cross-cutting services: `init`/`timer_tick`/`poll_sources`.
 - `service_registry.h`+`.cpp`: `build_services` composition root, one `Service` subclass per cross-cutting service.
 - `user_info.h`+`.cpp`: `getpwuid`-based username, `/etc/os-release` `PRETTY_NAME`, `sysinfo`-based uptime string, and `profile_media_path` resolution, shared across modules.
@@ -56,7 +56,7 @@
 - `panel_chrome.h`+`.cpp`: Shared box/header/card/confirm chrome, click-kind enum, `panel_region_hit`, `panel_draw_card` (bordered titled card, shared by `control_center_panel` and `resource_panel`), `panel_draw_toggle_switch`, `panel_draw_centered_text`, and `panel_measure_row_actions`/`panel_draw_row_actions` (connect/forget pill or busy label) for on-demand panels.
 - `node.h`+`.cpp`: `Node` retained-allocation scene graph with per-frame node pooling; kinds are rect/rounded-rect/texture/rounded-texture/video-texture/group; per-node `rotation`/`scale` about the node centre.
 - `video_texture.h`+`.cpp`: `VideoTexture` RAII `EGLImageKHR`/`GL` handle plus `DrmFrameImport` dma-buf import for zero-copy `VAAPI` playback, and the `EGL_EXT_image_dma_buf_import` cap probe.
-- `gl.h`+`.cpp`: Labelled shader compile/link helpers, reading `assets/shaders/` with an installed-then-dev-tree fallback, plus a `glGetError`-draining `gl_check`, `gl_make_current`, and `gl_release_if_current` for surface teardown.
+- `gl.h`+`.cpp`: Labelled shader compile/link helpers, reading `assets/shaders/` with an installed-then-dev-tree fallback, plus a `glGetError`-draining `gl_check`, `gl_make_current`, `gl_release_if_current` for surface teardown, and `gl_reset_detection_init`/`gl_poll_graphics_reset` logging GPU context resets.
 - `overlay_panel.h`+`.cpp`: Shared full-screen on-demand overlay surface: position-lock-on-toggle, live-height roll-down/collapse, and output-unplug surface release.
 - `toplevel_window.h`+`.cpp`: Shared `xdg_toplevel` real-window surface lifecycle for compositor-managed windows.
 - `popup_window.h`+`.cpp`: Shared `xdg_popup` surface lifecycle parented to a layer surface via `zwlr_layer_surface_v1::get_popup`, with positioner, popup grab, `popup_done`, and reposition-on-resize.
@@ -200,7 +200,7 @@
 
 ## src
 
-- `main.cpp`: Orchestration, Wayland/EGL bootstrap, poll loop, CLI entry point, daemonize/debug/`start-lock`/IPC-client dispatch.
+- `main.cpp`: Orchestration, Wayland/EGL bootstrap, poll loop (polls GPU reset status on the 1 Hz timer), CLI entry point, daemonize/debug/`start-lock`/IPC-client dispatch.
 
 ## test
 

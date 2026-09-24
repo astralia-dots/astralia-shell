@@ -163,11 +163,9 @@ void render_thread_main(VisualizerState *state) {
     gl_make_current(state->base.egl_display, EGL_NO_SURFACE, EGL_NO_CONTEXT);
 }
 
-void visualizer_render_thread_start(VisualizerState &state, const VisualizerParams &params) {
-    static const EGLint kContextAttribs[] = {
-        EGL_CONTEXT_MAJOR_VERSION, 2, EGL_NONE};
+void visualizer_render_thread_start(VisualizerState &state, const VisualizerParams &params, const std::vector<EGLint> &context_attribs) {
     state.render_context =
-        eglCreateContext(state.base.egl_display, state.egl_config, state.base.egl_context, kContextAttribs);
+        eglCreateContext(state.base.egl_display, state.egl_config, state.base.egl_context, context_attribs.data());
     if (state.render_context == EGL_NO_CONTEXT) {
         klog("visualizer: eglCreateContext failed 0x%x", eglGetError());
         return;
@@ -227,7 +225,7 @@ void visualizer_toggle(VisualizerState &state, WaylandState &app) {
         state.egl_config = app.egl_config;
         state.base.open = true;
         state.capture.start();
-        visualizer_render_thread_start(state, app.cfg.visualizer);
+        visualizer_render_thread_start(state, app.cfg.visualizer, app.egl_context_attribs);
         return;
     }
 

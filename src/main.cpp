@@ -23,6 +23,7 @@
 #include "core/poll_source.h"
 
 #include "render/animation.h"
+#include "render/gl.h"
 
 inline void daemonize() {
     pid_t pid = fork();
@@ -191,6 +192,7 @@ int main(int argc, char **argv) {
                         m->timer_tick(app, *mon);
                 for (auto &s : app.services)
                     s->timer_tick(app);
+                gl_poll_graphics_reset("timer");
                 for (auto &m : app.overlays)
                     if (m->timer_tick(app))
                         rest_egl_current();

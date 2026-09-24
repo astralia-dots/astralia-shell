@@ -1,7 +1,10 @@
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
 #include <GLES2/gl2.h>
 #include <algorithm>
 #include <cstring>
 #include <string_view>
+#include <vector>
 
 #include "app/monitor_output.h"
 #include "app/wayland_registry.h"
@@ -10,6 +13,8 @@
 #include "core/log.h"
 
 #include "modules/lock.h"
+
+#include "render/gl.h"
 
 namespace {
 
@@ -27,6 +32,17 @@ bool egl_has_extension(EGLDisplay display, std::string_view name) {
         rest.remove_prefix(end + 1);
     }
     return false;
+}
+
+std::vector<EGLint> robust_context_attribs(EGLDisplay display) {
+    if (!egl_has_extension(display, "EGL_EXT_create_context_robustness"))
+        return {};
+    std::vector<EGLint> attribs = {EGL_CONTEXT_MAJOR_VERSION, 2};
+    attribs.insert(attribs.end(), {EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_EXT, EGL_LOSE_CONTEXT_ON_RESET_EXT});
+    if (egl_has_extension(display, "EGL_NV_robustness_video_memory_purge"))
+        attribs.insert(attribs.end(), {EGL_GENERATE_RESET_ON_VIDEO_MEMORY_PURGE_NV, EGL_TRUE});
+    attribs.push_back(EGL_NONE);
+    return attribs;
 }
 
 namespace output_detail {
@@ -163,8 +179,19 @@ bool bootstrap_egl(WaylandState &state) {
         return false;
     }
 
-    const EGLint context_attribs[] = {EGL_CONTEXT_MAJOR_VERSION, 2, EGL_NONE};
-    state.egl_context = eglCreateContext(state.egl_display, state.egl_config, EGL_NO_CONTEXT, context_attribs);
+    std::vector<EGLint> robust_attribs = robust_context_attribs(state.egl_display);
+    if (!robust_attribs.empty()) {
+        state.egl_context = eglCreateContext(state.egl_display, state.egl_config, EGL_NO_CONTEXT, robust_attribs.data());
+        if (state.egl_context != EGL_NO_CONTEXT) {
+            state.egl_context_attribs = std::move(robust_attribs);
+            bool purge = std::find(state.egl_context_attribs.begin(), state.egl_context_attribs.end(), EGL_GENERATE_RESET_ON_VIDEO_MEMORY_PURGE_NV) != state.egl_context_attribs.end();
+            klog("egl: robust context, lose on reset%s", purge ? ", video memory purge" : "");
+            return true;
+        }
+        klog("egl: robust context creation failed, egl error 0x%04x, falling back to a plain context", eglGetError());
+    }
+    state.egl_context_attribs = {EGL_CONTEXT_MAJOR_VERSION, 2, EGL_NONE};
+    state.egl_context = eglCreateContext(state.egl_display, state.egl_config, EGL_NO_CONTEXT, state.egl_context_attribs.data());
     if (state.egl_context == EGL_NO_CONTEXT) {
         klog("egl: OpenGL ES 2.0 context creation failed, egl error 0x%04x", eglGetError());
         return false;
@@ -183,5 +210,6 @@ bool renderer_bootstrap_init(WaylandState &state) {
     if (!eglMakeCurrent(state.egl_display, state.egl_rest_surface, state.egl_rest_surface, state.egl_context))
         return false;
     klog("gl: %s | GLSL %s", reinterpret_cast<const char *>(glGetString(GL_VERSION)), reinterpret_cast<const char *>(glGetString(GL_SHADING_LANGUAGE_VERSION)));
+    gl_reset_detection_init();
     return state.renderer.init();
 }
