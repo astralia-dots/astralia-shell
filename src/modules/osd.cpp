@@ -234,7 +234,7 @@ bool OsdPerMonitorModule::configured() const {
     return !state_.layer_surface || state_.configured;
 }
 
-bool OsdPerMonitorModule::init_egl(WaylandState &app, MonitorOutput &mon) {
+bool OsdPerMonitorModule::init_egl(WaylandState &app, MonitorOutput &) {
     if (state_.layer_surface && osd_init_egl(state_, app.renderer, app.egl_display, app.egl_config, app.egl_context))
         app_detail::rest_egl_current(app);
     return true;

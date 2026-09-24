@@ -590,7 +590,7 @@ void BarPerMonitorModule::text_input_deactivated(TextInputService &) {
     state.network_panel.password_field.preedit.clear();
 }
 
-void BarPerMonitorModule::destroy(WaylandState &app, MonitorOutput &mon) {
+void BarPerMonitorModule::destroy(WaylandState &app, MonitorOutput &) {
     if (state.network_panel.sync_text_input_focus)
         state.network_panel.sync_text_input_focus(false);
     EGLDisplay d = app.egl_display;

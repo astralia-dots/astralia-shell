@@ -426,7 +426,7 @@ bool NotificationViewPerMonitorModule::configured() const {
     return !state_.layer_surface || state_.configured;
 }
 
-bool NotificationViewPerMonitorModule::init_egl(WaylandState &app, MonitorOutput &mon) {
+bool NotificationViewPerMonitorModule::init_egl(WaylandState &app, MonitorOutput &) {
     if (state_.layer_surface && notification_view_init_egl(state_, app.notification, app.renderer, app.egl_display, app.egl_config, app.egl_context))
         app_detail::rest_egl_current(app);
     return true;

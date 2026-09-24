@@ -554,7 +554,7 @@ class SettingsModule final : public Module, public TextInputClient {
     const char *name() const override { return "settings"; }
     bool is_open() const override { return state_.base.open; }
 
-    void on_output_removed(WaylandState &app, wl_output *out) override {
+    void on_output_removed(WaylandState &, wl_output *out) override {
         if (!out || state_.bound_output != out)
             return;
         if (state_.sync_text_input_focus)
