@@ -5,5 +5,5 @@
 struct MonitorOutput;
 
 namespace bar_detail {
-Pill dashboard_pill(MonitorOutput &mon);
+Pill control_center_pill(MonitorOutput &mon);
 } // namespace bar_detail

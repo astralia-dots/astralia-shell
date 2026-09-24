@@ -11,10 +11,11 @@
 #include "app/text_input_client.h"
 #include "app/wayland_state.h"
 
-#include "modules/bar/autohide_geometry.h"
+#include "modules/bar/styles/geometry.h"
 #include "modules/bar/panel/battery_panel.h"
 #include "modules/bar/panel/bluetooth_panel.h"
 #include "modules/bar/panel/clock_panel.h"
+#include "modules/bar/panel/control_center_panel.h"
 #include "modules/bar/panel/network_panel.h"
 #include "modules/bar/panel/resource_panel.h"
 #include "modules/bar/panel/tray_panel.h"
@@ -43,13 +44,14 @@ struct BarPerMonitorState {
     BatteryPanelState battery_panel;
     ResourcePanelState resource_panel;
     ClockPanelState clock_panel;
+    ControlCenterPanelState control_center_panel;
 
     Texture clock_texture;
     Rect clock_rect;
     Texture logout_texture;
     Texture overview_texture;
     Texture cpu_texture;
-    Texture dashboard_texture;
+    Texture control_center_texture;
     Texture fillet_left;
     Texture fillet_right;
     Texture fillet_inner_left;

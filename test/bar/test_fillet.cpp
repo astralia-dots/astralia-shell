@@ -1,6 +1,6 @@
 #include <cassert>
 
-#include "modules/bar/fillet.h"
+#include "modules/bar/styles/okinami.h"
 
 namespace {
 

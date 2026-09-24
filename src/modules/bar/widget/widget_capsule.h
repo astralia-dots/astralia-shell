@@ -8,7 +8,7 @@
 
 #include "config/bar_config.h"
 
-#include "modules/bar/style.h"
+#include "modules/bar/styles/geometry.h"
 
 #include "render/animation.h"
 #include "render/node.h"
@@ -28,7 +28,7 @@ enum class PillId : int {
     Bluetooth,
     Volume,
     Battery,
-    Dashboard,
+    ControlCenter,
     Count
 };
 constexpr size_t kPillCount = static_cast<size_t>(PillId::Count);
@@ -87,9 +87,10 @@ struct VolumePanelState;
 struct TrayPanelState;
 struct BatteryPanelState;
 struct ResourcePanelState;
+struct ControlCenterPanelState;
 
 namespace bar_detail {
 
-PillId panel_pill(const NetworkPanelState &network_panel, const BluetoothPanelState &bluetooth_panel, const VolumePanelState &volume_panel, const TrayPanelState &tray_panel, const BatteryPanelState &battery_panel, const ResourcePanelState &resource_panel, bool logout_open, bool dashboard_open);
+PillId panel_pill(const NetworkPanelState &network_panel, const BluetoothPanelState &bluetooth_panel, const VolumePanelState &volume_panel, const TrayPanelState &tray_panel, const BatteryPanelState &battery_panel, const ResourcePanelState &resource_panel, const ControlCenterPanelState &control_center_panel, bool logout_open);
 
 }

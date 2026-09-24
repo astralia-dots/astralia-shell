@@ -33,7 +33,7 @@
 - `osd_config.h`: OSD surface size/margin/duration/animation-owner constants.
 - `notification_config.h`: Notification card padding/size/timing constants.
 - `logout_config.h`: Ring-menu geometry, entry/exit hold/slash/burst/implode timings, `thunder_burst` constants, `{8/3}` star step, animation owner ids, and the 8-button action table.
-- `dashboard_config.h`: Dashboard card-stack geometry and gauge/temp-warn color constants.
+- `dashboard_config.h`: Blank dashboard window default size, title, and app id.
 - `overview_config.h`: Overview workspace-grid geometry, local and global scale, timing, and live-capture throttle constants.
 - `wallpaper_config.h`: Wallpaper layer-shell namespace constant, `WallpaperTransition` enum (`None`/`Fade`/`Wipe`/`Disc`/`Stripes`/`Zoom`/`Honeycomb`/`Random`), and the fixed cross-transition duration/edge-smoothness constants.
 - `settings_config.h`: Settings panel layout/animation constants, `SettingsFieldId` enum, `SettingsTabDef` type, and the eight nav-rail tab labels.
@@ -55,7 +55,7 @@
 - `animated_image.h`+`.cpp`: `AnimatedImage` playable still/animated picture; wall-clock frame cycling over the `media_service` `.rgba` cache, `show`/`hide` releasing frame textures while off-screen, ring+circular-crop or aspect-fit draw.
 - `renderer.h`+`.cpp`: GL draw calls, clip-stack and transform-stack management, shared across every surface; `draw_custom` runs a module-owned shader over the shared quad.
 - `rect.h`: Shared `Rect{x,y,w,h}` struct for hit-testing.
-- `panel_chrome.h`+`.cpp`: Shared box/header/card/confirm chrome, click-kind enum, `panel_region_hit`, `panel_draw_card` (bordered titled card, shared by `dashboard` and `resource_panel`), `panel_draw_toggle_switch`, `panel_draw_centered_text`, and `panel_measure_row_actions`/`panel_draw_row_actions` (connect/forget pill or busy label) for on-demand panels.
+- `panel_chrome.h`+`.cpp`: Shared box/header/card/confirm chrome, click-kind enum, `panel_region_hit`, `panel_draw_card` (bordered titled card, shared by `control_center_panel` and `resource_panel`), `panel_draw_toggle_switch`, `panel_draw_centered_text`, and `panel_measure_row_actions`/`panel_draw_row_actions` (connect/forget pill or busy label) for on-demand panels.
 - `node.h`+`.cpp`: `Node` retained-allocation scene graph with per-frame node pooling; kinds are rect/rounded-rect/texture/rounded-texture/video-texture/group; per-node `rotation`/`scale` about the node centre.
 - `video_texture.h`+`.cpp`: `VideoTexture` RAII `EGLImageKHR`/`GL` handle plus `DrmFrameImport` dma-buf import for zero-copy `VAAPI` playback, and the `EGL_EXT_image_dma_buf_import` cap probe.
 - `gl.h`+`.cpp`: Labelled shader compile/link helpers, reading `assets/shaders/` with an installed-then-dev-tree fallback, plus a `glGetError`-draining `gl_check`.
@@ -78,7 +78,7 @@
 ## src/service
 
 - `bluetooth_service.h`+`.cpp`: BlueZ D-Bus client, device-classification logic, rfkill soft-block reader/clearer.
-- `brightness_service.h`+`.cpp`: Backlight `sysfs` reader and `inotify` watch, plus `brightness_set` via a `brightnessctl` subprocess; shared by the OSD service and dashboard.
+- `brightness_service.h`+`.cpp`: Backlight `sysfs` reader and `inotify` watch, plus `brightness_set` via a `brightnessctl` subprocess; shared by the OSD service and `control_center_panel`.
 - `network_service.h`+`.cpp`: NetworkManager client (nmcli subprocesses + D-Bus) and pure output parsers.
 - `notification_service.h`+`.cpp`: `org.freedesktop.Notifications` D-Bus server, `NotificationRecord` store, and expiry sweep; consumed by `notification`'s renderer and `lock`'s dock.
 - `tray_service.h`+`.cpp`: StatusNotifierWatcher/host implementation and DBusMenu tree fetch.
@@ -117,7 +117,7 @@
 - `osd.h`+`.cpp`: Volume/brightness popup, per-monitor, auto-hides, reactive to system state changes.
 - `notification.h`+`.cpp`: Notification renderer; rebuilds render/animation state from `notification_service` records, per-monitor card paint, and per-monitor close-button dismissal.
 - `logout.h`+`.cpp`: Logout ring overlay: entry/exit lightning-slash/shockwave choreography, animated centre logo, and its two custom shader effects.
-- `dashboard.h`+`.cpp`: Dashboard singleton state: fixed top-right overlay, IPC/widget-triggered open, scrollable card layout (profile, battery, brightness, volume, media), no resource/temperature cards (moved to `resource_panel`).
+- `dashboard.h`+`.cpp`: Blank `xdg_toplevel` dashboard window toggled by the `dashboard` IPC verb; purpose not yet decided.
 - `overview.h`+`.cpp`: `Tab`-switched local or global workspace grid; live thumbnails on Hyprland, icon tiles on Sway; click/drag/keyboard focus-move-close.
 - `wallpaper.h`+`.cpp`: Per-monitor wallpaper surface: static or animated columns per config, cross-transition on image change, shared by `lock` and idle ambient.
 - `idle.h`+`.cpp`: Recent-activity idle clock feeding the per-monitor ambient/screensaver overlay surface; screensaver bounces an `AnimatedImage` logo, freed while not shown.
@@ -167,11 +167,11 @@
 - `rain_tab.h`+`.cpp`: Per-tab settings UI and commit logic; `Matrix`/`Stiletto` `RainMode` selector row plus an `Asynchronous fall speed` toggle row.
 - `animation_tab.h`+`.cpp`: Per-tab settings UI and commit logic; single `Disable Animations` toggle row.
 
-## src/modules/bar
+## src/modules/bar/styles
 
-- `style.h`: `BarStyleSpec` per-style fill, border, padding, margin, and rail/island/fillet table, resolved by `bar_style_spec`.
-- `fillet.h`+`.cpp`: Pure per-pixel alpha mask of the concave rail-to-island flare; also reused, at a different size/position, for the Okinami bar's outer-corner hug flare; test-linked, no `EGL`.
-- `autohide_geometry.h`+`.cpp`: Pure `BarGeometry`/`bar_autohide_geometry`: autohide-state-to-surface-height/margin/exclusive-zone math, including the Okinami hug-radius addition; split out from `bar.h`/`.cpp` so it's test-linked without pulling in `EGL`/Wayland/`pipewire` headers.
+- `geometry.h`+`.cpp`: Shared across styles: `BarStyleSpec` (fill, border, padding, margin, rail/island/fillet sizes), `bar_style_spec` dispatch to each style's spec, `bar_style_has_rail`, and pure `BarGeometry`/`bar_autohide_geometry` autohide-state-to-surface-height/margin/exclusive-zone math (including the Okinami hug-radius addition); test-linked, no `EGL`/Wayland/`pipewire` headers.
+- `islands.h`+`.cpp`: `islands_style_spec`: floating-capsule style, no rail.
+- `okinami.h`+`.cpp`: `okinami_style_spec`: rail-plus-islands style, and `fillet_rgba`, the pure per-pixel alpha mask of the concave rail-to-island flare, also reused at a different size/position for the outer-corner hug flare; test-linked, no `EGL`.
 
 ## src/modules/bar/panel
 
@@ -181,6 +181,7 @@
 - `tray_panel.h`+`.cpp`: On-demand tray grid panel plus its context menu, a separate `xdg_popup` grabbed to the panel layer surface.
 - `battery_panel.h`+`.cpp`: On-demand battery panel: every UPower device with its charge level.
 - `resource_panel.h`+`.cpp`: On-demand resource panel: side-by-side CPU/GPU cards, each a clock-over-usage gauge above a temperature gauge (over 100°C), then a "Memory" card (RAM/disk `used / cap` bars).
+- `control_center_panel.h`+`.cpp`: On-demand fixed top-right panel with its own layout constants: scrollable profile, battery, brightness, volume, and media cards.
 - `clock_panel.h`+`.cpp`: On-demand centered panel, two columns: today's weekday/month/year/day/ISO-week, and a `6x7` month grid (Monday-first) with its own prev/today/next nav row and today highlighted.
 
 ## src/modules/bar/widget
@@ -191,7 +192,7 @@
 - `clock_widget.h`+`.cpp`: State-free clock-pill drawing; returns the pill hit rect and owns the calendar-panel open trigger.
 - `logout_widget.h`+`.cpp`: Logout pill that toggles the logout overlay.
 - `status_widget.h`+`.cpp`: One shared capsule of tray, network, Bluetooth, volume, and battery segments, each opening its own panel; volume wheel and peek.
-- `dashboard_widget.h`+`.cpp`: Dashboard pill that toggles the dashboard overlay.
+- `control_center_widget.h`+`.cpp`: Username pill opening the control center panel.
 - `resource_widget.h`+`.cpp`: CPU pill opening the resource panel.
 
 ## src
@@ -269,7 +270,7 @@
 - `stellar-restoration.svg`: Idle screensaver bouncing-logo source (placeholder).
 - `stiletto.svg`: `stiletto_rain` comet head, rasterized once aspect-correct and scaled to the comet-row head height.
 - `electro.png`: Password-field echo glyph, drawn per character.
-- `gifs/profile.gif`: Lock avatar, settings and dashboard profile-picture source, decoded to cached frames via `media_service`.
+- `gifs/profile.gif`: Lock avatar, settings and control center profile-picture source, decoded to cached frames via `media_service`.
 - `logout/logo.gif`: Logout animated centre-logo source, decoded to cached frames via `media_service`.
 - `logout/logo.png`: Logout static centre-logo source, used when the animated-logo toggle is off.
 - `pam/astralia-shell`: `PAM` service file for the lock screen, loaded via `pam_start_confdir`.

@@ -1,6 +1,14 @@
 #include "config/bar_config.h"
 
-#include "modules/bar/autohide_geometry.h"
+#include "modules/bar/styles/geometry.h"
+#include "modules/bar/styles/islands.h"
+#include "modules/bar/styles/okinami.h"
+
+const BarStyleSpec &bar_style_spec(BarStyle style) {
+    if (style == BarStyle::Okinami)
+        return okinami_style_spec();
+    return islands_style_spec();
+}
 
 namespace bar_detail {
 

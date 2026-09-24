@@ -9,9 +9,9 @@
 #include "core/log.h"
 
 #include "modules/bar.h"
-#include "modules/bar/fillet.h"
+#include "modules/bar/styles/okinami.h"
 #include "modules/bar/widget/clock_widget.h"
-#include "modules/bar/widget/dashboard_widget.h"
+#include "modules/bar/widget/control_center_widget.h"
 #include "modules/bar/widget/dock_widget.h"
 #include "modules/bar/widget/logout_widget.h"
 #include "modules/bar/widget/resource_widget.h"
@@ -24,6 +24,7 @@
 #include "render/palette.h"
 
 #include "service/dock_service.h"
+#include "service/mpris_service.h"
 #include "service/output_service.h"
 
 BarPerMonitorState &bar_state(MonitorOutput &mon) {
@@ -47,10 +48,6 @@ void close_other_overlays(MonitorOutput &mon, PillId keep) {
         if (Module *m = find_overlay_by_name(*mon.app, "logout"); m && m->is_open())
             m->toggle_from_widget(*mon.app);
     }
-    if (keep != PillId::Dashboard) {
-        if (Module *m = find_overlay_by_name(*mon.app, "dashboard"); m && m->is_open())
-            m->toggle_from_widget(*mon.app);
-    }
     if (keep != PillId::Wifi && bs.network_panel.base.open)
         network_panel_toggle(bs.network_panel);
     if (keep != PillId::Bluetooth && bs.bluetooth_panel.base.open)
@@ -65,6 +62,8 @@ void close_other_overlays(MonitorOutput &mon, PillId keep) {
         battery_panel_toggle(bs.battery_panel);
     if (keep != PillId::Cpu && bs.resource_panel.base.open)
         resource_panel_toggle(bs.resource_panel);
+    if (keep != PillId::ControlCenter && bs.control_center_panel.base.open)
+        control_center_panel_toggle(bs.control_center_panel);
     if (bs.clock_panel.base.open)
         clock_panel_toggle(bs.clock_panel);
 }
@@ -122,6 +121,10 @@ void resource_panel_dispatch(WaylandState &app) {
 }
 
 void clock_panel_dispatch(WaylandState &app) {
+    bar_dispatch_request_frame(app);
+}
+
+void control_center_panel_dispatch(WaylandState &app) {
     bar_dispatch_request_frame(app);
 }
 
@@ -187,7 +190,7 @@ void init_stub_widgets(MonitorOutput &mon) {
     BarPerMonitorState &bs = bar_state(mon);
     bs.logout_texture = make_icon_texture(icon::power);
     bs.cpu_texture = make_icon_texture(icon::cpu);
-    bs.dashboard_texture = make_icon_texture(icon::dashboard);
+    bs.control_center_texture = make_icon_texture(icon::dashboard);
     bs.overview_texture = make_icon_texture(icon::overview);
 }
 
@@ -244,12 +247,10 @@ void bar_paint(MonitorOutput &mon) {
     mon.animations.tick(std::chrono::steady_clock::now());
 
     Module *logout_m = find_overlay_by_name(app, "logout");
-    Module *dashboard_m = find_overlay_by_name(app, "dashboard");
     Module *overview_m = find_overlay_by_name(app, "overview");
     bool overview_here = overview_m && overview_m->is_open() && overview_m->opened_by_widget() && overview_m->bound_output() == mon.output.wl;
     bool logout_here = logout_m && logout_m->is_open() && logout_m->opened_by_widget() && logout_m->bound_output() == mon.output.wl;
-    bool dashboard_here = dashboard_m && dashboard_m->is_open() && dashboard_m->opened_by_widget() && dashboard_m->bound_output() == mon.output.wl;
-    PillId current_panel_pill = panel_pill(bs.network_panel, bs.bluetooth_panel, bs.volume_panel, bs.tray_panel, bs.battery_panel, bs.resource_panel, logout_here, dashboard_here);
+    PillId current_panel_pill = panel_pill(bs.network_panel, bs.bluetooth_panel, bs.volume_panel, bs.tray_panel, bs.battery_panel, bs.resource_panel, bs.control_center_panel, logout_here);
 
     if (mon.autohide.enabled) {
         bool want_shown = app.pointer.focused_surface == mon.surface || current_panel_pill != PillId::None || bs.clock_panel.base.open || overview_here;
@@ -377,11 +378,11 @@ void bar_paint(MonitorOutput &mon) {
         fillets.emplace_back(center_right, true);
     }
 
-    std::vector<Pill> dashboard_pills = {dashboard_pill(mon)};
+    std::vector<Pill> control_center_pills = {control_center_pill(mon)};
     std::vector<Pill> status_segments = status_pills(mon);
     std::vector<Pill> right_stub_pills = {cpu_pill(mon)};
 
-    float cc_w = pills_row_width(bs.capsule, mon.animations, dashboard_pills, hovered, height, style);
+    float cc_w = pills_row_width(bs.capsule, mon.animations, control_center_pills, hovered, height, style);
     float status_w = pill_group_width(bs.capsule, mon.animations, status_segments, hovered, height, style, current_panel_pill);
     float stub_w = pills_row_width(bs.capsule, mon.animations, right_stub_pills, hovered, height, style, current_panel_pill);
 
@@ -401,7 +402,7 @@ void bar_paint(MonitorOutput &mon) {
         }
     }
     if (cc_w > 0) {
-        draw_pills(content, bs.capsule, mon.animations, cc_x, height, dashboard_pills, white, style, hovered);
+        draw_pills(content, bs.capsule, mon.animations, cc_x, height, control_center_pills, white, style, hovered);
     }
     bool right_flush = false;
     if (rail && cc_w + status_w + stub_w > 0) {
@@ -486,11 +487,13 @@ bool BarPerMonitorModule::create_surface(WaylandState &app, MonitorOutput &mon, 
         klog("resource_panel: failed to create layer surface on '%s'", mon.output.name.c_str());
     if (!clock_panel_create_surface(state.clock_panel, app.compositor, app.layer_shell, output))
         klog("clock_panel: failed to create layer surface on '%s'", mon.output.name.c_str());
+    if (!control_center_panel_create_surface(state.control_center_panel, app.compositor, app.layer_shell, output))
+        klog("control_center_panel: failed to create layer surface on '%s'", mon.output.name.c_str());
     return true;
 }
 
 bool BarPerMonitorModule::configured() const {
-    return mon_->configured && (!state.network_panel.base.layer_surface || state.network_panel.base.configured) && (!state.bluetooth_panel.base.layer_surface || state.bluetooth_panel.base.configured) && (!state.volume_panel.base.layer_surface || state.volume_panel.base.configured) && (!state.tray_panel.base.layer_surface || state.tray_panel.base.configured) && (!state.battery_panel.base.layer_surface || state.battery_panel.base.configured) && (!state.resource_panel.base.layer_surface || state.resource_panel.base.configured) && (!state.clock_panel.base.layer_surface || state.clock_panel.base.configured);
+    return mon_->configured && (!state.network_panel.base.layer_surface || state.network_panel.base.configured) && (!state.bluetooth_panel.base.layer_surface || state.bluetooth_panel.base.configured) && (!state.volume_panel.base.layer_surface || state.volume_panel.base.configured) && (!state.tray_panel.base.layer_surface || state.tray_panel.base.configured) && (!state.battery_panel.base.layer_surface || state.battery_panel.base.configured) && (!state.resource_panel.base.layer_surface || state.resource_panel.base.configured) && (!state.clock_panel.base.layer_surface || state.clock_panel.base.configured) && (!state.control_center_panel.base.layer_surface || state.control_center_panel.base.configured);
 }
 
 bool BarPerMonitorModule::init_egl(WaylandState &app, MonitorOutput &mon) {
@@ -534,6 +537,10 @@ bool BarPerMonitorModule::init_egl(WaylandState &app, MonitorOutput &mon) {
         clock_panel_request_frame(state.clock_panel, 0.0f, 0.0f, 0.0f);
         gl_make_current(app.egl_display, mon.egl_surface, app.egl_context);
     }
+    if (state.control_center_panel.base.layer_surface && control_center_panel_init_egl(state.control_center_panel, app.renderer, app, app.egl_display, app.egl_config, app.egl_context)) {
+        control_center_panel_request_frame(state.control_center_panel, 0.0f, 0.0f);
+        gl_make_current(app.egl_display, mon.egl_surface, app.egl_context);
+    }
 
     if (mon.autohide.enabled) {
         mon.autohide.hidden = true;
@@ -575,10 +582,11 @@ void BarPerMonitorModule::destroy(WaylandState &app, MonitorOutput &mon) {
     overlay_panel_destroy_surface(state.battery_panel.base);
     overlay_panel_destroy_surface(state.resource_panel.base);
     overlay_panel_destroy_surface(state.clock_panel.base);
+    overlay_panel_destroy_surface(state.control_center_panel.base);
 }
 
 bool BarPerMonitorModule::owns_surface(wl_surface *surface) const {
-    return surface == mon_->surface || surface == state.network_panel.base.surface || surface == state.bluetooth_panel.base.surface || surface == state.volume_panel.base.surface || surface == state.tray_panel.base.surface || surface == state.tray_menu.base.surface || surface == state.battery_panel.base.surface || surface == state.resource_panel.base.surface || surface == state.clock_panel.base.surface;
+    return surface == mon_->surface || surface == state.network_panel.base.surface || surface == state.bluetooth_panel.base.surface || surface == state.volume_panel.base.surface || surface == state.tray_panel.base.surface || surface == state.tray_menu.base.surface || surface == state.battery_panel.base.surface || surface == state.resource_panel.base.surface || surface == state.clock_panel.base.surface || surface == state.control_center_panel.base.surface;
 }
 
 void BarPerMonitorModule::request_frame() {
@@ -594,6 +602,7 @@ void BarPerMonitorModule::request_frame() {
     battery_panel_request_frame(state.battery_panel, bar_detail::pill_center_x(state.capsule, PillId::Battery), static_cast<float>(bar_detail::kBarHeight), top_margin);
     resource_panel_request_frame(state.resource_panel, bar_detail::pill_center_x(state.capsule, PillId::Cpu), static_cast<float>(bar_detail::kBarHeight), top_margin);
     clock_panel_request_frame(state.clock_panel, static_cast<float>(mon_->width) / 2.0f + state.capsule.side_margin, static_cast<float>(bar_detail::kBarHeight), top_margin);
+    control_center_panel_request_frame(state.control_center_panel, static_cast<float>(bar_detail::kBarHeight), top_margin);
 }
 
 void BarPerMonitorModule::tick(WaylandState &, MonitorOutput &mon) {
@@ -630,10 +639,15 @@ void BarPerMonitorModule::timer_tick(WaylandState &app, MonitorOutput &mon) {
             gpu_temp_poll(app.gpu_temp);
         resource_panel_dispatch(app);
     }
+
+    if (state.control_center_panel.base.open) {
+        mpris_poll_position(app.mpris);
+        control_center_panel_dispatch(app);
+    }
 }
 
 bool BarPerMonitorModule::is_open() const {
-    return state.network_panel.base.open || state.bluetooth_panel.base.open || state.volume_panel.base.open || state.tray_panel.base.open || state.battery_panel.base.open || state.resource_panel.base.open || state.clock_panel.base.open;
+    return state.network_panel.base.open || state.bluetooth_panel.base.open || state.volume_panel.base.open || state.tray_panel.base.open || state.battery_panel.base.open || state.resource_panel.base.open || state.clock_panel.base.open || state.control_center_panel.base.open;
 }
 
 void BarPerMonitorModule::handle_click(WaylandState &app, MonitorOutput &mon, wl_surface *surface, int button, double x, double y, uint32_t serial) {
@@ -682,6 +696,9 @@ void BarPerMonitorModule::handle_click(WaylandState &app, MonitorOutput &mon, wl
     } else if (surface == state.clock_panel.base.surface) {
         clock_panel_handle_click(state.clock_panel, x, y);
         clock_panel_dispatch(app);
+    } else if (surface == state.control_center_panel.base.surface) {
+        control_center_panel_handle_click(state.control_center_panel, app, x, y);
+        control_center_panel_dispatch(app);
     } else if (surface == mon.surface) {
         dispatch_pill_click(mon, x, y);
         network_panel_dispatch(app, true);
@@ -691,6 +708,7 @@ void BarPerMonitorModule::handle_click(WaylandState &app, MonitorOutput &mon, wl
         battery_panel_dispatch(app);
         resource_panel_dispatch(app);
         clock_panel_dispatch(app);
+        control_center_panel_dispatch(app);
         for (auto &m : app.overlays) {
             m->request_frame();
             app_detail::rest_egl_current(app);
@@ -714,6 +732,9 @@ void BarPerMonitorModule::handle_scroll(WaylandState &app, MonitorOutput &mon, w
     } else if (surface == state.resource_panel.base.surface) {
         resource_panel_handle_scroll(state.resource_panel, app.cpu_temp, app.gpu_temp, app.system_stats, dy);
         resource_panel_dispatch(app);
+    } else if (surface == state.control_center_panel.base.surface) {
+        control_center_panel_handle_scroll(state.control_center_panel, dy);
+        control_center_panel_dispatch(app);
     } else if (surface == mon.surface && bar_detail::hit_test_pills(state.capsule, app.pointer, mon.surface) == PillId::Volume) {
         bar_detail::volume_pill_handle_wheel(mon, dy);
     }
@@ -743,6 +764,9 @@ void BarPerMonitorModule::handle_key_event(WaylandState &app, MonitorOutput &mon
     } else if (state.clock_panel.base.open) {
         clock_panel_handle_key_event(state.clock_panel, event);
         clock_panel_dispatch(app);
+    } else if (state.control_center_panel.base.open) {
+        control_center_panel_handle_key_event(state.control_center_panel, app, event);
+        control_center_panel_dispatch(app);
     }
 }
 
@@ -754,11 +778,19 @@ void BarPerMonitorModule::handle_pointer_move(WaylandState &app, MonitorOutput &
         volume_panel_handle_pointer_move(state.volume_panel, app.pipewire, x);
         request_frame();
     }
+    if (state.control_center_panel.dragging) {
+        control_center_panel_handle_pointer_move(state.control_center_panel, app, x);
+        request_frame();
+    }
 }
 
 void BarPerMonitorModule::handle_pointer_release() {
     if (state.volume_panel.dragging) {
         state.volume_panel.dragging.reset();
+        request_frame();
+    }
+    if (state.control_center_panel.dragging) {
+        state.control_center_panel.dragging.reset();
         request_frame();
     }
 }
@@ -768,7 +800,7 @@ bool BarPerMonitorModule::wants_pointing_hand_cursor() const {
         return false;
 
     BarPerMonitorState &bs = bar_state(*mon_);
-    if (panel_region_hit(bs.network_panel.click_regions, pointer_x_, pointer_y_) || panel_region_hit(bs.bluetooth_panel.click_regions, pointer_x_, pointer_y_) || panel_region_hit(bs.volume_panel.click_regions, pointer_x_, pointer_y_) || panel_region_hit(bs.tray_panel.click_regions, pointer_x_, pointer_y_) || panel_region_hit(bs.tray_menu.click_regions, pointer_x_, pointer_y_) || panel_region_hit(bs.battery_panel.click_regions, pointer_x_, pointer_y_) || panel_region_hit(bs.resource_panel.click_regions, pointer_x_, pointer_y_) || panel_region_hit(bs.clock_panel.click_regions, pointer_x_, pointer_y_))
+    if (panel_region_hit(bs.network_panel.click_regions, pointer_x_, pointer_y_) || panel_region_hit(bs.bluetooth_panel.click_regions, pointer_x_, pointer_y_) || panel_region_hit(bs.volume_panel.click_regions, pointer_x_, pointer_y_) || panel_region_hit(bs.tray_panel.click_regions, pointer_x_, pointer_y_) || panel_region_hit(bs.tray_menu.click_regions, pointer_x_, pointer_y_) || panel_region_hit(bs.battery_panel.click_regions, pointer_x_, pointer_y_) || panel_region_hit(bs.resource_panel.click_regions, pointer_x_, pointer_y_) || panel_region_hit(bs.clock_panel.click_regions, pointer_x_, pointer_y_) || panel_region_hit(bs.control_center_panel.click_regions, pointer_x_, pointer_y_))
         return true;
 
     PointerState p = mon_->app->pointer;

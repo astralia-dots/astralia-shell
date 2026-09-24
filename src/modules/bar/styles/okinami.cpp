@@ -1,7 +1,19 @@
 #include <algorithm>
 #include <cmath>
 
-#include "modules/bar/fillet.h"
+#include "modules/bar/styles/okinami.h"
+
+#include "render/palette.h"
+
+namespace {
+
+constexpr BarStyleSpec kOkinamiStyle = {palette::base, palette::accent, metrics::border_thin, 0.0f, 0.25f, 0, 0, 6.0f, 16.0f, 12.0f};
+
+} // namespace
+
+const BarStyleSpec &okinami_style_spec() {
+    return kOkinamiStyle;
+}
 
 std::vector<uint8_t> fillet_rgba(int size, bool circle_on_right) {
     std::vector<uint8_t> rgba(static_cast<size_t>(size) * size * 4, 255);

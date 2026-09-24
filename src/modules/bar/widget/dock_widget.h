@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "modules/bar/style.h"
+#include "modules/bar/styles/geometry.h"
 
 #include "render/animation.h"
 #include "render/dock_row.h"

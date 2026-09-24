@@ -1,6 +1,7 @@
 #include "modules/bar/widget/widget_capsule.h"
 #include "modules/bar/panel/battery_panel.h"
 #include "modules/bar/panel/bluetooth_panel.h"
+#include "modules/bar/panel/control_center_panel.h"
 #include "modules/bar/panel/network_panel.h"
 #include "modules/bar/panel/resource_panel.h"
 #include "modules/bar/panel/tray_panel.h"
@@ -47,7 +48,7 @@ PillId hit_test_pills(const WidgetCapsuleState &capsule, const PointerState &poi
     return PillId::None;
 }
 
-PillId panel_pill(const NetworkPanelState &network_panel, const BluetoothPanelState &bluetooth_panel, const VolumePanelState &volume_panel, const TrayPanelState &tray_panel, const BatteryPanelState &battery_panel, const ResourcePanelState &resource_panel, bool logout_open, bool dashboard_open) {
+PillId panel_pill(const NetworkPanelState &network_panel, const BluetoothPanelState &bluetooth_panel, const VolumePanelState &volume_panel, const TrayPanelState &tray_panel, const BatteryPanelState &battery_panel, const ResourcePanelState &resource_panel, const ControlCenterPanelState &control_center_panel, bool logout_open) {
     if (network_panel.base.open)
         return PillId::Wifi;
     if (bluetooth_panel.base.open)
@@ -60,10 +61,10 @@ PillId panel_pill(const NetworkPanelState &network_panel, const BluetoothPanelSt
         return PillId::Battery;
     if (resource_panel.base.open)
         return PillId::Cpu;
+    if (control_center_panel.base.open)
+        return PillId::ControlCenter;
     if (logout_open)
         return PillId::Logout;
-    if (dashboard_open)
-        return PillId::Dashboard;
     return PillId::None;
 }
 

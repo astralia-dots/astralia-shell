@@ -5,8 +5,6 @@
 #include "app/text_input_client.h"
 #include "app/wayland_state.h"
 
-#include "config/bar_config.h"
-
 #include "modules/bar.h"
 #include "modules/dashboard.h"
 #include "modules/launcher.h"
@@ -26,7 +24,6 @@
 #include "render/layer_surface.h"
 #include "render/palette.h"
 
-#include "service/mpris_service.h"
 #include "service/telemetry_service.h"
 
 namespace {
@@ -235,104 +232,22 @@ class DashboardModule final : public Module {
     const char *name() const override { return "dashboard"; }
     bool is_open() const override { return state_.base.open; }
 
-    bool create_surface(WaylandState &app, wl_output *output) override {
-        app_ = &app;
-        output_ = output;
-        want_ = dashboard_create_surface(state_, app.compositor, app.layer_shell, output);
-        return want_;
-    }
-
-    bool init_egl(WaylandState &app) override {
-        if (!dashboard_init_egl(state_, app.renderer, app, app.egl_display, app.egl_config, app.egl_context))
-            return false;
-        state_.bound_output = output_;
-        request_frame();
-        return true;
-    }
-
-    bool configured() const override {
-        return !want_ || state_.base.configured;
-    }
+    bool create_surface(WaylandState &, wl_output *) override { return true; }
+    bool init_egl(WaylandState &) override { return true; }
+    bool configured() const override { return true; }
     wl_surface *surface() const override { return state_.base.surface; }
-    void request_frame() override {
-        if (app_)
-            dashboard_request_frame(state_, static_cast<float>(bar_detail::kBarHeight), static_cast<float>(bar_top_margin(app_->cfg)));
-    }
+    void request_frame() override { dashboard_request_frame(state_); }
 
-    bool timer_tick(WaylandState &app) override {
-        if (!state_.base.open)
-            return false;
-        ++poll_tick_;
-        if (poll_tick_ % 2 == 0) {
-            cpu_temp_poll(app.cpu_temp);
-            system_stats_poll(app.system_stats);
-        }
-        if (poll_tick_ % 5 == 0 || app.gpu_temp.nvidia_smi_running)
-            gpu_temp_poll(app.gpu_temp);
-        mpris_poll_position(app.mpris);
-        request_frame();
-        return true;
-    }
-
-    void handle_pointer_move(WaylandState &app, wl_surface *, double x, double y) override {
-        hovering_clickable_ =
-            state_.base.open && app.pointer.focused_surface == state_.base.surface && panel_region_hit(state_.click_regions, x, y);
-        if (!state_.dragging)
-            return;
-        dashboard_handle_pointer_move(state_, app, x);
-        request_frame();
-    }
-    bool wants_pointing_hand_cursor() const override {
-        return hovering_clickable_;
-    }
-
-    void handle_pointer_release() override {
-        if (state_.dragging)
-            state_.dragging.reset();
-    }
-
-    void handle_click(WaylandState &app, double x, double y) override {
-        dashboard_handle_click(state_, app, x, y);
-    }
     void handle_key_event(WaylandState &app, const KeyEvent &event) override {
         dashboard_handle_key_event(state_, app, event);
-    }
-    void handle_scroll(WaylandState &, double dy) override {
-        dashboard_handle_scroll(state_, dy);
-        request_frame();
     }
 
     std::vector<IpcHandler> ipc_handlers(WaylandState &app) override {
         return dashboard_ipc_handlers(state_, app);
     }
 
-    bool opened_by_widget() const override { return state_.opened_by_widget; }
-    wl_output *bound_output() const override { return state_.bound_output; }
-    void on_output_removed(WaylandState &, wl_output *out) override {
-        if (state_.bound_output != out)
-            return;
-        overlay_panel_release_output(state_.base, state_.bound_output, out);
-        state_.opened_by_widget = false;
-    }
-    void toggle_from_widget(WaylandState &app) override {
-        if (!state_.base.open) {
-            MonitorOutput *target = app_detail::active_target_monitor(app);
-            if (target && (target->output.wl != state_.bound_output || !state_.base.layer_surface))
-                dashboard_retarget(state_, app.compositor, app.layer_shell, app.display, app.renderer, app, app.egl_display, app.egl_config, app.egl_context, target->output.wl, target->output.name.c_str());
-            cpu_temp_poll(app.cpu_temp);
-            system_stats_poll(app.system_stats);
-            gpu_temp_poll(app.gpu_temp);
-        }
-        dashboard_toggle(state_, true);
-    }
-
   private:
     DashboardState state_;
-    WaylandState *app_ = nullptr;
-    wl_output *output_ = nullptr;
-    bool want_ = false;
-    bool hovering_clickable_ = false;
-    int poll_tick_ = 0;
 };
 
 class OverviewModule final : public Module {

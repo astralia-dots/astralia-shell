@@ -1,6 +1,6 @@
 #include <cassert>
 
-#include "modules/bar/autohide_geometry.h"
+#include "modules/bar/styles/geometry.h"
 
 void test_bar_autohide_geometry() {
     using bar_detail::bar_autohide_geometry;

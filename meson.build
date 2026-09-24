@@ -194,8 +194,9 @@ astralia_shell_launcher_test_sources = [
 ]
 
 astralia_shell_bar_test_sources = [
-  'src/modules/bar/fillet.cpp',
-  'src/modules/bar/autohide_geometry.cpp',
+  'src/modules/bar/styles/geometry.cpp',
+  'src/modules/bar/styles/islands.cpp',
+  'src/modules/bar/styles/okinami.cpp',
 ]
 
 astralia_shell_bar_panels_main_only_sources = [
@@ -205,6 +206,7 @@ astralia_shell_bar_panels_main_only_sources = [
   'src/modules/bar/panel/volume_panel.cpp',
   'src/modules/bar/panel/battery_panel.cpp',
   'src/modules/bar/panel/resource_panel.cpp',
+  'src/modules/bar/panel/control_center_panel.cpp',
   'src/modules/bar/panel/clock_panel.cpp',
 ]
 
@@ -214,7 +216,7 @@ astralia_shell_bar_main_only_sources = [
   'src/modules/bar/widget/clock_widget.cpp',
   'src/modules/bar/widget/workspace_widget.cpp',
   'src/modules/bar/widget/logout_widget.cpp',
-  'src/modules/bar/widget/dashboard_widget.cpp',
+  'src/modules/bar/widget/control_center_widget.cpp',
   'src/modules/bar/widget/dock_widget.cpp',
   'src/modules/bar/widget/resource_widget.cpp',
   'src/modules/bar/widget/status_widget.cpp',
