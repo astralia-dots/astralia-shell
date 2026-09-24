@@ -23,10 +23,12 @@
 ## Config headers
 
 - `src/config/*.h` holds constants and plain data types only, no function bodies (helpers that compute from a config value live with their consumer).
+- One config header per module, named `<module>_config.h`; a module's private components (e.g. `bar`'s panels) share it rather than getting their own.
 
 ## Service structure
 
 - `src/service/` holds as many services as needed, but limited to one pair of `**_service.{h,cpp}` per service.
+- `src/plugin/` holds `dlopen`-loaded `shared_module`s, one `**_plugin.{h,cpp}` pair each, loaded by their owning service.
 
 ## Includes
 

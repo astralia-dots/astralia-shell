@@ -11,6 +11,7 @@
 #include <wayland-egl.h>
 
 #include "app/config.h"
+#include "app/per_monitor_module.h"
 
 #include "config/wallpaper_config.h"
 
@@ -119,3 +120,23 @@ void wallpaper_columns_pause_all(WallpaperState &wp);
 void wallpaper_columns_resume_all(WallpaperState &wp);
 
 MediaDecodeStatus wallpaper_column_status(const WallpaperState &wp, int column_index);
+
+class WallpaperPerMonitorModule final : public PerMonitorModule {
+  public:
+    bool create_surface(WaylandState &app, MonitorOutput &mon, wl_output *output) override;
+    bool configured() const override;
+    bool init_egl(WaylandState &app, MonitorOutput &mon) override;
+    void destroy(WaylandState &app, MonitorOutput &mon) override;
+    bool owns_surface(wl_surface *surface) const override;
+    void request_frame() override;
+
+    void apply_config(WaylandState &app, MonitorOutput &mon, const Config &new_cfg) override;
+
+    void pause_animation();
+    void resume_animation();
+    MediaDecodeStatus decode_status(int column_index) const;
+    const WallpaperState &wallpaper_state() const { return state_; }
+
+  private:
+    WallpaperState state_;
+};

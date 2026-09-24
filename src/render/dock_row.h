@@ -4,8 +4,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "config/dock_config.h"
-
 #include "render/animation.h"
 #include "render/node.h"
 #include "render/texture.h"

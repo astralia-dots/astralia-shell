@@ -247,3 +247,40 @@ std::vector<IpcHandler> visualizer_ipc_handlers(VisualizerState &visualizer, Way
         {"visualizer", [&visualizer, &state] { visualizer_toggle(visualizer, state); }, "toggle the audio visualizer overlay"},
     };
 }
+
+namespace {
+
+class VisualizerModule final : public Module {
+  public:
+    ~VisualizerModule() override { visualizer_shutdown(state_); }
+
+    const char *name() const override { return "visualizer"; }
+    bool is_open() const override { return state_.base.open; }
+
+    bool create_surface(WaylandState &, wl_output *) override { return true; }
+    bool init_egl(WaylandState &) override { return true; }
+    bool configured() const override { return true; }
+    wl_surface *surface() const override { return state_.base.surface; }
+    void request_frame() override {}
+
+    void handle_key_event(WaylandState &app, const KeyEvent &event) override {
+        visualizer_handle_key_event(state_, app, event);
+    }
+
+    void apply_config(WaylandState &, const Config &cfg) override {
+        visualizer_apply_params(state_, cfg.visualizer);
+    }
+
+    std::vector<IpcHandler> ipc_handlers(WaylandState &app) override {
+        return visualizer_ipc_handlers(state_, app);
+    }
+
+  private:
+    VisualizerState state_;
+};
+
+} // namespace
+
+std::unique_ptr<Module> make_visualizer_module() {
+    return std::make_unique<VisualizerModule>();
+}

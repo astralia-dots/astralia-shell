@@ -23,7 +23,7 @@ extern "C" {
 
 #include "core/log.h"
 
-#include "service/media_plugin.h"
+#include "plugin/media_plugin.h"
 
 namespace {
 

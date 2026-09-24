@@ -16,9 +16,10 @@
 #include "core/deferred_call.h"
 #include "core/log.h"
 
+#include "plugin/media_plugin.h"
+
 #include "render/image.h"
 
-#include "service/media_plugin.h"
 #include "service/media_service.h"
 
 namespace fs = std::filesystem;

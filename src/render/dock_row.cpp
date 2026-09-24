@@ -10,6 +10,15 @@
 
 namespace {
 
+// icons
+constexpr int kDockIconSize = 22;
+constexpr float kDockIconSpacing = 10.0f;
+constexpr float kDockIconFocusedOpacity = 1.0f;
+constexpr float kDockIconUnfocusedOpacity = 0.5f;
+
+// timing
+constexpr float kDockReorderMs = 200.0f;
+
 constexpr Color kFocusedTint =
     with_alpha(palette::text, kDockIconFocusedOpacity);
 constexpr Color kUnfocusedTint =

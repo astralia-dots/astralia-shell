@@ -513,3 +513,107 @@ void settings_text_input_apply_edit(SettingsState &state, const TextInputEdit &e
     if (edit.has_delete || edit.has_commit_text)
         text_field_type_anim_sync(state.field_anim, state.base.animations, kSettingsFieldTypeAnimOwnerBase, state.field_buffer.text);
 }
+
+namespace {
+
+class SettingsModule final : public Module, public TextInputClient {
+  public:
+    const char *name() const override { return "settings"; }
+    bool is_open() const override { return state_.base.open; }
+
+    void on_output_removed(WaylandState &app, wl_output *out) override {
+        if (!out || app.settings_bound_output != out)
+            return;
+        if (state_.sync_text_input_focus)
+            state_.sync_text_input_focus(false);
+        wl_output *bound = app.settings_bound_output;
+        overlay_panel_release_output(state_.base, bound, out);
+        app.settings_bound_output = nullptr;
+        app.settings_enabled = false;
+        state_.focused_field = SettingsFieldId::None;
+    }
+
+    bool create_surface(WaylandState &app, wl_output *output) override {
+        output_ = output;
+        want_ = settings_create_surface(state_, app.compositor, app.layer_shell, output);
+        return want_;
+    }
+
+    bool init_egl(WaylandState &app) override {
+        SettingsEnv env = settings_env(app);
+        if (!settings_init_egl(state_, app.cfg, app.renderer, app.egl_display, app.egl_config, app.egl_context, env.monitor_names_fn, env.focused_monitor_fn, env.decode_status_fn))
+            return false;
+        app.settings_bound_output = output_;
+        app.settings_enabled = true;
+        state_.sync_text_input_focus = [this, &app](bool focused) {
+            if (focused)
+                app.text_input.set_focused_client(state_.base.surface, this);
+            else
+                app.text_input.clear_focused_client(this);
+        };
+        return true;
+    }
+
+    TextInputState text_input_state() const override {
+        return settings_text_input_state(state_);
+    }
+    void text_input_apply_edit(const TextInputEdit &edit) override {
+        settings_text_input_apply_edit(state_, edit);
+        request_frame();
+    }
+    void text_input_reset_preedit() override {
+        state_.field_buffer.preedit.clear();
+        request_frame();
+    }
+    void text_input_activated(TextInputService &) override {}
+    void text_input_deactivated(TextInputService &) override {
+        state_.field_buffer.preedit.clear();
+    }
+
+    bool configured() const override {
+        return !want_ || state_.base.configured;
+    }
+    wl_surface *surface() const override { return state_.base.surface; }
+    void request_frame() override { settings_request_frame(state_); }
+
+    bool timer_tick(WaylandState &) override {
+        if (!state_.base.open)
+            return false;
+        if (state_.focused_field != SettingsFieldId::None)
+            text_field_idle_toggle(state_.field_buffer);
+        request_frame();
+        return true;
+    }
+
+    void handle_click(WaylandState &app, double x, double y) override {
+        settings_handle_click(state_, app.cfg, [&app](Config c) { app_detail::save_and_apply_config_update(app, c); }, x, y);
+    }
+    void handle_pointer_move(WaylandState &, wl_surface *focused_surface, double x, double y) override {
+        hovering_clickable_ = state_.base.open && focused_surface == state_.base.surface && settings_point_is_clickable(state_, x, y);
+    }
+    bool wants_pointing_hand_cursor() const override {
+        return hovering_clickable_;
+    }
+    void handle_key_event(WaylandState &app, const KeyEvent &event) override {
+        settings_handle_key_event(state_, app.cfg, [&app](Config c) { app_detail::save_and_apply_config_update(app, c); }, event);
+    }
+    void handle_scroll(WaylandState &, double dy) override {
+        settings_handle_scroll(state_, dy);
+    }
+
+    std::vector<IpcHandler> ipc_handlers(WaylandState &app) override {
+        return settings_ipc_handlers(state_, app);
+    }
+
+  private:
+    SettingsState state_;
+    wl_output *output_ = nullptr;
+    bool want_ = false;
+    bool hovering_clickable_ = false;
+};
+
+} // namespace
+
+std::unique_ptr<Module> make_settings_module() {
+    return std::make_unique<SettingsModule>();
+}

@@ -13,3 +13,5 @@ GLuint gl_compile_program_files(const char *vs_rel, const char *fs_rel, const ch
 void gl_check(const char *where);
 
 bool gl_make_current(EGLDisplay display, EGLSurface surface, EGLContext context);
+
+void gl_release_if_current(EGLDisplay display, EGLSurface surface);

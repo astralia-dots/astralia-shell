@@ -5,6 +5,9 @@
 #include <utility>
 #include <vector>
 
+#include "app/monitor_output.h"
+#include "app/wayland_state.h"
+
 #include "core/log.h"
 
 #include "modules/notification.h"
@@ -411,4 +414,65 @@ bool notification_view_clear_close_hover(NotificationView &view) {
         return false;
     view.hovered_close_id = 0;
     return true;
+}
+
+bool NotificationViewPerMonitorModule::create_surface(WaylandState &app, MonitorOutput &mon, wl_output *output) {
+    if (notifications_effective_enabled(app.cfg, mon.output.name) && !notification_view_create_surface(state_, app.compositor, app.layer_shell, output))
+        klog("notification: failed to create layer surface on '%s'", mon.output.name.c_str());
+    return true;
+}
+
+bool NotificationViewPerMonitorModule::configured() const {
+    return !state_.layer_surface || state_.configured;
+}
+
+bool NotificationViewPerMonitorModule::init_egl(WaylandState &app, MonitorOutput &mon) {
+    if (state_.layer_surface && notification_view_init_egl(state_, app.notification, app.renderer, app.egl_display, app.egl_config, app.egl_context))
+        app_detail::rest_egl_current(app);
+    return true;
+}
+
+void NotificationViewPerMonitorModule::destroy(WaylandState &app, MonitorOutput &) {
+    destroy_layer_surface(app.egl_display, state_.surface, state_.layer_surface, state_.egl_window, state_.egl_surface, &state_.frame_clock);
+}
+
+bool NotificationViewPerMonitorModule::owns_surface(wl_surface *surface) const {
+    return surface == state_.surface;
+}
+
+void NotificationViewPerMonitorModule::request_frame() {
+    notification_view_request_frame(state_);
+}
+
+void NotificationViewPerMonitorModule::handle_click(WaylandState &, MonitorOutput &, wl_surface *, int button, double x, double y, uint32_t) {
+    if (button != BTN_LEFT)
+        return;
+    if (notification_view_handle_close_click(state_, x, y))
+        notification_view_request_frame(state_);
+}
+
+void NotificationViewPerMonitorModule::handle_pointer_move(WaylandState &app, MonitorOutput &, double x, double y) {
+    bool changed = app.pointer.focused_surface == state_.surface ? notification_view_set_close_hover(state_, x, y) : notification_view_clear_close_hover(state_);
+    if (changed)
+        notification_view_request_frame(state_);
+}
+
+bool NotificationViewPerMonitorModule::wants_pointing_hand_cursor() const {
+    return state_.hovered_close_id != 0;
+}
+
+void NotificationViewPerMonitorModule::apply_config(WaylandState &app, MonitorOutput &mon, const Config &) {
+    bool want = notifications_effective_enabled(app.cfg, mon.output.name);
+    bool have = state_.layer_surface != nullptr;
+    if (want && !have) {
+        if (notification_view_create_surface(state_, app.compositor, app.layer_shell, mon.output.wl)) {
+            while (!state_.configured)
+                wl_display_dispatch(app.display);
+            if (notification_view_init_egl(state_, app.notification, app.renderer, app.egl_display, app.egl_config, app.egl_context))
+                app_detail::rest_egl_current(app);
+        }
+    } else if (!want && have) {
+        destroy_layer_surface(app.egl_display, state_.surface, state_.layer_surface, state_.egl_window, state_.egl_surface, &state_.frame_clock);
+        state_.configured = false;
+    }
 }

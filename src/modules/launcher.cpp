@@ -2,6 +2,9 @@
 #include <algorithm>
 #include <cstdlib>
 
+#include "app/monitor_output.h"
+#include "app/wayland_state.h"
+
 #include "core/deferred_call.h"
 #include "core/log.h"
 #include "core/path_home.h"
@@ -800,4 +803,134 @@ void launcher_text_input_apply_edit(LauncherState &state, const TextInputEdit &e
     if (edit.has_preedit)
         state.search.preedit = edit.preedit_text;
     state.search.cursor_idle_visible = true;
+}
+
+namespace {
+
+class LauncherModule final : public Module, public TextInputClient {
+  public:
+    const char *name() const override { return "launcher"; }
+    bool is_open() const override { return state_.open; }
+
+    bool create_surface(WaylandState &app, wl_output *output) override {
+        output_ = output;
+        want_ = launcher_create_surface(state_, app.compositor, app.layer_shell, output);
+        return want_;
+    }
+
+    bool init_egl(WaylandState &app) override {
+        if (!launcher_init_egl(state_, app.renderer, app.egl_display, app.egl_config, app.egl_context))
+            return false;
+        state_.bound_output = output_;
+        state_.sync_text_input_focus = [this, &app](bool focused) {
+            if (focused)
+                app.text_input.set_focused_client(state_.surface, this);
+            else
+                app.text_input.clear_focused_client(this);
+        };
+        request_frame();
+        return true;
+    }
+
+    TextInputState text_input_state() const override {
+        return launcher_text_input_state(state_);
+    }
+    void text_input_apply_edit(const TextInputEdit &edit) override {
+        launcher_text_input_apply_edit(state_, edit);
+        request_frame();
+    }
+    void text_input_reset_preedit() override {
+        state_.search.preedit.clear();
+        request_frame();
+    }
+    void text_input_activated(TextInputService &) override {}
+    void text_input_deactivated(TextInputService &) override {
+        state_.search.preedit.clear();
+    }
+
+    bool configured() const override { return !want_ || state_.configured; }
+    wl_surface *surface() const override { return state_.surface; }
+    void request_frame() override { launcher_request_frame(state_); }
+
+    bool tick() override {
+        launcher_search_start_pending(state_);
+        return launcher_tick(state_);
+    }
+    int poll_timeout_ms() const override {
+        return launcher_poll_timeout_ms(state_);
+    }
+    bool timer_tick(WaylandState &) override {
+        if (!state_.open)
+            return false;
+        text_field_idle_toggle(state_.search);
+        request_frame();
+        return true;
+    }
+
+    void handle_click(WaylandState &, double x, double y) override {
+        launcher_handle_click(state_, x, y);
+    }
+    void handle_pointer_move(WaylandState &, wl_surface *focused_surface, double x, double y) override {
+        launcher_handle_pointer_move(state_, focused_surface, x, y);
+    }
+    bool wants_pointing_hand_cursor() const override {
+        return state_.open && state_.hovered_index >= 0;
+    }
+    void handle_key_event(WaylandState &, const KeyEvent &event) override {
+        launcher_handle_key_event(state_, event);
+    }
+
+    void on_output_removed(WaylandState &, wl_output *out) override {
+        if (!out || state_.bound_output != out)
+            return;
+        if (state_.sync_text_input_focus)
+            state_.sync_text_input_focus(false);
+        launcher_destroy_surface(state_);
+        state_.open = false;
+        state_.opacity = 0.0f;
+        state_.animations = {};
+        state_.bound_output = nullptr;
+    }
+
+    std::vector<IpcHandler> ipc_handlers(WaylandState &app) override {
+        auto toggle_retargeted = [this, &app](bool global) {
+            if (!state_.open) {
+                MonitorOutput *target = app_detail::active_target_monitor(app);
+                if (target && (target->output.wl != state_.bound_output || !state_.layer_surface))
+                    launcher_retarget(state_, app.compositor, app.layer_shell, app.display, app.renderer, app.egl_display, app.egl_config, app.egl_context, target->output.wl, target->output.name.c_str());
+            }
+            launcher_toggle(state_, global);
+        };
+        return {
+            {"launcher", [toggle_retargeted] { toggle_retargeted(false); }, "toggle the launcher, searching from $HOME"},
+            {"launcher global", [toggle_retargeted] { toggle_retargeted(true); }, "toggle the launcher, searching from /"},
+        };
+    }
+
+    std::vector<std::pair<int, std::function<void()>>>
+    extra_poll_sources(WaylandState &app) override {
+        std::vector<std::pair<int, std::function<void()>>> sources;
+        auto dispatch = [this, &app] {
+            if (launcher_search_poll(state_)) {
+                request_frame();
+                app_detail::rest_egl_current(app);
+            }
+        };
+        if (state_.search_dirs_proc.wake_fd >= 0)
+            sources.push_back({state_.search_dirs_proc.wake_fd, dispatch});
+        if (state_.search_files_proc.wake_fd >= 0)
+            sources.push_back({state_.search_files_proc.wake_fd, dispatch});
+        return sources;
+    }
+
+  private:
+    LauncherState state_;
+    wl_output *output_ = nullptr;
+    bool want_ = false;
+};
+
+} // namespace
+
+std::unique_ptr<Module> make_launcher_module() {
+    return std::make_unique<LauncherModule>();
 }

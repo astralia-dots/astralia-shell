@@ -2,6 +2,11 @@
 #include <algorithm>
 #include <cmath>
 
+#include "app/monitor_output.h"
+#include "app/wayland_state.h"
+
+#include "core/log.h"
+
 #include "modules/osd.h"
 
 #include "render/color_ops.h"
@@ -200,4 +205,33 @@ void osd_show(OsdState &state, OsdKind kind, float level, bool muted) {
 void osd_hide(OsdState &state) {
     state.animations.animate(state.opacity, 0.0f, kOsdAnimNormal, Easing::EaseOutCubic, [&state](float v) { state.opacity = v; }, [&state] { state.visible = false; }, kOsdOwnerOpacity);
     osd_request_frame(state);
+}
+
+bool OsdPerMonitorModule::create_surface(WaylandState &app, MonitorOutput &mon, wl_output *output) {
+    if (!osd_create_surface(state_, app.compositor, app.layer_shell, output))
+        klog("osd: failed to create layer surface on '%s'", mon.output.name.c_str());
+    return true;
+}
+
+bool OsdPerMonitorModule::configured() const {
+    return !state_.layer_surface || state_.configured;
+}
+
+bool OsdPerMonitorModule::init_egl(WaylandState &app, MonitorOutput &mon) {
+    if (state_.layer_surface && osd_init_egl(state_, app.renderer, app.egl_display, app.egl_config, app.egl_context))
+        app_detail::rest_egl_current(app);
+    return true;
+}
+
+void OsdPerMonitorModule::destroy(WaylandState &app, MonitorOutput &) {
+    destroy_layer_surface(app.egl_display, state_.surface, state_.layer_surface, state_.egl_window, state_.egl_surface, &state_.frame_clock);
+}
+
+bool OsdPerMonitorModule::owns_surface(wl_surface *surface) const {
+    return surface == state_.surface;
+}
+
+void OsdPerMonitorModule::tick(WaylandState &, MonitorOutput &) {
+    if (state_.visible && std::chrono::steady_clock::now() >= state_.hide_at)
+        osd_hide(state_);
 }

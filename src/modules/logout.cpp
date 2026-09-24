@@ -752,3 +752,88 @@ void logout_paint(LogoutState &state) {
     if (state.base.animations.hasActive() || animated_image_animating(active_logo(state)))
         overlay_panel_request_frame(state.base);
 }
+
+namespace {
+
+class LogoutModule final : public Module {
+  public:
+    const char *name() const override { return "logout"; }
+    bool is_open() const override { return state_.base.open; }
+
+    bool create_surface(WaylandState &app, wl_output *output) override {
+        output_ = output;
+        want_ = logout_create_surface(state_, app.compositor, app.layer_shell, output);
+        return want_;
+    }
+
+    bool init_egl(WaylandState &app) override {
+        if (!logout_init_egl(state_, app.renderer, app.egl_display, app.egl_config, app.egl_context))
+            return false;
+        state_.bound_output = output_;
+        request_frame();
+
+        logout_apply_logo_config(state_, app.cfg.logout_animated_logo);
+        return true;
+    }
+
+    bool configured() const override {
+        return !want_ || state_.base.configured;
+    }
+    wl_surface *surface() const override { return state_.base.surface; }
+    void request_frame() override { logout_request_frame(state_); }
+
+    bool timer_tick(WaylandState &) override { return false; }
+
+    void handle_pointer_move(WaylandState &, wl_surface *focused_surface, double x, double y) override {
+        if (!state_.base.open)
+            return;
+        if (focused_surface == state_.base.surface)
+            logout_handle_hover(state_, x, y);
+        else
+            logout_clear_hover(state_);
+        request_frame();
+    }
+
+    void handle_click(WaylandState &, double x, double y) override {
+        logout_handle_click(state_, x, y);
+    }
+    bool wants_pointing_hand_cursor() const override {
+        return state_.base.open && state_.hovered_index >= 0;
+    }
+    void handle_key_event(WaylandState &, const KeyEvent &event) override {
+        logout_handle_key_event(state_, event);
+    }
+
+    std::vector<IpcHandler> ipc_handlers(WaylandState &app) override {
+        return logout_ipc_handlers(state_, app);
+    }
+
+    bool opened_by_widget() const override { return state_.opened_by_widget; }
+    wl_output *bound_output() const override { return state_.bound_output; }
+    void on_output_removed(WaylandState &, wl_output *out) override {
+        if (state_.bound_output != out)
+            return;
+        overlay_panel_release_output(state_.base, state_.bound_output, out);
+        state_.opened_by_widget = false;
+    }
+    void toggle_from_widget(WaylandState &app) override {
+        if (!state_.base.open) {
+            MonitorOutput *target = app_detail::active_target_monitor(app);
+            if (target && (target->output.wl != state_.bound_output || !state_.base.layer_surface))
+                logout_retarget(state_, app.compositor, app.layer_shell, app.display, app.renderer, app.egl_display, app.egl_config, app.egl_context, target->output.wl, target->output.name.c_str());
+        }
+        logout_apply_logo_config(state_, app.cfg.logout_animated_logo);
+        logout_toggle(state_, true);
+    }
+
+  private:
+    LogoutState state_;
+    wl_output *output_ = nullptr;
+    bool want_ = false;
+};
+
+} // namespace
+
+std::unique_ptr<Module> make_logout_module() {
+    return std::make_unique<LogoutModule>();
+}

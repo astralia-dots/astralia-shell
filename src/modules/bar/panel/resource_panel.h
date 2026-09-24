@@ -5,6 +5,8 @@
 #include <vector>
 #include <wayland-client.h>
 
+#include "config/bar_config.h"
+
 #include "render/overlay_panel.h"
 #include "render/panel_chrome.h"
 #include "render/rect.h"
@@ -16,36 +18,6 @@
 #include "service/telemetry_service.h"
 
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
-
-// panel
-constexpr float kResourcePanelWidth = 400.0f;
-constexpr float kResourcePanelMaxHeight = 680.0f;
-constexpr float kResourceCardGap = 10.0f;
-
-// gauge cards
-constexpr float kGaugeDiameter = 108.0f;
-constexpr float kGaugeStroke = 8.0f;
-constexpr float kGaugeRowGap = 16.0f;
-constexpr float kGaugeCenterLineGap = 2.0f;
-constexpr float kUsageWarnThreshold = 0.7f;
-constexpr float kUsageCriticalThreshold = 0.9f;
-constexpr float kTempWarnCelsius = 70.0f;
-constexpr float kTempCriticalCelsius = 85.0f;
-constexpr float kTempGaugeMaxCelsius = 100.0f;
-
-// memory card
-constexpr float kMemoryBarHeight = 6.0f;
-constexpr float kMemoryBarRadius = 3.0f;
-constexpr float kMemoryBarMinFill = 6.0f;
-constexpr float kMemoryLabelBarGap = 6.0f;
-constexpr float kMemoryLineGap = 12.0f;
-
-// gauge colors
-constexpr const char *kGaugeColorCpuHex = "#ef4444";
-constexpr const char *kGaugeColorGpuHex = "#a855f7";
-constexpr const char *kGaugeColorRamHex = "#3b82f6";
-constexpr const char *kGaugeColorDiskHex = "#22c55e";
-constexpr const char *kTempWarnColorHex = "#f97316";
 
 struct ResourcePanelState {
     OverlayPanelBase base;

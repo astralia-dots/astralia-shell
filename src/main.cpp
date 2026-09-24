@@ -109,8 +109,6 @@ int main(int argc, char **argv) {
     monitor_output_finish_egl(app, first);
     first.activated = true;
 
-    klog("egl: swap interval 0 -> %d", eglSwapInterval(app.egl_display, 0));
-
     app.overlays = build_app_modules();
     for (auto &m : app.overlays) {
         if (!m->create_surface(app, first.output.wl))
@@ -132,7 +130,7 @@ int main(int argc, char **argv) {
             klog("overlay: EGL surface init failed");
             continue;
         }
-        eglMakeCurrent(app.egl_display, first.egl_surface, first.egl_surface, app.egl_context);
+        app_detail::rest_egl_current(app);
     }
 
     for (size_t i = 1; i < app.outputs.size(); ++i)
@@ -147,7 +145,7 @@ int main(int argc, char **argv) {
             klog("%s: init failed", s->name());
 
     if (want_lock)
-        lock_start(app);
+        start_session_lock(app);
 
     int ipc_fd = open_ipc_socket();
 

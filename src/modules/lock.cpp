@@ -32,6 +32,7 @@
 #include "render/text_elide.h"
 
 #include "service/mpris_service.h"
+#include "service/telemetry_service.h"
 
 constexpr Color kLockResGaugeGpuColor = color(kLockResGaugeGpuColorHex);
 
@@ -921,7 +922,7 @@ void destroy_output_surface(LockState &st, LockOutputSurface &los) {
         los.frame_clock.callback = nullptr;
     }
     if (los.egl_surface != EGL_NO_SURFACE) {
-        eglMakeCurrent(st.app->egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, st.app->egl_context);
+        gl_release_if_current(st.app->egl_display, los.egl_surface);
         eglDestroySurface(st.app->egl_display, los.egl_surface);
         los.egl_surface = EGL_NO_SURFACE;
     }
@@ -1130,4 +1131,103 @@ bool lock_owns_surface(const LockState &st, wl_surface *s) {
         if (up->surface == s)
             return true;
     return false;
+}
+
+namespace {
+
+class LockModule final : public Module {
+  public:
+    explicit LockModule(LockWallpaperDrawFn draw_wallpaper) : draw_wallpaper_(std::move(draw_wallpaper)) {}
+
+    LockState &state() { return state_; }
+
+    const char *name() const override { return "lock"; }
+    bool is_open() const override { return state_.active; }
+
+    bool create_surface(WaylandState &, wl_output *) override { return true; }
+
+    bool init_egl(WaylandState &app) override {
+        state_.app = &app;
+        state_.draw_wallpaper = [this, &app](const std::string &output_name, Node &root, int32_t w, int32_t h) {
+            if (draw_wallpaper_)
+                draw_wallpaper_(app, output_name, root, w, h);
+        };
+        state_.panel_gated_for = [&app](const std::string &output_name) {
+            return lock_effective_enabled(app.cfg, output_name);
+        };
+        state_.echo_glyph = load_image_texture_first_existing({ASTRALIA_SHELL_INPUT_ECHO, "assets/electro.png"});
+        return true;
+    }
+
+    bool configured() const override { return true; }
+    wl_surface *surface() const override {
+        return lock_focused_surface(state_);
+    }
+    bool owns_surface(wl_surface *s) const override {
+        return lock_owns_surface(state_, s);
+    }
+    void request_frame() override {}
+
+    bool timer_tick(WaylandState &app) override {
+        if (!state_.active)
+            return false;
+        ++poll_tick_;
+        cpu_temp_poll(app.cpu_temp);
+        system_stats_poll(app.system_stats);
+        if (poll_tick_ % 5 == 0 || app.gpu_temp.nvidia_smi_running)
+            gpu_temp_poll(app.gpu_temp);
+        lock_timer_tick(state_);
+        return true;
+    }
+
+    void handle_key_event(WaylandState &, const KeyEvent &event) override {
+        lock_handle_key(state_, event);
+    }
+    void handle_click(WaylandState &app, double x, double y) override {
+        lock_handle_click(state_, app.pointer.focused_surface, x, y);
+    }
+
+    std::vector<IpcHandler> ipc_handlers(WaylandState &app) override {
+        return {{"lock",
+                 [this, &app] {
+                     cpu_temp_poll(app.cpu_temp);
+                     system_stats_poll(app.system_stats);
+                     gpu_temp_poll(app.gpu_temp);
+                     lock_request(state_, app);
+                 },
+                 "lock the session"}};
+    }
+
+  private:
+    LockWallpaperDrawFn draw_wallpaper_;
+    LockState state_;
+    int poll_tick_ = 0;
+};
+
+LockModule *find_lock_module(WaylandState &app) {
+    for (auto &m : app.overlays)
+        if (auto *lm = dynamic_cast<LockModule *>(m.get()))
+            return lm;
+    return nullptr;
+}
+
+} // namespace
+
+std::unique_ptr<Module> make_lock_module(LockWallpaperDrawFn draw_wallpaper) {
+    return std::make_unique<LockModule>(std::move(draw_wallpaper));
+}
+
+void lock_notify_output_added(WaylandState &app, wl_output *output, const char *name) {
+    if (auto *lm = find_lock_module(app))
+        lock_hotplug_add(lm->state(), output, name);
+}
+
+void lock_notify_output_removed(WaylandState &app, wl_output *output) {
+    if (auto *lm = find_lock_module(app))
+        lock_hotplug_remove(lm->state(), output);
+}
+
+void lock_start(WaylandState &app) {
+    if (auto *lm = find_lock_module(app))
+        lock_request(lm->state(), app);
 }

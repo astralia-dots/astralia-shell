@@ -1,30 +1,33 @@
 #include <GLES2/gl2.h>
 #include <algorithm>
 #include <cstring>
+#include <string_view>
 
-#include "app/module_registry.h"
 #include "app/monitor_output.h"
 #include "app/wayland_registry.h"
 #include "app/wayland_state.h"
 
 #include "core/log.h"
 
-#include "modules/bar.h"
+#include "modules/lock.h"
 
 namespace {
 
-void layer_surface_configure(void *data, zwlr_layer_surface_v1 *layer_surface, uint32_t serial, uint32_t width, uint32_t) {
-    auto *mon = static_cast<MonitorOutput *>(data);
-    zwlr_layer_surface_v1_ack_configure(layer_surface, serial);
-    mon->width = static_cast<int32_t>(width);
-    if (mon->egl_window) {
-        int32_t scale = mon->output_scale.scale;
-        wl_egl_window_resize(mon->egl_window, mon->width * scale, bar_detail::bar_current_height(*mon) * scale, 0, 0);
+bool egl_has_extension(EGLDisplay display, std::string_view name) {
+    const char *list = eglQueryString(display, EGL_EXTENSIONS);
+    if (!list)
+        return false;
+    std::string_view rest(list);
+    while (!rest.empty()) {
+        size_t end = rest.find(' ');
+        if (rest.substr(0, end) == name)
+            return true;
+        if (end == std::string_view::npos)
+            break;
+        rest.remove_prefix(end + 1);
     }
-    mon->configured = true;
+    return false;
 }
-
-void layer_surface_closed(void *, zwlr_layer_surface_v1 *) {}
 
 namespace output_detail {
 void geometry(void *, wl_output *, int32_t, int32_t, int32_t, int32_t, int32_t, const char *, const char *, int32_t) {}
@@ -131,11 +134,6 @@ const wl_registry_listener registry_listener = {
     .global_remove = registry_global_remove,
 };
 
-const zwlr_layer_surface_v1_listener bar_layer_surface_listener = {
-    .configure = layer_surface_configure,
-    .closed = layer_surface_closed,
-};
-
 bool bootstrap_egl(WaylandState &state) {
     state.egl_display =
         eglGetDisplay(reinterpret_cast<EGLNativeDisplayType>(state.display));
@@ -175,16 +173,15 @@ bool bootstrap_egl(WaylandState &state) {
 }
 
 bool renderer_bootstrap_init(WaylandState &state) {
-    const EGLint pbuffer_attribs[] = {EGL_WIDTH, 1, EGL_HEIGHT, 1, EGL_NONE};
-    EGLSurface pbuffer = eglCreatePbufferSurface(state.egl_display, state.egl_config, pbuffer_attribs);
-    if (pbuffer == EGL_NO_SURFACE)
-        return false;
-    if (!eglMakeCurrent(state.egl_display, pbuffer, pbuffer, state.egl_context)) {
-        eglDestroySurface(state.egl_display, pbuffer);
-        return false;
+    if (!egl_has_extension(state.egl_display, "EGL_KHR_surfaceless_context")) {
+        const EGLint pbuffer_attribs[] = {EGL_WIDTH, 1, EGL_HEIGHT, 1, EGL_NONE};
+        state.egl_rest_surface = eglCreatePbufferSurface(state.egl_display, state.egl_config, pbuffer_attribs);
+        if (state.egl_rest_surface == EGL_NO_SURFACE)
+            return false;
+        klog("egl: no EGL_KHR_surfaceless_context, resting on a 1x1 pbuffer");
     }
+    if (!eglMakeCurrent(state.egl_display, state.egl_rest_surface, state.egl_rest_surface, state.egl_context))
+        return false;
     klog("gl: %s | GLSL %s", reinterpret_cast<const char *>(glGetString(GL_VERSION)), reinterpret_cast<const char *>(glGetString(GL_SHADING_LANGUAGE_VERSION)));
-    bool ok = state.renderer.init();
-    eglDestroySurface(state.egl_display, pbuffer);
-    return ok;
+    return state.renderer.init();
 }

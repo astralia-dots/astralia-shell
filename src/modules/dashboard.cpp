@@ -75,3 +75,34 @@ void dashboard_paint(DashboardState &state) {
     if (state.base.animations.hasActive())
         toplevel_window_request_frame(state.base);
 }
+
+namespace {
+
+class DashboardModule final : public Module {
+  public:
+    const char *name() const override { return "dashboard"; }
+    bool is_open() const override { return state_.base.open; }
+
+    bool create_surface(WaylandState &, wl_output *) override { return true; }
+    bool init_egl(WaylandState &) override { return true; }
+    bool configured() const override { return true; }
+    wl_surface *surface() const override { return state_.base.surface; }
+    void request_frame() override { dashboard_request_frame(state_); }
+
+    void handle_key_event(WaylandState &app, const KeyEvent &event) override {
+        dashboard_handle_key_event(state_, app, event);
+    }
+
+    std::vector<IpcHandler> ipc_handlers(WaylandState &app) override {
+        return dashboard_ipc_handlers(state_, app);
+    }
+
+  private:
+    DashboardState state_;
+};
+
+} // namespace
+
+std::unique_ptr<Module> make_dashboard_module() {
+    return std::make_unique<DashboardModule>();
+}

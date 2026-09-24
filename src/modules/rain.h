@@ -1,9 +1,11 @@
 #pragma once
 
 #include <chrono>
+#include <memory>
 #include <vector>
 
 #include "app/ipc.h"
+#include "app/module.h"
 
 #include "config/rain_config.h"
 
@@ -42,3 +44,5 @@ void rain_apply_params(RainState &state, const RainParams &params);
 std::vector<IpcHandler> rain_ipc_handlers(RainState &rain, WaylandState &state);
 
 void rain_paint(RainState &state);
+
+std::unique_ptr<Module> make_rain_module();

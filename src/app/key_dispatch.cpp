@@ -2,8 +2,6 @@
 #include "app/monitor_output.h"
 #include "app/wayland_state.h"
 
-#include "modules/bar.h"
-
 void dispatch_key_events(WaylandState &state, const std::vector<KeyEvent> &events) {
     if (events.empty())
         return;

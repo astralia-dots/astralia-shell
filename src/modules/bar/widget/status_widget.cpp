@@ -114,7 +114,7 @@ void open_tray_panel(MonitorOutput &mon) {
     close_other_overlays(mon, PillId::Tray);
     tray_menu_close(bs.tray_menu);
     if (!bs.tray_panel.base.open) {
-        update_pill_expand(bs.capsule, mon.animations, PillId::Tray, true, true);
+        update_pill_expand(bs.capsule, bs.animations, PillId::Tray, true, true);
         bar_paint(mon);
         overlay_panel_ensure(bs.tray_panel.base, mon.app->display, [&] { return tray_panel_create_surface(bs.tray_panel, mon.app->compositor, mon.app->layer_shell, mon.output.wl); }, [&] { return tray_panel_init_egl(bs.tray_panel, mon.app->renderer, mon.app->tray, mon.app->egl_display, mon.app->egl_config, mon.app->egl_context); });
         app_detail::rest_egl_current(*mon.app);
@@ -126,7 +126,7 @@ void open_network_panel(MonitorOutput &mon) {
     BarPerMonitorState &bs = bar_state(mon);
     close_other_overlays(mon, PillId::Wifi);
     if (!bs.network_panel.base.open) {
-        update_pill_expand(bs.capsule, mon.animations, PillId::Wifi, true, true);
+        update_pill_expand(bs.capsule, bs.animations, PillId::Wifi, true, true);
         bar_paint(mon);
         overlay_panel_ensure(bs.network_panel.base, mon.app->display, [&] { return network_panel_create_surface(bs.network_panel, mon.app->compositor, mon.app->layer_shell, mon.output.wl); }, [&] { return network_panel_init_egl(bs.network_panel, mon.app->renderer, mon.app->network, mon.app->egl_display, mon.app->egl_config, mon.app->egl_context); });
         app_detail::rest_egl_current(*mon.app);
@@ -140,7 +140,7 @@ void open_bluetooth_panel(MonitorOutput &mon) {
     BarPerMonitorState &bs = bar_state(mon);
     close_other_overlays(mon, PillId::Bluetooth);
     if (!bs.bluetooth_panel.base.open) {
-        update_pill_expand(bs.capsule, mon.animations, PillId::Bluetooth, true, true);
+        update_pill_expand(bs.capsule, bs.animations, PillId::Bluetooth, true, true);
         bar_paint(mon);
         overlay_panel_ensure(bs.bluetooth_panel.base, mon.app->display, [&] { return bluetooth_panel_create_surface(bs.bluetooth_panel, mon.app->compositor, mon.app->layer_shell, mon.output.wl); }, [&] { return bluetooth_panel_init_egl(bs.bluetooth_panel, mon.app->renderer, mon.app->bluetooth, mon.app->egl_display, mon.app->egl_config, mon.app->egl_context); });
         app_detail::rest_egl_current(*mon.app);
@@ -152,7 +152,7 @@ void open_volume_panel(MonitorOutput &mon) {
     BarPerMonitorState &bs = bar_state(mon);
     close_other_overlays(mon, PillId::Volume);
     if (!bs.volume_panel.base.open) {
-        update_pill_expand(bs.capsule, mon.animations, PillId::Volume, true, true);
+        update_pill_expand(bs.capsule, bs.animations, PillId::Volume, true, true);
         bar_paint(mon);
         overlay_panel_ensure(bs.volume_panel.base, mon.app->display, [&] { return volume_panel_create_surface(bs.volume_panel, mon.app->compositor, mon.app->layer_shell, mon.output.wl); }, [&] { return volume_panel_init_egl(bs.volume_panel, mon.app->renderer, mon.app->pipewire, mon.app->egl_display, mon.app->egl_config, mon.app->egl_context); });
         app_detail::rest_egl_current(*mon.app);
@@ -164,7 +164,7 @@ void open_battery_panel(MonitorOutput &mon) {
     BarPerMonitorState &bs = bar_state(mon);
     close_other_overlays(mon, PillId::Battery);
     if (!bs.battery_panel.base.open) {
-        update_pill_expand(bs.capsule, mon.animations, PillId::Battery, true, true);
+        update_pill_expand(bs.capsule, bs.animations, PillId::Battery, true, true);
         bar_paint(mon);
         overlay_panel_ensure(bs.battery_panel.base, mon.app->display, [&] { return battery_panel_create_surface(bs.battery_panel, mon.app->compositor, mon.app->layer_shell, mon.output.wl); }, [&] { return battery_panel_init_egl(bs.battery_panel, mon.app->renderer, mon.app->upower, mon.app->egl_display, mon.app->egl_config, mon.app->egl_context); });
         app_detail::rest_egl_current(*mon.app);

@@ -34,7 +34,7 @@ void clock_pill_clicked(MonitorOutput &mon) {
         overlay_panel_ensure(bs.clock_panel.base, mon.app->display, [&] { return clock_panel_create_surface(bs.clock_panel, mon.app->compositor, mon.app->layer_shell, mon.output.wl); }, [&] { return clock_panel_init_egl(bs.clock_panel, mon.app->renderer, mon.app->egl_display, mon.app->egl_config, mon.app->egl_context); });
         app_detail::rest_egl_current(*mon.app);
     }
-    clock_panel_toggle(bs.clock_panel, static_cast<float>(mon.width) / 2.0f + bs.capsule.side_margin);
+    clock_panel_toggle(bs.clock_panel, static_cast<float>(bs.width) / 2.0f + bs.capsule.side_margin);
 }
 
 } // namespace bar_detail

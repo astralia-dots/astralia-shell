@@ -4,8 +4,6 @@
 #include <cstring>
 #include <vector>
 
-#include "app/wayland_registry.h"
-
 #include "core/log.h"
 
 #include "modules/bar.h"
@@ -28,6 +26,10 @@
 #include "service/output_service.h"
 
 BarPerMonitorState &bar_state(MonitorOutput &mon) {
+    return mon.module<BarPerMonitorModule>()->state;
+}
+
+const BarPerMonitorState &bar_state(const MonitorOutput &mon) {
     return mon.module<BarPerMonitorModule>()->state;
 }
 
@@ -69,27 +71,46 @@ void close_other_overlays(MonitorOutput &mon, PillId keep) {
 }
 
 int32_t bar_current_height(const MonitorOutput &mon) {
-    return bar_autohide_geometry(mon.autohide.enabled, mon.autohide.collapsed, kBarHeight, bar_style_of(mon).top_margin, bar_hug_radius_px(mon))
+    return bar_autohide_geometry(bar_state(mon).autohide.enabled, bar_state(mon).autohide.collapsed, kBarHeight, bar_style_of(mon).top_margin, bar_hug_radius_px(mon))
         .height;
 }
 
 void bar_autohide_apply_geometry(MonitorOutput &mon, bool autohide, bool collapsed, const BarStyleSpec &style) {
     BarGeometry g =
         bar_autohide_geometry(autohide, collapsed, kBarHeight, style.top_margin, bar_hug_radius_px(mon));
-    bar_autohide_set_surface_geometry(mon.layer_surface, mon.surface, mon.egl_window, mon.width, g.height, g.margin_top, style.side_margin, style.side_margin, g.exclusive_zone, mon.output_scale.scale);
+    bar_autohide_set_surface_geometry(bar_state(mon).layer_surface, bar_state(mon).surface, bar_state(mon).egl_window, bar_state(mon).width, g.height, g.margin_top, style.side_margin, style.side_margin, g.exclusive_zone, bar_state(mon).output_scale.scale);
 }
 
 void monitor_autohide_apply(MonitorOutput &mon, bool enabled, const BarStyleSpec &style) {
-    mon.autohide.enabled = enabled;
-    mon.autohide.hidden = false;
-    mon.autohide.collapsed = enabled && mon.autohide.collapsed;
-    mon.autohide.opacity = mon.autohide.collapsed ? 0.0f : 1.0f;
-    bar_autohide_apply_geometry(mon, enabled, mon.autohide.collapsed, style);
+    bar_state(mon).autohide.enabled = enabled;
+    bar_state(mon).autohide.hidden = false;
+    bar_state(mon).autohide.collapsed = enabled && bar_state(mon).autohide.collapsed;
+    bar_state(mon).autohide.opacity = bar_state(mon).autohide.collapsed ? 0.0f : 1.0f;
+    bar_autohide_apply_geometry(mon, enabled, bar_state(mon).autohide.collapsed, style);
 }
 
 } // namespace bar_detail
 
 namespace {
+
+void bar_layer_surface_configure(void *data, zwlr_layer_surface_v1 *layer_surface, uint32_t serial, uint32_t width, uint32_t) {
+    auto *mon = static_cast<MonitorOutput *>(data);
+    BarPerMonitorState &bs = bar_state(*mon);
+    zwlr_layer_surface_v1_ack_configure(layer_surface, serial);
+    bs.width = static_cast<int32_t>(width);
+    if (bs.egl_window) {
+        int32_t scale = bs.output_scale.scale;
+        wl_egl_window_resize(bs.egl_window, bs.width * scale, bar_detail::bar_current_height(*mon) * scale, 0, 0);
+    }
+    bs.configured = true;
+}
+
+void bar_layer_surface_closed(void *, zwlr_layer_surface_v1 *) {}
+
+const zwlr_layer_surface_v1_listener bar_layer_surface_listener = {
+    .configure = bar_layer_surface_configure,
+    .closed = bar_layer_surface_closed,
+};
 
 void bar_dispatch_request_frame(WaylandState &app) {
     for (auto &mon : app.outputs)
@@ -131,21 +152,21 @@ void control_center_panel_dispatch(WaylandState &app) {
 } // namespace
 
 bool bar_init_egl(MonitorOutput &mon, Renderer &renderer, EGLDisplay display, EGLConfig config, EGLContext context) {
-    int32_t scale = mon.output_scale.scale;
-    mon.egl_window =
-        wl_egl_window_create(mon.surface, mon.width * scale, bar_detail::bar_current_height(mon) * scale);
-    mon.egl_surface = eglCreateWindowSurface(display, config, reinterpret_cast<EGLNativeWindowType>(mon.egl_window), nullptr);
-    if (mon.egl_surface == EGL_NO_SURFACE)
+    int32_t scale = bar_state(mon).output_scale.scale;
+    bar_state(mon).egl_window =
+        wl_egl_window_create(bar_state(mon).surface, bar_state(mon).width * scale, bar_detail::bar_current_height(mon) * scale);
+    bar_state(mon).egl_surface = eglCreateWindowSurface(display, config, reinterpret_cast<EGLNativeWindowType>(bar_state(mon).egl_window), nullptr);
+    if (bar_state(mon).egl_surface == EGL_NO_SURFACE)
         return false;
-    if (!gl_make_current(display, mon.egl_surface, context))
+    if (!gl_make_current(display, bar_state(mon).egl_surface, context))
         return false;
 
     const char *renderer_name =
         reinterpret_cast<const char *>(glGetString(GL_RENDERER));
     klog("egl: renderer=%s output='%s'", renderer_name ? renderer_name : "(unknown)", mon.output.name.c_str());
 
-    mon.frame_clock.surface = mon.surface;
-    mon.frame_clock.draw = [&mon] { bar_paint(mon); };
+    bar_state(mon).frame_clock.surface = bar_state(mon).surface;
+    bar_state(mon).frame_clock.draw = [&mon] { bar_paint(mon); };
     (void)renderer;
     return true;
 }
@@ -158,7 +179,7 @@ void dispatch_pill_click(MonitorOutput &mon, double click_x, double click_y) {
     PointerState p = mon.app->pointer;
     p.x = click_x;
     p.y = click_y;
-    if (mon.autohide.enabled)
+    if (bar_state(mon).autohide.enabled)
         p.y -= bar_style_of(mon).top_margin;
 
     BarPerMonitorState &bs = bar_state(mon);
@@ -179,7 +200,7 @@ void dispatch_pill_click(MonitorOutput &mon, double click_x, double click_y) {
         return;
     }
 
-    bar_detail::dispatch_pill_click(bs.capsule, p, mon.surface);
+    bar_detail::dispatch_pill_click(bs.capsule, p, bs.surface);
 }
 
 void update_clock(MonitorOutput &mon) {
@@ -244,7 +265,7 @@ void bar_paint(MonitorOutput &mon) {
     const bool rail = bar_style_has_rail(style);
     bs.capsule.side_margin = static_cast<float>(style.side_margin);
 
-    mon.animations.tick(std::chrono::steady_clock::now());
+    bs.animations.tick(std::chrono::steady_clock::now());
 
     Module *logout_m = find_overlay_by_name(app, "logout");
     Module *overview_m = find_overlay_by_name(app, "overview");
@@ -252,37 +273,37 @@ void bar_paint(MonitorOutput &mon) {
     bool logout_here = logout_m && logout_m->is_open() && logout_m->opened_by_widget() && logout_m->bound_output() == mon.output.wl;
     PillId current_panel_pill = panel_pill(bs.network_panel, bs.bluetooth_panel, bs.volume_panel, bs.tray_panel, bs.battery_panel, bs.resource_panel, bs.control_center_panel, logout_here);
 
-    if (mon.autohide.enabled) {
-        bool want_shown = app.pointer.focused_surface == mon.surface || current_panel_pill != PillId::None || bs.clock_panel.base.open || overview_here;
-        if (want_shown == mon.autohide.hidden) {
-            mon.autohide.hidden = !want_shown;
-            if (want_shown && mon.autohide.collapsed) {
-                mon.autohide.collapsed = false;
+    if (bs.autohide.enabled) {
+        bool want_shown = app.pointer.focused_surface == bs.surface || current_panel_pill != PillId::None || bs.clock_panel.base.open || overview_here;
+        if (want_shown == bs.autohide.hidden) {
+            bs.autohide.hidden = !want_shown;
+            if (want_shown && bs.autohide.collapsed) {
+                bs.autohide.collapsed = false;
                 bar_autohide_apply_geometry(mon, true, false, style);
             }
             float target = want_shown ? 1.0f : 0.0f;
             float duration = want_shown ? kAutoHideRevealMs : kAutoHideHideMs;
-            mon.animations.animate(mon.autohide.opacity, target, duration, Easing::EaseOutCubic, [&mon](float v) { mon.autohide.opacity = v; }, [&mon] {
-                    if (mon.autohide.hidden && !mon.autohide.collapsed) {
-                        mon.autohide.collapsed = true;
+            bs.animations.animate(bs.autohide.opacity, target, duration, Easing::EaseOutCubic, [&bs](float v) { bs.autohide.opacity = v; }, [&mon, &bs] {
+                    if (bs.autohide.hidden && !bs.autohide.collapsed) {
+                        bs.autohide.collapsed = true;
                         bar_autohide_apply_geometry(mon, true, true, bar_style_of(mon));
                     } }, kAutoHideAnimOwner);
         }
     }
     int32_t surface_height = bar_current_height(mon);
     float content_y_offset =
-        mon.autohide.enabled ? static_cast<float>(style.top_margin) : 0.0f;
+        bs.autohide.enabled ? static_cast<float>(style.top_margin) : 0.0f;
     float height = static_cast<float>(kBarHeight);
 
-    gl_make_current(app.egl_display, mon.egl_surface, app.egl_context);
-    app.renderer.begin_frame(mon.width, surface_height, mon.output_scale.scale);
-    app.renderer.set_opacity(mon.autohide.enabled ? mon.autohide.opacity : 1.0f);
+    gl_make_current(app.egl_display, bs.egl_surface, app.egl_context);
+    app.renderer.begin_frame(bs.width, surface_height, bs.output_scale.scale);
+    app.renderer.set_opacity(bs.autohide.enabled ? bs.autohide.opacity : 1.0f);
     glClearColor(0, 0, 0, 0);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    mon.scene.rebuild();
-    Node *root = &mon.scene.root;
-    Node *content = node_add_group(root, 0.0f, content_y_offset, static_cast<float>(mon.width), height);
+    bs.scene.rebuild();
+    Node *root = &bs.scene.root;
+    Node *content = node_add_group(root, 0.0f, content_y_offset, static_cast<float>(bs.width), height);
 
     const float *white = rgba(palette::text);
 
@@ -297,11 +318,11 @@ void bar_paint(MonitorOutput &mon) {
     PointerState hit_pointer = app.pointer;
     hit_pointer.y -= content_y_offset;
     PillId hovered = current_panel_pill != PillId::None ? current_panel_pill : lingering ? bs.capsule.label_linger_pill
-                                                                                         : hit_test_pills(bs.capsule, hit_pointer, mon.surface);
+                                                                                         : hit_test_pills(bs.capsule, hit_pointer, bs.surface);
     if (hovered == PillId::None && bs.status_widget.volume_peek_active)
         hovered = PillId::Volume;
 
-    float width = static_cast<float>(mon.width);
+    float width = static_cast<float>(bs.width);
     float island_pad = rail ? kIslandPad : 0.0f;
     struct Island {
         Node *outer = nullptr;
@@ -313,7 +334,7 @@ void bar_paint(MonitorOutput &mon) {
     const float bw = style.border_width;
     const float radius = style.island_radius;
     if (rail) {
-        ensure_fillets(bs, style, mon.output_scale.scale);
+        ensure_fillets(bs, style, bs.output_scale.scale);
         node_add_rect(content, 0.0f, 0.0f, width, style.rail_height, rgba(style.border));
         auto add_outer = [&] { return node_add_rrect(content, 0.0f, -radius, 0.0f, height + radius, radius, 0.0f, rgba(style.border), rgba(style.border)); };
         left_island.outer = add_outer();
@@ -346,17 +367,17 @@ void bar_paint(MonitorOutput &mon) {
     };
 
     std::vector<Pill> logout_pills = {logout_pill(mon)};
-    x = draw_pills(content, bs.capsule, mon.animations, x, height, logout_pills, white, style, hovered, current_panel_pill);
+    x = draw_pills(content, bs.capsule, bs.animations, x, height, logout_pills, white, style, hovered, current_panel_pill);
     track_divider();
 
     int active_id = app_detail::monitor_active_workspace_id(mon);
     const std::vector<Workspace> &ws_list = app_detail::monitor_workspaces(mon);
-    x = draw_workspace_row(content, bs.workspace_widget, mon.animations, x, height, ws_list, active_id, style, bs.overview_texture);
+    x = draw_workspace_row(content, bs.workspace_widget, bs.animations, x, height, ws_list, active_id, style, bs.overview_texture);
     track_divider();
 
     std::vector<DockEntry> dock_entries =
         dock_entries_for_monitor(app.compositor_state, mon.output.name);
-    x = draw_dock_capsule(content, bs.dock_widget, mon.animations, x, height, dock_entries, style);
+    x = draw_dock_capsule(content, bs.dock_widget, bs.animations, x, height, dock_entries, style);
     track_divider();
 
     bool left_flush = false;
@@ -369,7 +390,7 @@ void bar_paint(MonitorOutput &mon) {
         left_flush = true;
     }
 
-    bs.clock_rect = draw_clock_pill(content, height, mon.width, bs.clock_texture, white, style);
+    bs.clock_rect = draw_clock_pill(content, height, bs.width, bs.clock_texture, white, style);
     if (rail && bs.clock_rect.w > 0.0f) {
         float center_left = std::round(bs.clock_rect.x - island_pad);
         float center_right = std::round(bs.clock_rect.x + bs.clock_rect.w + island_pad);
@@ -382,19 +403,19 @@ void bar_paint(MonitorOutput &mon) {
     std::vector<Pill> status_segments = status_pills(mon);
     std::vector<Pill> right_stub_pills = {cpu_pill(mon)};
 
-    float cc_w = pills_row_width(bs.capsule, mon.animations, control_center_pills, hovered, height, style);
-    float status_w = pill_group_width(bs.capsule, mon.animations, status_segments, hovered, height, style, current_panel_pill);
-    float stub_w = pills_row_width(bs.capsule, mon.animations, right_stub_pills, hovered, height, style, current_panel_pill);
+    float cc_w = pills_row_width(bs.capsule, bs.animations, control_center_pills, hovered, height, style);
+    float status_w = pill_group_width(bs.capsule, bs.animations, status_segments, hovered, height, style, current_panel_pill);
+    float stub_w = pills_row_width(bs.capsule, bs.animations, right_stub_pills, hovered, height, style, current_panel_pill);
 
     float cc_x = width - island_pad - cc_w;
     float status_x = cc_x - (status_w > 0 ? kCapsuleGap : 0.0f) - status_w;
     float stub_x = status_x - (stub_w > 0 ? kCapsuleGap : 0.0f) - stub_w;
 
     if (stub_w > 0) {
-        draw_pills(content, bs.capsule, mon.animations, stub_x, height, right_stub_pills, white, style, hovered, current_panel_pill);
+        draw_pills(content, bs.capsule, bs.animations, stub_x, height, right_stub_pills, white, style, hovered, current_panel_pill);
     }
     if (status_w > 0) {
-        draw_pill_group(content, bs.capsule, mon.animations, status_x, height, status_segments, white, style, hovered, current_panel_pill);
+        draw_pill_group(content, bs.capsule, bs.animations, status_x, height, status_segments, white, style, hovered, current_panel_pill);
         const UpowerState &u = app.upower;
         if (u.present && !u.charging && !u.full && u.percent <= 10) {
             const Rect &r = bs.capsule.pill_rects[pill_idx(PillId::Battery)];
@@ -402,7 +423,7 @@ void bar_paint(MonitorOutput &mon) {
         }
     }
     if (cc_w > 0) {
-        draw_pills(content, bs.capsule, mon.animations, cc_x, height, control_center_pills, white, style, hovered);
+        draw_pills(content, bs.capsule, bs.animations, cc_x, height, control_center_pills, white, style, hovered);
     }
     bool right_flush = false;
     if (rail && cc_w + status_w + stub_w > 0) {
@@ -424,7 +445,7 @@ void bar_paint(MonitorOutput &mon) {
 
     int32_t hug_radius = bar_hug_radius_px(mon);
     if (hug_radius > 0) {
-        ensure_hug_corner_textures(bs, style, hug_radius, mon.output_scale.scale);
+        ensure_hug_corner_textures(bs, style, hug_radius, bs.output_scale.scale);
         float hf = static_cast<float>(hug_radius);
         if (left_flush) {
             node_add_texture(content, 0.0f, height, bs.hug_outer_left, rgba(style.border));
@@ -436,42 +457,42 @@ void bar_paint(MonitorOutput &mon) {
         }
     }
 
-    mon.scene.draw(app.renderer);
-    eglSwapBuffers(app.egl_display, mon.egl_surface);
+    bs.scene.draw(app.renderer);
+    eglSwapBuffers(app.egl_display, bs.egl_surface);
 
-    if (mon.animations.hasActive())
+    if (bs.animations.hasActive())
         bar_request_frame(mon);
 }
 
 void bar_request_frame(MonitorOutput &mon) {
-    if (mon.egl_surface == EGL_NO_SURFACE)
+    if (bar_state(mon).egl_surface == EGL_NO_SURFACE)
         return;
-    request_frame(mon.frame_clock);
+    request_frame(bar_state(mon).frame_clock);
 }
 
 bool BarPerMonitorModule::create_surface(WaylandState &app, MonitorOutput &mon, wl_output *output) {
     mon_ = &mon;
-    mon.autohide.enabled = autohide_effective_enabled(app.cfg, mon.output.name);
+    state.autohide.enabled = autohide_effective_enabled(app.cfg, mon.output.name);
     const BarStyleSpec &style = bar_style_spec(app.cfg.bar_style);
     LayerSurfaceConfig bar_cfg{
         .layer = ZWLR_LAYER_SHELL_V1_LAYER_TOP,
         .name_space = "astralia-shell",
         .anchor = ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT,
         .height = bar_detail::bar_current_height(mon),
-        .margin_top = bar_detail::bar_autohide_geometry(mon.autohide.enabled, mon.autohide.collapsed, bar_detail::kBarHeight, style.top_margin, bar_hug_radius_px(mon)).margin_top,
+        .margin_top = bar_detail::bar_autohide_geometry(state.autohide.enabled, state.autohide.collapsed, bar_detail::kBarHeight, style.top_margin, bar_hug_radius_px(mon)).margin_top,
         .margin_right = style.side_margin,
         .margin_left = style.side_margin,
-        .exclusive_zone = bar_detail::bar_autohide_geometry(mon.autohide.enabled, mon.autohide.collapsed, bar_detail::kBarHeight, style.top_margin, bar_hug_radius_px(mon)).exclusive_zone,
+        .exclusive_zone = bar_detail::bar_autohide_geometry(state.autohide.enabled, state.autohide.collapsed, bar_detail::kBarHeight, style.top_margin, bar_hug_radius_px(mon)).exclusive_zone,
     };
-    mon.layer_surface = layer_surface_create(mon.surface, app.compositor, app.layer_shell, bar_cfg, &bar_layer_surface_listener, &mon, output);
-    mon.output_scale.on_change = [&mon](int32_t scale) {
-        if (mon.egl_window)
-            wl_egl_window_resize(mon.egl_window, mon.width * scale, bar_detail::bar_current_height(mon) * scale, 0, 0);
-        if (mon.frame_clock.surface)
-            ::request_frame(mon.frame_clock);
+    state.layer_surface = layer_surface_create(state.surface, app.compositor, app.layer_shell, bar_cfg, &bar_layer_surface_listener, &mon, output);
+    state.output_scale.on_change = [this, &mon](int32_t scale) {
+        if (state.egl_window)
+            wl_egl_window_resize(state.egl_window, state.width * scale, bar_detail::bar_current_height(mon) * scale, 0, 0);
+        if (state.frame_clock.surface)
+            ::request_frame(state.frame_clock);
     };
-    output_scale_watch(mon.output_scale, mon.surface);
-    wl_surface_commit(mon.surface);
+    output_scale_watch(state.output_scale, state.surface);
+    wl_surface_commit(state.surface);
 
     if (!network_panel_create_surface(state.network_panel, app.compositor, app.layer_shell, output))
         klog("network_panel: failed to create layer surface on '%s'", mon.output.name.c_str());
@@ -493,7 +514,7 @@ bool BarPerMonitorModule::create_surface(WaylandState &app, MonitorOutput &mon, 
 }
 
 bool BarPerMonitorModule::configured() const {
-    return mon_->configured && (!state.network_panel.base.layer_surface || state.network_panel.base.configured) && (!state.bluetooth_panel.base.layer_surface || state.bluetooth_panel.base.configured) && (!state.volume_panel.base.layer_surface || state.volume_panel.base.configured) && (!state.tray_panel.base.layer_surface || state.tray_panel.base.configured) && (!state.battery_panel.base.layer_surface || state.battery_panel.base.configured) && (!state.resource_panel.base.layer_surface || state.resource_panel.base.configured) && (!state.clock_panel.base.layer_surface || state.clock_panel.base.configured) && (!state.control_center_panel.base.layer_surface || state.control_center_panel.base.configured);
+    return state.configured && (!state.network_panel.base.layer_surface || state.network_panel.base.configured) && (!state.bluetooth_panel.base.layer_surface || state.bluetooth_panel.base.configured) && (!state.volume_panel.base.layer_surface || state.volume_panel.base.configured) && (!state.tray_panel.base.layer_surface || state.tray_panel.base.configured) && (!state.battery_panel.base.layer_surface || state.battery_panel.base.configured) && (!state.resource_panel.base.layer_surface || state.resource_panel.base.configured) && (!state.clock_panel.base.layer_surface || state.clock_panel.base.configured) && (!state.control_center_panel.base.layer_surface || state.control_center_panel.base.configured);
 }
 
 bool BarPerMonitorModule::init_egl(WaylandState &app, MonitorOutput &mon) {
@@ -511,41 +532,41 @@ bool BarPerMonitorModule::init_egl(WaylandState &app, MonitorOutput &mon) {
 
     if (state.network_panel.base.layer_surface && network_panel_init_egl(state.network_panel, app.renderer, app.network, app.egl_display, app.egl_config, app.egl_context)) {
         network_panel_request_frame(state.network_panel, 0.0f, 0.0f, 0.0f);
-        gl_make_current(app.egl_display, mon.egl_surface, app.egl_context);
+        app_detail::rest_egl_current(app);
     }
     if (state.bluetooth_panel.base.layer_surface && bluetooth_panel_init_egl(state.bluetooth_panel, app.renderer, app.bluetooth, app.egl_display, app.egl_config, app.egl_context)) {
         bluetooth_panel_request_frame(state.bluetooth_panel, 0.0f, 0.0f, 0.0f);
-        gl_make_current(app.egl_display, mon.egl_surface, app.egl_context);
+        app_detail::rest_egl_current(app);
     }
     if (state.volume_panel.base.layer_surface && volume_panel_init_egl(state.volume_panel, app.renderer, app.pipewire, app.egl_display, app.egl_config, app.egl_context)) {
         volume_panel_request_frame(state.volume_panel, 0.0f, 0.0f, 0.0f);
-        gl_make_current(app.egl_display, mon.egl_surface, app.egl_context);
+        app_detail::rest_egl_current(app);
     }
     if (state.tray_panel.base.layer_surface && tray_panel_init_egl(state.tray_panel, app.renderer, app.tray, app.egl_display, app.egl_config, app.egl_context)) {
         tray_panel_request_frame(state.tray_panel, 0.0f, 0.0f, 0.0f);
-        gl_make_current(app.egl_display, mon.egl_surface, app.egl_context);
+        app_detail::rest_egl_current(app);
     }
     if (state.battery_panel.base.layer_surface && battery_panel_init_egl(state.battery_panel, app.renderer, app.upower, app.egl_display, app.egl_config, app.egl_context)) {
         battery_panel_request_frame(state.battery_panel, 0.0f, 0.0f, 0.0f);
-        gl_make_current(app.egl_display, mon.egl_surface, app.egl_context);
+        app_detail::rest_egl_current(app);
     }
     if (state.resource_panel.base.layer_surface && resource_panel_init_egl(state.resource_panel, app.renderer, app.cpu_temp, app.gpu_temp, app.system_stats, app.egl_display, app.egl_config, app.egl_context)) {
         resource_panel_request_frame(state.resource_panel, 0.0f, 0.0f, 0.0f);
-        gl_make_current(app.egl_display, mon.egl_surface, app.egl_context);
+        app_detail::rest_egl_current(app);
     }
     if (state.clock_panel.base.layer_surface && clock_panel_init_egl(state.clock_panel, app.renderer, app.egl_display, app.egl_config, app.egl_context)) {
         clock_panel_request_frame(state.clock_panel, 0.0f, 0.0f, 0.0f);
-        gl_make_current(app.egl_display, mon.egl_surface, app.egl_context);
+        app_detail::rest_egl_current(app);
     }
     if (state.control_center_panel.base.layer_surface && control_center_panel_init_egl(state.control_center_panel, app.renderer, app, app.egl_display, app.egl_config, app.egl_context)) {
         control_center_panel_request_frame(state.control_center_panel, 0.0f, 0.0f);
-        gl_make_current(app.egl_display, mon.egl_surface, app.egl_context);
+        app_detail::rest_egl_current(app);
     }
 
-    if (mon.autohide.enabled) {
-        mon.autohide.hidden = true;
-        mon.autohide.collapsed = true;
-        mon.autohide.opacity = 0.0f;
+    if (state.autohide.enabled) {
+        state.autohide.hidden = true;
+        state.autohide.collapsed = true;
+        state.autohide.opacity = 0.0f;
     }
     bar_request_frame(mon);
     return true;
@@ -573,7 +594,7 @@ void BarPerMonitorModule::destroy(WaylandState &app, MonitorOutput &mon) {
     if (state.network_panel.sync_text_input_focus)
         state.network_panel.sync_text_input_focus(false);
     EGLDisplay d = app.egl_display;
-    destroy_layer_surface(d, mon.surface, mon.layer_surface, mon.egl_window, mon.egl_surface, &mon.frame_clock);
+    destroy_layer_surface(d, state.surface, state.layer_surface, state.egl_window, state.egl_surface, &state.frame_clock);
     overlay_panel_destroy_surface(state.network_panel.base);
     overlay_panel_destroy_surface(state.bluetooth_panel.base);
     overlay_panel_destroy_surface(state.volume_panel.base);
@@ -586,7 +607,7 @@ void BarPerMonitorModule::destroy(WaylandState &app, MonitorOutput &mon) {
 }
 
 bool BarPerMonitorModule::owns_surface(wl_surface *surface) const {
-    return surface == mon_->surface || surface == state.network_panel.base.surface || surface == state.bluetooth_panel.base.surface || surface == state.volume_panel.base.surface || surface == state.tray_panel.base.surface || surface == state.tray_menu.base.surface || surface == state.battery_panel.base.surface || surface == state.resource_panel.base.surface || surface == state.clock_panel.base.surface || surface == state.control_center_panel.base.surface;
+    return surface == state.surface || surface == state.network_panel.base.surface || surface == state.bluetooth_panel.base.surface || surface == state.volume_panel.base.surface || surface == state.tray_panel.base.surface || surface == state.tray_menu.base.surface || surface == state.battery_panel.base.surface || surface == state.resource_panel.base.surface || surface == state.clock_panel.base.surface || surface == state.control_center_panel.base.surface;
 }
 
 void BarPerMonitorModule::request_frame() {
@@ -601,8 +622,17 @@ void BarPerMonitorModule::request_frame() {
     popup_window_request_frame(state.tray_menu.base);
     battery_panel_request_frame(state.battery_panel, bar_detail::pill_center_x(state.capsule, PillId::Battery), static_cast<float>(bar_detail::kBarHeight), top_margin);
     resource_panel_request_frame(state.resource_panel, bar_detail::pill_center_x(state.capsule, PillId::Cpu), static_cast<float>(bar_detail::kBarHeight), top_margin);
-    clock_panel_request_frame(state.clock_panel, static_cast<float>(mon_->width) / 2.0f + state.capsule.side_margin, static_cast<float>(bar_detail::kBarHeight), top_margin);
+    clock_panel_request_frame(state.clock_panel, static_cast<float>(state.width) / 2.0f + state.capsule.side_margin, static_cast<float>(bar_detail::kBarHeight), top_margin);
     control_center_panel_request_frame(state.control_center_panel, static_cast<float>(bar_detail::kBarHeight), top_margin);
+}
+
+void BarPerMonitorModule::apply_config(WaylandState &app, MonitorOutput &mon, const Config &new_cfg) {
+    bool new_autohide = autohide_effective_enabled(new_cfg, mon.output.name);
+    const BarStyleSpec &new_style = bar_style_spec(new_cfg.bar_style);
+    if (new_autohide != state.autohide.enabled)
+        bar_detail::monitor_autohide_apply(mon, new_autohide, new_style);
+    else if (new_cfg.bar_style != app.cfg.bar_style)
+        bar_detail::bar_autohide_apply_geometry(mon, state.autohide.enabled, state.autohide.collapsed, new_style);
 }
 
 void BarPerMonitorModule::tick(WaylandState &, MonitorOutput &mon) {
@@ -611,7 +641,7 @@ void BarPerMonitorModule::tick(WaylandState &, MonitorOutput &mon) {
     int32_t hug = bar_hug_radius_px(mon);
     if (hug != state.applied_hug_radius_px) {
         state.applied_hug_radius_px = hug;
-        bar_detail::bar_autohide_apply_geometry(mon, mon.autohide.enabled, mon.autohide.collapsed, bar_style_of(mon));
+        bar_detail::bar_autohide_apply_geometry(mon, state.autohide.enabled, state.autohide.collapsed, bar_style_of(mon));
         bar_request_frame(mon);
     }
 
@@ -699,7 +729,7 @@ void BarPerMonitorModule::handle_click(WaylandState &app, MonitorOutput &mon, wl
     } else if (surface == state.control_center_panel.base.surface) {
         control_center_panel_handle_click(state.control_center_panel, app, x, y);
         control_center_panel_dispatch(app);
-    } else if (surface == mon.surface) {
+    } else if (surface == state.surface) {
         dispatch_pill_click(mon, x, y);
         network_panel_dispatch(app, true);
         bluetooth_panel_dispatch(app);
@@ -735,7 +765,7 @@ void BarPerMonitorModule::handle_scroll(WaylandState &app, MonitorOutput &mon, w
     } else if (surface == state.control_center_panel.base.surface) {
         control_center_panel_handle_scroll(state.control_center_panel, dy);
         control_center_panel_dispatch(app);
-    } else if (surface == mon.surface && bar_detail::hit_test_pills(state.capsule, app.pointer, mon.surface) == PillId::Volume) {
+    } else if (surface == state.surface && bar_detail::hit_test_pills(state.capsule, app.pointer, state.surface) == PillId::Volume) {
         bar_detail::volume_pill_handle_wheel(mon, dy);
     }
 }
@@ -796,7 +826,7 @@ void BarPerMonitorModule::handle_pointer_release() {
 }
 
 bool BarPerMonitorModule::wants_pointing_hand_cursor() const {
-    if (!mon_ || mon_->app->pointer.focused_surface != mon_->surface)
+    if (!mon_ || mon_->app->pointer.focused_surface != state.surface)
         return false;
 
     BarPerMonitorState &bs = bar_state(*mon_);
@@ -806,9 +836,9 @@ bool BarPerMonitorModule::wants_pointing_hand_cursor() const {
     PointerState p = mon_->app->pointer;
     p.x = pointer_x_;
     p.y = pointer_y_;
-    if (mon_->autohide.enabled)
+    if (state.autohide.enabled)
         p.y -= bar_style_of(*mon_).top_margin;
     const Rect &cr = bs.clock_rect;
     bool clock_hit = cr.w > 0 && p.x >= cr.x && p.x < cr.x + cr.w && p.y >= cr.y && p.y < cr.y + cr.h;
-    return clock_hit || bar_detail::workspace_row_hit_overview(bs.workspace_widget, p.x, p.y) || bar_detail::workspace_row_hit_workspace(bs.workspace_widget, p.x, p.y) > 0 || bar_detail::hit_test_pills(bs.capsule, p, mon_->surface) != PillId::None;
+    return clock_hit || bar_detail::workspace_row_hit_overview(bs.workspace_widget, p.x, p.y) || bar_detail::workspace_row_hit_workspace(bs.workspace_widget, p.x, p.y) > 0 || bar_detail::hit_test_pills(bs.capsule, p, state.surface) != PillId::None;
 }

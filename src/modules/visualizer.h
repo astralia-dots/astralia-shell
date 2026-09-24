@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "app/ipc.h"
+#include "app/module.h"
 
 #include "config/visualizer_config.h"
 
@@ -45,3 +46,5 @@ void visualizer_toggle(VisualizerState &state, WaylandState &app);
 void visualizer_handle_key_event(VisualizerState &state, WaylandState &app, const KeyEvent &event);
 
 std::vector<IpcHandler> visualizer_ipc_handlers(VisualizerState &visualizer, WaylandState &state);
+
+std::unique_ptr<Module> make_visualizer_module();

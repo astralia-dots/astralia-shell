@@ -5,10 +5,13 @@
 #include <cstdint>
 #include <functional>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 #include <wayland-client.h>
 #include <wayland-egl.h>
+
+#include "app/per_monitor_module.h"
 
 #include "config/idle_config.h"
 
@@ -24,6 +27,9 @@
 #include "service/output_service.h"
 
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
+
+struct MonitorOutput;
+struct Node;
 
 struct IdleState {
     ext_idle_notifier_v1 *notifier = nullptr;
@@ -81,3 +87,10 @@ bool idle_overlay_init_egl(IdleOverlayState &state, Renderer &renderer, EGLDispl
 void idle_overlay_request_frame(IdleOverlayState &state);
 
 void idle_overlay_set_active(IdleOverlayState &state, bool ambient_active, bool screensaver_active);
+
+struct IdleWallpaperHooks {
+    std::function<void(MonitorOutput &mon, Node &root, int32_t w, int32_t h)> draw;
+    std::function<void(MonitorOutput &mon, bool paused)> set_paused;
+};
+
+std::unique_ptr<PerMonitorModule> make_idle_per_monitor_module(IdleWallpaperHooks hooks);

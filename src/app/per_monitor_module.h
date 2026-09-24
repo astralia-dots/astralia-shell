@@ -8,6 +8,7 @@
 struct WaylandState;
 struct MonitorOutput;
 struct KeyEvent;
+struct Config;
 
 class PerMonitorModule {
   public:
@@ -20,6 +21,7 @@ class PerMonitorModule {
     virtual bool owns_surface(wl_surface *surface) const = 0;
 
     virtual void request_frame() {}
+    virtual void apply_config(WaylandState &, MonitorOutput &, const Config &) {}
     virtual void tick(WaylandState &, MonitorOutput &) {}
     virtual void timer_tick(WaylandState &, MonitorOutput &) {}
     virtual bool is_open() const { return false; }

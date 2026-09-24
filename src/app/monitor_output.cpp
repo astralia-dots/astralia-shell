@@ -5,8 +5,8 @@
 
 #include "core/log.h"
 
-#include "modules/bar.h"
 #include "modules/settings.h"
+#include "modules/wallpaper.h"
 
 #include "render/animation.h"
 #include "render/overlay_panel.h"
@@ -78,8 +78,7 @@ void request_all_frames(MonitorOutput &mon) {
 namespace app_detail {
 
 void rest_egl_current(WaylandState &app) {
-    if (!app.outputs.empty())
-        eglMakeCurrent(app.egl_display, app.outputs.front()->egl_surface, app.outputs.front()->egl_surface, app.egl_context);
+    eglMakeCurrent(app.egl_display, app.egl_rest_surface, app.egl_rest_surface, app.egl_context);
 }
 
 const std::vector<Workspace> &monitor_workspaces(const MonitorOutput &mon) {
@@ -107,21 +106,9 @@ void apply_config_update(WaylandState &app, Config new_cfg) {
         idle_reset(app.idle, names);
     }
 
-    for (auto &mon : app.outputs) {
-        if (auto *wp = mon->module<WallpaperPerMonitorModule>())
-            wp->resync(app, *mon, new_cfg);
-
-        bool new_autohide =
-            autohide_effective_enabled(new_cfg, mon->output.name);
-        const BarStyleSpec &new_style = bar_style_spec(new_cfg.bar_style);
-        if (new_autohide != mon->autohide.enabled)
-            bar_detail::monitor_autohide_apply(*mon, new_autohide, new_style);
-        else if (new_cfg.bar_style != app.cfg.bar_style)
-            bar_detail::bar_autohide_apply_geometry(*mon, mon->autohide.enabled, mon->autohide.collapsed, new_style);
-
-        if (auto *nv = mon->module<NotificationViewPerMonitorModule>())
-            nv->resync(app, *mon);
-    }
+    for (auto &mon : app.outputs)
+        for (auto &m : mon->modules)
+            m->apply_config(app, *mon, new_cfg);
 
     animation_set_instant(new_cfg.animations_disabled);
 
@@ -162,8 +149,30 @@ void settings_retarget(WaylandState &app, SettingsState &settings, MonitorOutput
     else
         app.settings_enabled = false;
 
-    if (!app.outputs.empty())
-        eglMakeCurrent(app.egl_display, app.outputs.front()->egl_surface, app.outputs.front()->egl_surface, app.egl_context);
+    rest_egl_current(app);
 }
 
 } // namespace app_detail
+
+SettingsEnv settings_env(WaylandState &app) {
+    return {
+        [&app] {
+            std::vector<std::string> names;
+            for (const auto &mon : app.outputs)
+                names.push_back(mon->output.name);
+            return names;
+        },
+        [&app] {
+            return app.compositor_state.focused_monitor;
+        },
+        [&app](const std::string &name, int column) -> MediaDecodeStatus {
+            for (auto &mon : app.outputs) {
+                if (mon->output.name != name)
+                    continue;
+                if (auto *wp = mon->module<WallpaperPerMonitorModule>())
+                    return wp->decode_status(column);
+            }
+            return MediaDecodeStatus::Idle;
+        },
+    };
+}

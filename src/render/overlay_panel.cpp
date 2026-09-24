@@ -90,7 +90,7 @@ void overlay_panel_destroy_surface(OverlayPanelBase &base) {
     base.frame_clock.redraw_requested = false;
     base.frame_clock.mapped = false;
     if (base.egl_surface != EGL_NO_SURFACE) {
-        eglMakeCurrent(base.egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, base.egl_context);
+        gl_release_if_current(base.egl_display, base.egl_surface);
         eglDestroySurface(base.egl_display, base.egl_surface);
         base.egl_surface = EGL_NO_SURFACE;
     }

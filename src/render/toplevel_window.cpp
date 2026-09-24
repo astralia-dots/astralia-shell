@@ -103,7 +103,7 @@ void toplevel_window_request_frame(ToplevelWindowBase &base) {
 
 void toplevel_window_destroy_surface(ToplevelWindowBase &base) {
     if (base.egl_surface != EGL_NO_SURFACE) {
-        eglMakeCurrent(base.egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+        gl_release_if_current(base.egl_display, base.egl_surface);
         eglDestroySurface(base.egl_display, base.egl_surface);
         base.egl_surface = EGL_NO_SURFACE;
     }

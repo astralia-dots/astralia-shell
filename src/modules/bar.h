@@ -11,7 +11,6 @@
 #include "app/text_input_client.h"
 #include "app/wayland_state.h"
 
-#include "modules/bar/styles/geometry.h"
 #include "modules/bar/panel/battery_panel.h"
 #include "modules/bar/panel/bluetooth_panel.h"
 #include "modules/bar/panel/clock_panel.h"
@@ -20,19 +19,44 @@
 #include "modules/bar/panel/resource_panel.h"
 #include "modules/bar/panel/tray_panel.h"
 #include "modules/bar/panel/volume_panel.h"
+#include "modules/bar/styles/geometry.h"
 #include "modules/bar/widget/dock_widget.h"
 #include "modules/bar/widget/status_widget.h"
 #include "modules/bar/widget/widget_capsule.h"
 #include "modules/bar/widget/workspace_widget.h"
 
+#include "render/animation.h"
 #include "render/renderer.h"
+#include "render/scene.h"
 #include "render/texture.h"
 
 #include "service/compositor_service.h"
+#include "service/frame_service.h"
+#include "service/output_service.h"
 
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 
+struct AutoHideState {
+    bool hidden = false;
+    bool collapsed = false;
+    float opacity = 1.0f;
+
+    bool enabled = false;
+};
+
 struct BarPerMonitorState {
+    wl_surface *surface = nullptr;
+    zwlr_layer_surface_v1 *layer_surface = nullptr;
+    wl_egl_window *egl_window = nullptr;
+    EGLSurface egl_surface = EGL_NO_SURFACE;
+    int32_t width = 0;
+    bool configured = false;
+    OutputScale output_scale;
+    FrameClock frame_clock;
+    Scene scene;
+    AnimationManager animations;
+    AutoHideState autohide;
+
     WidgetCapsuleState capsule;
     WorkspaceWidgetState workspace_widget;
     DockWidgetState dock_widget;
@@ -84,6 +108,7 @@ class BarPerMonitorModule final : public PerMonitorModule, public TextInputClien
     void destroy(WaylandState &app, MonitorOutput &mon) override;
     bool owns_surface(wl_surface *surface) const override;
     void request_frame() override;
+    void apply_config(WaylandState &app, MonitorOutput &mon, const Config &new_cfg) override;
     void tick(WaylandState &app, MonitorOutput &mon) override;
     void timer_tick(WaylandState &app, MonitorOutput &mon) override;
     bool is_open() const override;
@@ -101,6 +126,7 @@ class BarPerMonitorModule final : public PerMonitorModule, public TextInputClien
 };
 
 BarPerMonitorState &bar_state(MonitorOutput &mon);
+const BarPerMonitorState &bar_state(const MonitorOutput &mon);
 
 inline const BarStyleSpec &bar_style_of(const MonitorOutput &mon) {
     return bar_style_spec(mon.app->cfg.bar_style);
@@ -111,7 +137,7 @@ inline int32_t bar_top_margin(const Config &cfg) {
 }
 
 inline int32_t bar_hug_radius_px(const MonitorOutput &mon) {
-    if (mon.app->cfg.bar_style != BarStyle::Okinami || mon.autohide.enabled)
+    if (mon.app->cfg.bar_style != BarStyle::Okinami || bar_state(mon).autohide.enabled)
         return 0;
     return mon.app->compositor_state.hug_radius_px;
 }

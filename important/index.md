@@ -14,12 +14,12 @@
 - `single_instance_lock.h`+`.cpp`: `flock()`-based single-instance lock.
 - `ipc.h`+`.cpp`: Astralia Shell's own control socket, client/server request handling; verb table from each module.
 - `key_dispatch.h`+`.cpp`: Routes key events to whichever module owns the surface `KeyboardState::focused_surface` currently names, so `main.cpp` never names a module's key handler.
-- `monitor_output.h`+`.cpp`: `MonitorOutput` per-output state, monitor create/activate/destroy lifecycle, config-apply orchestration, settings retarget.
+- `monitor_output.h`+`.cpp`: `MonitorOutput` pure per-output state plus its module list, create/activate/destroy lifecycle, config-apply fan-out, `rest_egl_current`, settings retarget, `settings_env`.
 - `module.h`: `Module` interface: per-surface overlay boundary, default no-op virtuals, plus `apply_config` and `on_output_removed` hooks.
-- `per_monitor_module.h`: `PerMonitorModule` interface, the per-surface per-monitor boundary; default no-op virtuals, unnamed params.
-- `module_registry.h`+`.cpp`: `build_app_modules`/`build_per_monitor_modules` composition root; also bridges `app/` code to the lock module without a module include.
-- `wayland_registry.h`+`.cpp`: Wayland global registry bind/listener wiring, populates `WaylandState`'s globals; notifies the lock module of output hotplug.
-- `wayland_state.h`: `WaylandState`, shared Wayland globals and every process-wide service's owned state; forward-declares `MonitorOutput`.
+- `per_monitor_module.h`: `PerMonitorModule` interface, the per-surface per-monitor boundary; default no-op virtuals including `apply_config`, unnamed params.
+- `module_registry.h`+`.cpp`: `build_app_modules`/`build_per_monitor_modules` composition root calling each module's factory, injecting wallpaper hooks into `lock`/`idle`; `start_session_lock` for `main.cpp`.
+- `wayland_registry.h`+`.cpp`: Wayland global registry bind/listener wiring, EGL bootstrap with surfaceless-or-pbuffer rest surface; notifies `lock` of output hotplug.
+- `wayland_state.h`: `WaylandState`, shared Wayland/EGL globals including `egl_rest_surface`, and every process-wide service's owned state; forward-declares `MonitorOutput`.
 - `service.h`: `Service` interface, the process-wide boundary for cross-cutting services: `init`/`timer_tick`/`poll_sources`.
 - `service_registry.h`+`.cpp`: `build_services` composition root, one `Service` subclass per cross-cutting service.
 - `user_info.h`+`.cpp`: `getpwuid`-based username, `/etc/os-release` `PRETTY_NAME`, `sysinfo`-based uptime string, and `profile_media_path` resolution, shared across modules.
@@ -27,8 +27,7 @@
 
 ## src/config
 
-- `bar_config.h`: `BarStyle` enum with name/label tables, plus bar geometry, spacing, and Okinami layout constants.
-- `dock_config.h`: Dock icon size/spacing, focused/unfocused icon opacity, reorder timing, and the `dock_widget` animation-owner base.
+- `bar_config.h`: `BarStyle` enum with name/label tables, bar geometry, spacing, Okinami layout, and `dock_widget` animation-owner constants, plus the control center and resource panels' constants.
 - `launcher_config.h`: Every launcher data type and constant, no function bodies.
 - `osd_config.h`: OSD surface size/margin/duration/animation-owner constants.
 - `notification_config.h`: Notification card padding/size/timing constants.
@@ -58,7 +57,7 @@
 - `panel_chrome.h`+`.cpp`: Shared box/header/card/confirm chrome, click-kind enum, `panel_region_hit`, `panel_draw_card` (bordered titled card, shared by `control_center_panel` and `resource_panel`), `panel_draw_toggle_switch`, `panel_draw_centered_text`, and `panel_measure_row_actions`/`panel_draw_row_actions` (connect/forget pill or busy label) for on-demand panels.
 - `node.h`+`.cpp`: `Node` retained-allocation scene graph with per-frame node pooling; kinds are rect/rounded-rect/texture/rounded-texture/video-texture/group; per-node `rotation`/`scale` about the node centre.
 - `video_texture.h`+`.cpp`: `VideoTexture` RAII `EGLImageKHR`/`GL` handle plus `DrmFrameImport` dma-buf import for zero-copy `VAAPI` playback, and the `EGL_EXT_image_dma_buf_import` cap probe.
-- `gl.h`+`.cpp`: Labelled shader compile/link helpers, reading `assets/shaders/` with an installed-then-dev-tree fallback, plus a `glGetError`-draining `gl_check`.
+- `gl.h`+`.cpp`: Labelled shader compile/link helpers, reading `assets/shaders/` with an installed-then-dev-tree fallback, plus a `glGetError`-draining `gl_check`, `gl_make_current`, and `gl_release_if_current` for surface teardown.
 - `overlay_panel.h`+`.cpp`: Shared full-screen on-demand overlay surface: position-lock-on-toggle, live-height roll-down/collapse, and output-unplug surface release.
 - `toplevel_window.h`+`.cpp`: Shared `xdg_toplevel` real-window surface lifecycle for compositor-managed windows.
 - `popup_window.h`+`.cpp`: Shared `xdg_popup` surface lifecycle parented to a layer surface via `zwlr_layer_surface_v1::get_popup`, with positioner, popup grab, `popup_done`, and reposition-on-resize.
@@ -73,7 +72,7 @@
 - `slider.h`+`.cpp`: `draw_slider_track`, shared track+fill+click-region drawing for any slider.
 - `arc_gauge.h`+`.cpp`: Shared cached 10-segment circular arc-gauge texture plus icon/value/sub-label layout; diameter, stroke, and colors are caller params.
 - `progress_bar.h`+`.cpp`: Shared track+fill rounded-bar drawing with a caller-set minimum fill width; no click regions or panel dependency.
-- `dock_row.h`+`.cpp`: Per-window-class icon-texture cache and the icon-row draw with focus opacity and reorder slide; shared by `dock_widget` and `overview`.
+- `dock_row.h`+`.cpp`: Per-window-class icon-texture cache and the icon-row draw with focus opacity and reorder slide, owning its icon/timing constants; shared by `dock_widget` and `overview`.
 
 ## src/service
 
@@ -96,11 +95,14 @@
 - `output_service.h`+`.cpp`: Pure-data `Output` struct plus output-selection logic, and per-output fractional-scale listener tracking (`OutputScale`).
 - `wallpaper_service.h`+`.cpp`: Per-monitor, per-column wallpaper path/count/fill-mode resolution; a `bool animated` selects the static or animated config maps.
 - `media_service.h`+`.cpp`: The shell's one media decoder, host side; loads `media_plugin` via `dlopen` and owns the async `.rgba` frame cache.
-- `media_plugin.h`+`.cpp`: The `shared_module` linking `libavcodec`/`libavfilter`, isolated so a missing `ffmpeg` only disables animated content, not the whole shell.
 - `settings_service.h`+`.cpp`: Settings field-text parsing into `Config` and the config-save wrapper.
 - `icon_service.h`+`.cpp`: App icon path resolution across GTK icon themes; `resolve_window_icon_path` maps a window class to an icon via `.desktop` ids.
 - `dock_service.h`+`.cpp`: `DockEntry` list for a monitor's active workspace from `CompositorState`, sorted by window `x`, `focused` = `focus_history_id == 0`; pure, test-linked.
 - `polkit_service.h`+`.cpp`: `PolkitAgent`, an in-session polkit authentication agent on its own nested `GMainContext`; `PolkitPollSource` bridges it into the poll loop.
+
+## src/plugin
+
+- `media_plugin.h`+`.cpp`: The `shared_module` linking `libavcodec`/`libavfilter`, `dlopen`ed by `media_service`, so a missing `ffmpeg` only disables animated content.
 
 ## src/core
 
@@ -112,20 +114,20 @@
 
 ## src/modules
 
-- `bar.h`+`.cpp`: Bar rendering, autohide geometry, pill-click dispatch, bar surface's own EGL; shared `WaylandState`-wide helpers. On Okinami/Hyprland, the surface grows by `bar_hug_radius_px` and the two outer islands' bottom corners get an extra flare draw so the bar hugs the tiled window's rounded corner below; a per-tick catch-up reapplies surface geometry once the cached hug radius becomes available (it's unset until Hyprland's IPC connects, which can land after the first monitor's surface is created).
-- `launcher.h`+`.cpp`: `LauncherState`, surface/EGL/tick/toggle/key/click/pointer-hover/paint core only.
-- `osd.h`+`.cpp`: Volume/brightness popup, per-monitor, auto-hides, reactive to system state changes.
-- `notification.h`+`.cpp`: Notification renderer; rebuilds render/animation state from `notification_service` records, per-monitor card paint, and per-monitor close-button dismissal.
-- `logout.h`+`.cpp`: Logout ring overlay: entry/exit lightning-slash/shockwave choreography, animated centre logo, and its two custom shader effects.
-- `dashboard.h`+`.cpp`: Blank `xdg_toplevel` dashboard window toggled by the `dashboard` IPC verb; purpose not yet decided.
-- `overview.h`+`.cpp`: `Tab`-switched local or global workspace grid; live thumbnails on Hyprland, icon tiles on Sway; click/drag/keyboard focus-move-close.
-- `wallpaper.h`+`.cpp`: Per-monitor wallpaper surface: static or animated columns per config, cross-transition on image change, shared by `lock` and idle ambient.
-- `idle.h`+`.cpp`: Recent-activity idle clock feeding the per-monitor ambient/screensaver overlay surface; screensaver bounces an `AnimatedImage` logo, freed while not shown.
-- `settings.h`+`.cpp`: Settings panel core: hosts per-tab modules, responsive nav rail, shared toggle widgets, and a separately-faded active-tab scene.
-- `rain.h`+`.cpp`: Rain overlay, a real `xdg_toplevel` window; hosts the `MatrixRain`/`StilettoRain` sims and applies mode/speed config live.
-- `visualizer.h`+`.cpp`: Audio visualizer overlay window; a dedicated self-pacing render thread draws either `SphereVisualizer` or `BarVisualizer`, fed by its own PipeWire capture.
-- `lock.h`+`.cpp`: `ext-session-lock-v1` session lock; one surface per output, `PAM` auth on a worker thread, three-column info card.
-- `polkit.h`+`.cpp`: Reactive polkit password overlay: centered card with scale-in/out, dot-masked password field shared with `lock`'s echo glyph.
+- `bar.h`+`.cpp`: Bar rendering, autohide geometry, pill-click dispatch; `BarPerMonitorState` owns the bar's layer surface, EGL window, scene, scale, and `AutoHideState`. On Okinami/Hyprland, the surface grows by `bar_hug_radius_px` and the two outer islands' bottom corners get an extra flare draw so the bar hugs the tiled window's rounded corner below; a per-tick catch-up reapplies surface geometry once the cached hug radius becomes available (it's unset until Hyprland's IPC connects, which can land after the first monitor's surface is created).
+- `launcher.h`+`.cpp`: `LauncherState`, surface/EGL/tick/toggle/key/click/pointer-hover/paint core, and its `Module` adapter via `make_launcher_module`.
+- `osd.h`+`.cpp`: Volume/brightness popup, per-monitor, auto-hides, reactive to system state changes; `OsdPerMonitorModule` adapter.
+- `notification.h`+`.cpp`: Notification renderer from `notification_service` records, per-monitor card paint and close-button dismissal; `NotificationViewPerMonitorModule` adapter.
+- `logout.h`+`.cpp`: Logout ring overlay: lightning-slash/shockwave choreography, animated centre logo, two custom shader effects; `make_logout_module`.
+- `dashboard.h`+`.cpp`: Blank `xdg_toplevel` dashboard window toggled by the `dashboard` IPC verb; `make_dashboard_module`.
+- `overview.h`+`.cpp`: `Tab`-switched local/global workspace grid; live thumbnails on Hyprland, icon tiles on Sway; `make_overview_module`.
+- `wallpaper.h`+`.cpp`: Per-monitor wallpaper surface, static or animated columns, cross-transition on change; `WallpaperPerMonitorModule` adapter.
+- `idle.h`+`.cpp`: Idle clock feeding the per-monitor ambient/screensaver overlay; `make_idle_per_monitor_module` takes `IdleWallpaperHooks`.
+- `settings.h`+`.cpp`: Settings panel core: per-tab hosting, responsive nav rail, shared toggle widgets, faded active-tab scene; `make_settings_module`.
+- `rain.h`+`.cpp`: Rain `xdg_toplevel` window hosting the `MatrixRain`/`StilettoRain` sims, live mode/speed config; `make_rain_module`.
+- `visualizer.h`+`.cpp`: Audio visualizer window; self-pacing render thread draws `SphereVisualizer` or `BarVisualizer`; `make_visualizer_module`.
+- `lock.h`+`.cpp`: `ext-session-lock-v1` lock, per-output surfaces, `PAM` worker auth, info card; `make_lock_module` plus hotplug/start bridges.
+- `polkit.h`+`.cpp`: Reactive polkit password overlay card with dot-masked field; `make_polkit_module` and `polkit_notify_state_changed`.
 
 ## src/modules/visualizer
 
@@ -206,7 +208,6 @@
 ## test/app
 
 - `test_config.cpp`: Config load/save, hot-reload watch, and per-monitor override resolution.
-- `test_wallpaper_resolve.cpp`: Per-monitor, per-column wallpaper path and fill-mode resolution.
 
 ## test/core
 
@@ -215,26 +216,17 @@
 - `test_path_home.cpp`: `$HOME` to `~` path collapse and expansion.
 - `test_poll_source.cpp`: `PollSource` interface and `FnPollSource` helper.
 
-## test/dbus
+## test/service
 
+- `test_wallpaper_resolve.cpp`: Per-monitor, per-column wallpaper path and fill-mode resolution.
 - `test_network_parse.cpp`: Pure `nmcli` output parsers.
 - `test_bluetooth.cpp`: Bluetooth device-kind classification.
 - `test_mpris.cpp`: MPRIS player selection, playback-status parsing, position formatting, and art-URL checks.
-
-## test/launcher
-
-- `test_launcher.cpp`: Launcher desktop-entry, search, scoring, submenu, visit-store, and launch-action logic.
-
-## test/wayland
-
 - `test_keyboard.cpp`: `xkbcommon` key-event translation, modifiers, and compose handling.
 - `test_active_output.cpp`: Active-output selection logic.
 - `test_dock.cpp`: Dock entry list for a monitor's active workspace.
 - `test_sway.cpp`: Sway `get_workspaces`/`get_outputs`/`get_tree` parsing into `CompositorState`, and its dock entries.
-- `test_hyprland.cpp`: Hyprland client refresh against a fake request socket: timeout, changed reply, and unchanged-reply skip; `hypr_bar_hug_radius_px` summing two sequential `j/getoption` replies, and its zero default with no socket connected.
-
-## test/system
-
+- `test_hyprland.cpp`: Hyprland client refresh against a fake request socket; `hypr_bar_hug_radius_px` summing and zero default.
 - `test_rfkill.cpp`: `sysfs` string/uint readers behind the `rfkill` soft-block check.
 - `test_cpu_temp.cpp`: CPU `hwmon`/thermal-zone name matching.
 - `test_gpu_temp.cpp`: GPU `hwmon` name matching and `nvidia-smi` output parsing.
@@ -249,16 +241,20 @@
 - `test_image_decode.cpp`: JPEG/PNG/SVG decode, and truncated PNG/JPEG returning `nullptr` instead of leaking or exiting.
 - `test_text_elide.cpp`: End and middle string elision.
 
-## test/bar
+## test/modules/launcher
+
+- `test_launcher.cpp`: Launcher desktop-entry, search, scoring, submenu, visit-store, and launch-action logic.
+
+## test/modules/bar
 
 - `test_fillet.cpp`: Concave fillet mask geometry and mirroring.
 - `test_autohide_geometry.cpp`: `bar_autohide_geometry`'s height/margin/exclusive-zone math across shown, hug-radius, revealed-autohide, and collapsed states.
 
-## test/lock
+## test/modules/lock
 
 - `test_layout.cpp`: Pure lock-panel geometry math.
 
-## test/visualizer
+## test/modules/visualizer
 
 - `test_fft.cpp`: Radix-2 FFT and magnitude tilt.
 

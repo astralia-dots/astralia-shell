@@ -2,6 +2,7 @@
 
 #include <EGL/egl.h>
 #include <functional>
+#include <memory>
 #include <string>
 #include <vector>
 #include <wayland-client.h>
@@ -9,6 +10,7 @@
 
 #include "app/config.h"
 #include "app/ipc.h"
+#include "app/module.h"
 #include "app/text_input_client.h"
 
 #include "config/settings_config.h"
@@ -106,3 +108,5 @@ void settings_text_input_apply_edit(SettingsState &state, const TextInputEdit &e
 void draw_toggle_switch(SettingsState &state, Node *parent, float x, float y, bool active, const char *tag);
 
 void draw_toggle_row(SettingsState &state, Node *parent, int32_t scale, float x, float y, float w, const std::string &label, bool value, const char *tag, bool tiled);
+
+std::unique_ptr<Module> make_settings_module();

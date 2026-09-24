@@ -1,7 +1,10 @@
 #pragma once
 
 #include <EGL/egl.h>
+#include <memory>
 #include <wayland-client.h>
+
+#include "app/module.h"
 
 #include "render/marquee_scroll.h"
 #include "render/overlay_panel.h"
@@ -46,3 +49,7 @@ void polkit_sync_open_state(PolkitState &state, WaylandState &app);
 void polkit_handle_key_event(PolkitState &state, WaylandState &app, const KeyEvent &event);
 
 void polkit_paint(PolkitState &state, WaylandState &app);
+
+std::unique_ptr<Module> make_polkit_module();
+
+void polkit_notify_state_changed(WaylandState &app);

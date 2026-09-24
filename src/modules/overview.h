@@ -1,11 +1,13 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
 #include <wayland-client.h>
 
 #include "app/ipc.h"
+#include "app/module.h"
 
 #include "config/overview_config.h"
 
@@ -94,3 +96,5 @@ void overview_handle_pointer_release(OverviewState &state, WaylandState &app);
 void overview_handle_key_event(OverviewState &state, WaylandState &app, const KeyEvent &event);
 
 void overview_paint(OverviewState &state, WaylandState &app);
+
+std::unique_ptr<Module> make_overview_module();

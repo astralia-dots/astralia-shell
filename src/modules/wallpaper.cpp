@@ -7,6 +7,7 @@
 #include <random>
 #include <thread>
 
+#include "app/monitor_output.h"
 #include "app/wayland_state.h"
 
 #include "config/wallpaper_config.h"
@@ -587,4 +588,69 @@ void wallpaper_sync_from_config(WallpaperState &wp, const Config &cfg, const std
             wallpaper_column_set_static(col, wp.gl, path, sz.w, sz.h, mode);
         }
     }
+}
+
+namespace {
+
+void wallpaper_sync_active_mode(WallpaperState &wp, const Config &cfg, const std::string &monitor_name) {
+    wallpaper_sync_from_config(wp, cfg, monitor_name, cfg.wallpaper_animated_enabled);
+}
+
+} // namespace
+
+bool WallpaperPerMonitorModule::create_surface(WaylandState &app, MonitorOutput &mon, wl_output *output) {
+    if (!wallpaper_create_surface(state_, app.compositor, app.layer_shell, output))
+        klog("wallpaper: failed to create layer surface on '%s'", mon.output.name.c_str());
+    return true;
+}
+
+bool WallpaperPerMonitorModule::configured() const {
+    return !state_.layer_surface || state_.configured;
+}
+
+bool WallpaperPerMonitorModule::init_egl(WaylandState &app, MonitorOutput &mon) {
+    if (!state_.layer_surface)
+        return true;
+    state_.app = &app;
+    state_.output_name = mon.output.name;
+    if (!wallpaper_init_egl(state_, app.renderer, app.egl_display, app.egl_config, app.egl_context))
+        return true;
+    wallpaper_sync_active_mode(state_, app.cfg, mon.output.name);
+    state_.on_resize = [&app, &mon, this] {
+        if (!app.cfg.wallpaper_animated_enabled)
+            return;
+        wallpaper_columns_stop_all(state_);
+        wallpaper_sync_from_config(state_, app.cfg, mon.output.name, true);
+    };
+    wallpaper_request_frame(state_);
+    app_detail::rest_egl_current(app);
+    return true;
+}
+
+void WallpaperPerMonitorModule::destroy(WaylandState &app, MonitorOutput &) {
+    wallpaper_columns_stop_all(state_);
+    destroy_layer_surface(app.egl_display, state_.surface, state_.layer_surface, state_.egl_window, state_.egl_surface, &state_.frame_clock);
+}
+
+bool WallpaperPerMonitorModule::owns_surface(wl_surface *surface) const {
+    return surface == state_.surface;
+}
+
+void WallpaperPerMonitorModule::pause_animation() {
+    wallpaper_columns_pause_all(state_);
+}
+
+void WallpaperPerMonitorModule::resume_animation() {
+    wallpaper_columns_resume_all(state_);
+}
+
+void WallpaperPerMonitorModule::request_frame() { wallpaper_wake(state_); }
+
+MediaDecodeStatus WallpaperPerMonitorModule::decode_status(int column_index) const {
+    return wallpaper_column_status(state_, column_index);
+}
+
+void WallpaperPerMonitorModule::apply_config(WaylandState &, MonitorOutput &mon, const Config &new_cfg) {
+    wallpaper_sync_active_mode(state_, new_cfg, mon.output.name);
+    wallpaper_request_frame(state_);
 }

@@ -272,3 +272,60 @@ void polkit_paint(PolkitState &state, WaylandState &app) {
     if (state.base.animations.hasActive())
         overlay_panel_request_frame(state.base);
 }
+
+namespace {
+
+class PolkitModule final : public Module {
+  public:
+    const char *name() const override { return "polkit"; }
+    bool is_open() const override { return state_.base.open; }
+
+    bool create_surface(WaylandState &app, wl_output *output) override {
+        output_ = output;
+        want_ = polkit_create_surface(state_, app.compositor, app.layer_shell, output);
+        return want_;
+    }
+
+    bool init_egl(WaylandState &app) override {
+        if (!polkit_init_egl(state_, app.renderer, app, app.egl_display, app.egl_config, app.egl_context))
+            return false;
+        state_.bound_output = output_;
+        return true;
+    }
+
+    bool configured() const override {
+        return !want_ || state_.base.configured;
+    }
+    wl_surface *surface() const override { return state_.base.surface; }
+    void request_frame() override { polkit_request_frame(state_); }
+
+    void handle_key_event(WaylandState &app, const KeyEvent &event) override {
+        polkit_handle_key_event(state_, app, event);
+    }
+
+    wl_output *bound_output() const override { return state_.bound_output; }
+    void on_output_removed(WaylandState &, wl_output *out) override {
+        if (state_.bound_output != out)
+            return;
+        overlay_panel_release_output(state_.base, state_.bound_output, out);
+    }
+
+    void sync_state(WaylandState &app) { polkit_sync_open_state(state_, app); }
+
+  private:
+    PolkitState state_;
+    wl_output *output_ = nullptr;
+    bool want_ = false;
+};
+
+} // namespace
+
+std::unique_ptr<Module> make_polkit_module() {
+    return std::make_unique<PolkitModule>();
+}
+
+void polkit_notify_state_changed(WaylandState &app) {
+    for (auto &m : app.overlays)
+        if (auto *pm = dynamic_cast<PolkitModule *>(m.get()))
+            pm->sync_state(app);
+}

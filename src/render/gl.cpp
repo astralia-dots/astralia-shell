@@ -93,3 +93,13 @@ bool gl_make_current(EGLDisplay display, EGLSurface surface, EGLContext context)
         klog("gl: eglSwapInterval(0) failed, egl error 0x%04x", eglGetError());
     return true;
 }
+
+void gl_release_if_current(EGLDisplay display, EGLSurface surface) {
+    if (surface == EGL_NO_SURFACE || eglGetCurrentDisplay() != display)
+        return;
+    if (eglGetCurrentSurface(EGL_DRAW) != surface && eglGetCurrentSurface(EGL_READ) != surface)
+        return;
+    if (eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, eglGetCurrentContext()))
+        return;
+    eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+}

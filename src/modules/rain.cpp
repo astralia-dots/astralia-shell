@@ -153,3 +153,41 @@ void rain_paint(RainState &state) {
     if (state.base.open || state.base.animations.hasActive())
         toplevel_window_request_frame(state.base);
 }
+
+namespace {
+
+class RainModule final : public Module {
+  public:
+    const char *name() const override { return "rain"; }
+    bool is_open() const override { return state_.base.open; }
+
+    bool create_surface(WaylandState &, wl_output *) override { return true; }
+    bool init_egl(WaylandState &app) override {
+        rain_apply_params(state_, app.cfg.rain);
+        return true;
+    }
+    bool configured() const override { return true; }
+    wl_surface *surface() const override { return state_.base.surface; }
+    void request_frame() override { rain_request_frame(state_); }
+
+    void handle_key_event(WaylandState &app, const KeyEvent &event) override {
+        rain_handle_key_event(state_, app, event);
+    }
+
+    void apply_config(WaylandState &, const Config &cfg) override {
+        rain_apply_params(state_, cfg.rain);
+    }
+
+    std::vector<IpcHandler> ipc_handlers(WaylandState &app) override {
+        return rain_ipc_handlers(state_, app);
+    }
+
+  private:
+    RainState state_;
+};
+
+} // namespace
+
+std::unique_ptr<Module> make_rain_module() {
+    return std::make_unique<RainModule>();
+}

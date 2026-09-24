@@ -9,6 +9,8 @@
 #include <wayland-client.h>
 #include <wayland-egl.h>
 
+#include "app/per_monitor_module.h"
+
 #include "config/notification_config.h"
 
 #include "render/animation.h"
@@ -85,3 +87,21 @@ bool notification_view_set_close_hover(NotificationView &view, double x, double 
 bool notification_view_clear_close_hover(NotificationView &view);
 
 void notification_paint(NotificationView &view, NotificationRenderModel &service);
+
+class NotificationViewPerMonitorModule final : public PerMonitorModule {
+  public:
+    bool create_surface(WaylandState &app, MonitorOutput &mon, wl_output *output) override;
+    bool configured() const override;
+    bool init_egl(WaylandState &app, MonitorOutput &mon) override;
+    void destroy(WaylandState &app, MonitorOutput &mon) override;
+    bool owns_surface(wl_surface *surface) const override;
+    void request_frame() override;
+    void handle_click(WaylandState &app, MonitorOutput &mon, wl_surface *surface, int button, double x, double y, uint32_t serial) override;
+    void handle_pointer_move(WaylandState &app, MonitorOutput &mon, double x, double y) override;
+    bool wants_pointing_hand_cursor() const override;
+
+    void apply_config(WaylandState &app, MonitorOutput &mon, const Config &new_cfg) override;
+
+  private:
+    NotificationView state_;
+};

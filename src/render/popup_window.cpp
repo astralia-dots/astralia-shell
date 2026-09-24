@@ -139,7 +139,7 @@ void popup_window_destroy(PopupWindowBase &base) {
     base.frame_clock.mapped = false;
 
     if (base.egl_surface != EGL_NO_SURFACE) {
-        eglMakeCurrent(base.egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+        gl_release_if_current(base.egl_display, base.egl_surface);
         eglDestroySurface(base.egl_display, base.egl_surface);
         base.egl_surface = EGL_NO_SURFACE;
     }

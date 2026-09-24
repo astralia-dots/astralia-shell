@@ -5,6 +5,8 @@
 #include <wayland-client.h>
 #include <wayland-egl.h>
 
+#include "app/per_monitor_module.h"
+
 #include "config/osd_config.h"
 
 #include "render/animation.h"
@@ -59,3 +61,18 @@ void osd_request_frame(OsdState &state);
 void osd_show(OsdState &state, OsdKind kind, float level, bool muted);
 
 void osd_hide(OsdState &state);
+
+class OsdPerMonitorModule final : public PerMonitorModule {
+  public:
+    OsdState &state() { return state_; }
+
+    bool create_surface(WaylandState &app, MonitorOutput &mon, wl_output *output) override;
+    bool configured() const override;
+    bool init_egl(WaylandState &app, MonitorOutput &mon) override;
+    void destroy(WaylandState &app, MonitorOutput &mon) override;
+    bool owns_surface(wl_surface *surface) const override;
+    void tick(WaylandState &app, MonitorOutput &mon) override;
+
+  private:
+    OsdState state_;
+};

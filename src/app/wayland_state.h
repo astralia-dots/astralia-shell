@@ -51,6 +51,7 @@ struct WaylandState {
     EGLDisplay egl_display = EGL_NO_DISPLAY;
     EGLConfig egl_config = nullptr;
     EGLContext egl_context = EGL_NO_CONTEXT;
+    EGLSurface egl_rest_surface = EGL_NO_SURFACE;
     Config cfg;
     bool running = true;
     bool session_locked = false;

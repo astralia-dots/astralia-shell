@@ -3,9 +3,11 @@
 #include <GLES3/gl32.h>
 #include <array>
 #include <chrono>
+#include <memory>
 #include <vector>
 
 #include "app/ipc.h"
+#include "app/module.h"
 
 #include "config/logout_config.h"
 
@@ -122,3 +124,5 @@ void logout_handle_hover(LogoutState &state, double px, double py);
 void logout_clear_hover(LogoutState &state);
 
 void logout_paint(LogoutState &state);
+
+std::unique_ptr<Module> make_logout_module();

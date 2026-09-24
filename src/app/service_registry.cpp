@@ -11,6 +11,7 @@
 #include "modules/idle.h"
 #include "modules/notification.h"
 #include "modules/osd.h"
+#include "modules/polkit.h"
 
 #include "service/bluetooth_service.h"
 #include "service/brightness_service.h"

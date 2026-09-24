@@ -10,7 +10,7 @@ Pill cpu_pill(MonitorOutput &mon) {
         PillId::Cpu, &bs.cpu_texture, "Resource", nullptr, [&mon, &bs] {
             close_other_overlays(mon, PillId::Cpu);
             if (!bs.resource_panel.base.open) {
-                update_pill_expand(bs.capsule, mon.animations, PillId::Cpu, true, true);
+                update_pill_expand(bs.capsule, bs.animations, PillId::Cpu, true, true);
                 bar_paint(mon);
                 overlay_panel_ensure(bs.resource_panel.base, mon.app->display, [&] { return resource_panel_create_surface(bs.resource_panel, mon.app->compositor, mon.app->layer_shell, mon.output.wl); }, [&] { return resource_panel_init_egl(bs.resource_panel, mon.app->renderer, mon.app->cpu_temp, mon.app->gpu_temp, mon.app->system_stats, mon.app->egl_display, mon.app->egl_config, mon.app->egl_context); });
                 app_detail::rest_egl_current(*mon.app);

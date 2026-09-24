@@ -1,50 +1,23 @@
 #pragma once
 
-#include <EGL/egl.h>
-#include <chrono>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
 #include <wayland-client.h>
-#include <wayland-egl.h>
 
 #include "app/per_monitor_module.h"
 #include "app/wayland_state.h"
 
-#include "render/animation.h"
-#include "render/renderer.h"
-#include "render/scene.h"
-
 #include "service/compositor_service.h"
-#include "service/frame_service.h"
+#include "service/media_service.h"
 #include "service/output_service.h"
-
-#include "wlr-layer-shell-unstable-v1-client-protocol.h"
-
-struct AutoHideState {
-    bool hidden = false;
-    bool collapsed = false;
-    float opacity = 1.0f;
-
-    bool enabled = false;
-};
 
 struct MonitorOutput {
     WaylandState *app = nullptr;
     Output output;
     bool activated = false;
-    wl_surface *surface = nullptr;
-    zwlr_layer_surface_v1 *layer_surface = nullptr;
-    wl_egl_window *egl_window = nullptr;
-    EGLSurface egl_surface = EGL_NO_SURFACE;
-    int32_t width = 0;
-    bool configured = false;
-    OutputScale output_scale;
-    FrameClock frame_clock;
-    Scene scene;
-    AnimationManager animations;
-    AutoHideState autohide;
     std::vector<std::unique_ptr<PerMonitorModule>> modules;
 
     template <typename T>
@@ -67,6 +40,14 @@ MonitorOutput *find_monitor_by_name_wl(WaylandState &app, wl_output *wl);
 MonitorOutput *find_monitor_for_surface(WaylandState &app, wl_surface *surface);
 
 struct SettingsState;
+
+struct SettingsEnv {
+    std::function<std::vector<std::string>()> monitor_names_fn;
+    std::function<std::string()> focused_monitor_fn;
+    std::function<MediaDecodeStatus(const std::string &, int)> decode_status_fn;
+};
+
+SettingsEnv settings_env(WaylandState &app);
 
 namespace app_detail {
 

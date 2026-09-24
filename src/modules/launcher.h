@@ -3,12 +3,14 @@
 #include <EGL/egl.h>
 #include <chrono>
 #include <functional>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
 #include <wayland-client.h>
 #include <wayland-egl.h>
 
+#include "app/module.h"
 #include "app/text_input_client.h"
 
 #include "config/launcher_config.h"
@@ -126,3 +128,5 @@ void launcher_paint(LauncherState &state);
 TextInputState launcher_text_input_state(const LauncherState &state);
 
 void launcher_text_input_apply_edit(LauncherState &state, const TextInputEdit &edit);
+
+std::unique_ptr<Module> make_launcher_module();

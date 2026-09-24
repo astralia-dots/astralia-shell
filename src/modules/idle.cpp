@@ -1,6 +1,9 @@
 #include <GLES3/gl32.h>
 #include <filesystem>
 
+#include "app/monitor_output.h"
+#include "app/wayland_state.h"
+
 #include "core/log.h"
 
 #include "modules/idle.h"
@@ -228,4 +231,83 @@ void idle_overlay_set_active(IdleOverlayState &state, bool ambient_active, bool 
     }
     if (changed)
         idle_overlay_request_frame(state);
+}
+
+namespace {
+
+class IdlePerMonitorModule final : public PerMonitorModule {
+  public:
+    explicit IdlePerMonitorModule(IdleWallpaperHooks hooks) : hooks_(std::move(hooks)) {}
+
+    bool create_surface(WaylandState &app, MonitorOutput &mon, wl_output *output) override;
+    bool configured() const override;
+    bool init_egl(WaylandState &app, MonitorOutput &mon) override;
+    void destroy(WaylandState &app, MonitorOutput &mon) override;
+    bool owns_surface(wl_surface *surface) const override;
+    void timer_tick(WaylandState &app, MonitorOutput &mon) override;
+
+  private:
+    IdleWallpaperHooks hooks_;
+    IdleOverlayState state_;
+    bool screensaver_was_active_ = false;
+};
+
+bool IdlePerMonitorModule::create_surface(WaylandState &app, MonitorOutput &mon, wl_output *output) {
+    if (mon.output.name == "HEADLESS")
+        return true;
+    if (!idle_overlay_create_surface(state_, app.compositor, app.layer_shell, output))
+        klog("idle-overlay: failed to create layer surface on '%s'", mon.output.name.c_str());
+    return true;
+}
+
+bool IdlePerMonitorModule::configured() const {
+    return !state_.layer_surface || state_.configured;
+}
+
+bool IdlePerMonitorModule::init_egl(WaylandState &app, MonitorOutput &mon) {
+    if (!state_.layer_surface)
+        return true;
+    if (!idle_overlay_init_egl(state_, app.renderer, app.egl_display, app.egl_config, app.egl_context))
+        return true;
+    state_.draw_ambient = [this, &mon](Node &root, float w, float h) {
+        if (hooks_.draw)
+            hooks_.draw(mon, root, static_cast<int32_t>(w), static_cast<int32_t>(h));
+    };
+    app_detail::rest_egl_current(app);
+    return true;
+}
+
+void IdlePerMonitorModule::destroy(WaylandState &app, MonitorOutput &) {
+    destroy_layer_surface(app.egl_display, state_.surface, state_.layer_surface, state_.egl_window, state_.egl_surface, &state_.frame_clock);
+}
+
+bool IdlePerMonitorModule::owns_surface(wl_surface *surface) const {
+    return surface == state_.surface;
+}
+
+void IdlePerMonitorModule::timer_tick(WaylandState &app, MonitorOutput &mon) {
+    if (mon.output.name == "HEADLESS")
+        return;
+    if (!app.idle.last_activity.count(mon.output.name))
+        app.idle.last_activity[mon.output.name] =
+            std::chrono::steady_clock::now();
+
+    bool ambient_now =
+        ambient_effective_enabled(app.cfg, mon.output.name) && is_idle(app.idle, mon.output.name, ambient_effective_timeout_seconds(app.cfg, mon.output.name));
+    bool screensaver_now =
+        screensaver_effective_enabled(app.cfg, mon.output.name) && is_idle(app.idle, mon.output.name, screensaver_effective_timeout_seconds(app.cfg, mon.output.name));
+
+    idle_overlay_set_active(state_, ambient_now, screensaver_now);
+
+    if (screensaver_now != screensaver_was_active_) {
+        screensaver_was_active_ = screensaver_now;
+        if (hooks_.set_paused)
+            hooks_.set_paused(mon, screensaver_now);
+    }
+}
+
+} // namespace
+
+std::unique_ptr<PerMonitorModule> make_idle_per_monitor_module(IdleWallpaperHooks hooks) {
+    return std::make_unique<IdlePerMonitorModule>(std::move(hooks));
 }

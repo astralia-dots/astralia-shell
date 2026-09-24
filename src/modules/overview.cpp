@@ -712,3 +712,99 @@ void overview_paint(OverviewState &state, WaylandState &app) {
     if (state.base.animations.hasActive() || state.dragging)
         overlay_panel_request_frame(state.base);
 }
+
+namespace {
+
+class OverviewModule final : public Module {
+  public:
+    const char *name() const override { return "overview"; }
+    bool is_open() const override { return state_.base.open; }
+
+    bool create_surface(WaylandState &app, wl_output *output) override {
+        output_ = output;
+        want_ = overview_create_surface(state_, app.compositor, app.layer_shell, output);
+        return want_;
+    }
+
+    bool init_egl(WaylandState &app) override {
+        if (!overview_init_egl(state_, app.renderer, app.egl_display, app.egl_config, app.egl_context))
+            return false;
+        state_.bound_output = output_;
+        state_.app_ptr = &app;
+        return true;
+    }
+
+    bool configured() const override {
+        return !want_ || state_.base.configured;
+    }
+    wl_surface *surface() const override { return state_.base.surface; }
+    void request_frame() override { overview_request_frame(state_); }
+
+    int poll_timeout_ms() const override {
+        return state_.base.open ? kOverviewCaptureIntervalMs : -1;
+    }
+
+    bool tick() override {
+        if (!state_.base.open)
+            return false;
+        auto now = std::chrono::steady_clock::now();
+        if (now - last_capture_arm_ < std::chrono::milliseconds(kOverviewCaptureIntervalMs))
+            return false;
+        last_capture_arm_ = now;
+        return true;
+    }
+
+    void handle_pointer_move(WaylandState &app, wl_surface *, double x, double y) override {
+        overview_handle_pointer_move(state_, app, x, y);
+        hovering_clickable_ =
+            app.pointer.focused_surface == state_.base.surface && overview_point_is_clickable(state_, app, x, y);
+    }
+    bool wants_pointing_hand_cursor() const override {
+        return hovering_clickable_;
+    }
+    void handle_pointer_release() override {
+        if (state_.app_ptr)
+            overview_handle_pointer_release(state_, *state_.app_ptr);
+    }
+
+    void handle_click(WaylandState &app, double x, double y) override {
+        overview_handle_click(state_, app, x, y);
+        request_frame();
+    }
+    void handle_key_event(WaylandState &app, const KeyEvent &event) override {
+        overview_handle_key_event(state_, app, event);
+    }
+
+    std::vector<IpcHandler> ipc_handlers(WaylandState &app) override {
+        return overview_ipc_handlers(state_, app);
+    }
+
+    bool opened_by_widget() const override { return state_.opened_by_widget; }
+    void on_output_removed(WaylandState &, wl_output *out) override {
+        if (state_.bound_output != out)
+            return;
+        overlay_panel_release_output(state_.base, state_.bound_output, out);
+        state_.opened_by_widget = false;
+    }
+    void toggle_from_widget(WaylandState &app) override {
+        if (!state_.base.open) {
+            MonitorOutput *target = app_detail::active_target_monitor(app);
+            if (target && (target->output.wl != state_.bound_output || !state_.base.layer_surface))
+                overview_retarget(state_, app.compositor, app.layer_shell, app.display, app.renderer, app.egl_display, app.egl_config, app.egl_context, target->output.wl, target->output.name.c_str());
+        }
+        overview_toggle(state_, app, true);
+    }
+
+  private:
+    OverviewState state_;
+    wl_output *output_ = nullptr;
+    bool want_ = false;
+    bool hovering_clickable_ = false;
+    std::chrono::steady_clock::time_point last_capture_arm_{};
+};
+
+} // namespace
+
+std::unique_ptr<Module> make_overview_module() {
+    return std::make_unique<OverviewModule>();
+}
