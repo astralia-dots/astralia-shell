@@ -26,6 +26,15 @@ constexpr float kLauncherListGap = 10.0f;
 constexpr int kLauncherSurfaceWidth = 700;
 constexpr int kLauncherMaxVisible = 6;
 
+// launch commands
+namespace applications {
+inline constexpr const char *browser = "browser";
+inline constexpr const char *editor = "editor";
+inline constexpr const char *file_manager = "file-manager";
+inline constexpr const char *terminal = "terminal";
+inline constexpr const char *open = "xdg-open";
+} // namespace applications
+
 // timing
 constexpr int kLauncherSearchDebounceMs = 120;
 constexpr int kLauncherKillGraceMs = 50;

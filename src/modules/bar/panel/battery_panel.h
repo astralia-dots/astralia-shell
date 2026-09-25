@@ -5,6 +5,8 @@
 #include <vector>
 #include <wayland-client.h>
 
+#include "config/bar_config.h"
+
 #include "render/overlay_panel.h"
 #include "render/panel_chrome.h"
 #include "render/rect.h"
@@ -16,16 +18,6 @@
 #include "service/upower_service.h"
 
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
-
-constexpr float kBatteryEmptyStateHeight = 72.0f;
-constexpr float kBatteryTextRowHeight = 18.0f;
-constexpr float kBatteryPanelBarHeight = 6.0f;
-constexpr float kBatteryPanelBarRadius = 3.0f;
-constexpr float kBatteryBarTopGap = 12.0f;
-constexpr float kBatteryDeviceRowBottomPad = 14.0f;
-constexpr float kBatteryDeviceRowHeight =
-    kBatteryTextRowHeight + kBatteryBarTopGap + kBatteryPanelBarHeight +
-    kBatteryDeviceRowBottomPad;
 
 struct BatteryPanelState {
     OverlayPanelBase base;

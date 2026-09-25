@@ -5,6 +5,8 @@
 #include <vector>
 #include <wayland-client.h>
 
+#include "config/bar_config.h"
+
 #include "render/overlay_panel.h"
 #include "render/panel_chrome.h"
 #include "render/rect.h"
@@ -17,10 +19,6 @@ class Renderer;
 struct BluetoothState;
 struct BluetoothDeviceInfo;
 struct KeyEvent;
-
-constexpr float kBtEmptyStateHeight = 72.0f;
-constexpr float kBtSectionGapSmall = 20.0f;
-constexpr float kBtSectionGapLarge = 24.0f;
 
 struct BluetoothPanelState {
     OverlayPanelBase base;

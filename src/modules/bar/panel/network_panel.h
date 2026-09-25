@@ -7,6 +7,8 @@
 #include <vector>
 #include <wayland-client.h>
 
+#include "config/bar_config.h"
+
 #include "render/marquee_scroll.h"
 #include "render/overlay_panel.h"
 #include "render/panel_chrome.h"
@@ -22,18 +24,6 @@
 #include "service/text_input_service.h"
 
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
-
-constexpr float kNetErrorBannerHeight = 48.0f;
-constexpr float kNetworkEthernetBannerHeight = 40.0f;
-constexpr float kNetworkUnavailableStateHeight = 72.0f;
-constexpr float kNetworkScanningStateHeight = 48.0f;
-constexpr float kNetworkSectionGapSmall = 20.0f;
-constexpr float kNetworkSectionGapLarge = 24.0f;
-constexpr float kNetworkConnectDisabledAlpha = 0.4f;
-constexpr uint64_t kNetworkPasswordTypeAnimOwnerBase = 10000;
-constexpr uint64_t kNetworkPasswordRowSlideOwner = 10512;
-constexpr float kNetworkCaptiveBg[4] = {1.0f, 0.76f, 0.03f, 0.15f};
-constexpr float kNetworkCaptiveFg[4] = {1.0f, 0.7569f, 0.0275f, 1.0f};
 
 struct NetworkPanelState {
     OverlayPanelBase base;

@@ -7,6 +7,8 @@
 #include <vector>
 #include <wayland-client.h>
 
+#include "config/bar_config.h"
+
 #include "render/node.h"
 #include "render/overlay_panel.h"
 #include "render/panel_chrome.h"
@@ -19,37 +21,6 @@
 #include "service/pipewire_service.h"
 
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
-
-constexpr float kVolumeLabelRowHeight = 20.0f;
-constexpr float kVolumeRowHeight = 24.0f;
-constexpr float kVolumeSliderHeight = 20.0f;
-constexpr float kVolumeSliderTrackHeight = 6.0f;
-constexpr float kVolumeAppSliderHeight = 16.0f;
-constexpr float kVolumeAppSliderTrackHeight = 5.0f;
-constexpr float kVolumePercentLabelWidth = 40.0f;
-constexpr float kVolumeSliderRightGap = 8.0f;
-constexpr float kVolumeLabelWidthCap = 180.0f;
-constexpr float kVolumeSectionHeaderPad = 6.0f;
-constexpr float kVolumeAppListTopGap = 4.0f;
-constexpr float kVolumeAppRowBottomPad = 8.0f;
-constexpr float kVolumeDeviceRowBottomPad = 6.0f;
-constexpr float kVolumeDeviceIndicatorSize = 14.0f;
-constexpr float kVolumeDeviceIndicatorRadius = 7.0f;
-constexpr float kVolumeDeviceIndicatorDotSize = 6.0f;
-constexpr float kVolumeDeviceIndicatorDotRadius = 3.0f;
-constexpr std::chrono::milliseconds kVolumePeekMs{2000};
-constexpr std::chrono::milliseconds kVolumePeekReadyDelayMs{1000};
-
-constexpr float kVolumeTextRowHeight = 18.0f;
-
-constexpr float kVolumeAppRowHeight =
-    kVolumeTextRowHeight + kVolumeAppListTopGap + kVolumeAppSliderHeight +
-    kVolumeAppRowBottomPad;
-constexpr float kVolumeDeviceRowHeight =
-    kVolumeTextRowHeight + kVolumeDeviceRowBottomPad;
-constexpr float kVolumeSectionHeaderHeight =
-    kVolumeTextRowHeight + kVolumeSectionHeaderPad;
-constexpr float kVolumeDividerRowHeight = 1.0f;
 
 struct VolumePanelState {
     OverlayPanelBase base;

@@ -38,6 +38,13 @@ constexpr float kAutoHideRevealMs = 150.0f;
 constexpr float kAutoHideHideMs = 150.0f;
 constexpr uint64_t kAutoHideAnimOwner = 1000;
 
+// workspace widget
+constexpr float kWorkspacePillHeight = 12.0f;
+constexpr float kWorkspacePillSpacing = 5.0f;
+constexpr float kWorkspaceActiveWidthScale = 2.0f;
+constexpr float kWorkspacePillAnimMs = 100.0f;
+constexpr uint64_t kWorkspacePillOwnerBase = 200;
+
 // dock widget
 constexpr uint64_t kDockWidgetAnimOwnerBase = 300;
 } // namespace bar_detail
@@ -128,3 +135,98 @@ constexpr const char *kGaugeColorGpuHex = "#a855f7";
 constexpr const char *kGaugeColorRamHex = "#3b82f6";
 constexpr const char *kGaugeColorDiskHex = "#22c55e";
 constexpr const char *kTempWarnColorHex = "#f97316";
+
+// clock panel
+constexpr float kClockPanelWidth = 504.0f;
+constexpr float kClockWeekdayRowHeight = 22.0f;
+constexpr float kClockGridTopGap = 2.0f;
+constexpr float kClockCellCirclePadding = 4.0f;
+constexpr float kClockNavButtonSize = 20.0f;
+constexpr float kClockNavButtonGap = 6.0f;
+constexpr float kClockColumnGap = 16.0f;
+constexpr float kClockGridHeaderHeight = 24.0f;
+constexpr float kClockGridHeaderGap = 15.0f;
+constexpr float kClockWeekdayLineHeight = 26.0f;
+constexpr float kClockDateLineHeight = 18.0f;
+constexpr float kClockLeftLineGap = 2.0f;
+constexpr int kClockBigDayFontPx = 64;
+constexpr float kClockBigDayRowHeight = 74.0f;
+constexpr float kClockBigDayGap = 6.0f;
+constexpr float kClockWeekLineHeight = 16.0f;
+
+// volume panel
+constexpr float kVolumeLabelRowHeight = 20.0f;
+constexpr float kVolumeRowHeight = 24.0f;
+constexpr float kVolumeSliderHeight = 20.0f;
+constexpr float kVolumeSliderTrackHeight = 6.0f;
+constexpr float kVolumeAppSliderHeight = 16.0f;
+constexpr float kVolumeAppSliderTrackHeight = 5.0f;
+constexpr float kVolumePercentLabelWidth = 40.0f;
+constexpr float kVolumeSliderRightGap = 8.0f;
+constexpr float kVolumeLabelWidthCap = 180.0f;
+constexpr float kVolumeSectionHeaderPad = 6.0f;
+constexpr float kVolumeAppListTopGap = 4.0f;
+constexpr float kVolumeAppRowBottomPad = 8.0f;
+constexpr float kVolumeDeviceRowBottomPad = 6.0f;
+constexpr float kVolumeDeviceIndicatorSize = 14.0f;
+constexpr float kVolumeDeviceIndicatorRadius = 7.0f;
+constexpr float kVolumeDeviceIndicatorDotSize = 6.0f;
+constexpr float kVolumeDeviceIndicatorDotRadius = 3.0f;
+constexpr std::chrono::milliseconds kVolumePeekMs{2000};
+constexpr std::chrono::milliseconds kVolumePeekReadyDelayMs{1000};
+constexpr float kVolumeTextRowHeight = 18.0f;
+constexpr float kVolumeAppRowHeight =
+    kVolumeTextRowHeight + kVolumeAppListTopGap + kVolumeAppSliderHeight +
+    kVolumeAppRowBottomPad;
+constexpr float kVolumeDeviceRowHeight =
+    kVolumeTextRowHeight + kVolumeDeviceRowBottomPad;
+constexpr float kVolumeSectionHeaderHeight =
+    kVolumeTextRowHeight + kVolumeSectionHeaderPad;
+constexpr float kVolumeDividerRowHeight = 1.0f;
+
+// tray menu
+constexpr float kTrayMenuWidth = 220.0f;
+constexpr float kTrayMenuPadding = 4.0f;
+constexpr float kTrayMenuItemHeight = 28.0f;
+constexpr float kTrayMenuRowPaddingH = 8.0f;
+constexpr float kTrayMenuLabelWidthOffset = 24.0f;
+constexpr float kTrayMenuSeparatorHeight = 8.0f;
+constexpr float kTrayMenuSeparatorLineHeight = 1.0f;
+constexpr float kTrayMenuSeparatorWidthOffset = 12.0f;
+constexpr float kTrayMenuBorderWidth = 1.0f;
+constexpr float kTrayMenuRadius = 8.0f;
+
+// tray panel
+constexpr float kTrayCellSize = 40.0f;
+constexpr float kTrayIconTargetSize = 20.0f;
+constexpr int kTrayColumns = 4;
+constexpr float kTrayGridGap = 4.0f;
+
+// network panel
+constexpr float kNetErrorBannerHeight = 48.0f;
+constexpr float kNetworkEthernetBannerHeight = 40.0f;
+constexpr float kNetworkUnavailableStateHeight = 72.0f;
+constexpr float kNetworkScanningStateHeight = 48.0f;
+constexpr float kNetworkSectionGapSmall = 20.0f;
+constexpr float kNetworkSectionGapLarge = 24.0f;
+constexpr float kNetworkConnectDisabledAlpha = 0.4f;
+constexpr uint64_t kNetworkPasswordTypeAnimOwnerBase = 10000;
+constexpr uint64_t kNetworkPasswordRowSlideOwner = 10512;
+constexpr float kNetworkCaptiveBg[4] = {1.0f, 0.76f, 0.03f, 0.15f};
+constexpr float kNetworkCaptiveFg[4] = {1.0f, 0.7569f, 0.0275f, 1.0f};
+
+// battery panel
+constexpr float kBatteryEmptyStateHeight = 72.0f;
+constexpr float kBatteryTextRowHeight = 18.0f;
+constexpr float kBatteryPanelBarHeight = 6.0f;
+constexpr float kBatteryPanelBarRadius = 3.0f;
+constexpr float kBatteryBarTopGap = 12.0f;
+constexpr float kBatteryDeviceRowBottomPad = 14.0f;
+constexpr float kBatteryDeviceRowHeight =
+    kBatteryTextRowHeight + kBatteryBarTopGap + kBatteryPanelBarHeight +
+    kBatteryDeviceRowBottomPad;
+
+// bluetooth panel
+constexpr float kBtEmptyStateHeight = 72.0f;
+constexpr float kBtSectionGapSmall = 20.0f;
+constexpr float kBtSectionGapLarge = 24.0f;

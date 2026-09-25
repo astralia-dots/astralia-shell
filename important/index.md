@@ -26,8 +26,8 @@
 
 ## src/config
 
-- `bar_config.h`: `BarStyle` enum with name/label tables, bar geometry, spacing, Okinami layout, and `dock_widget` animation-owner constants, plus the control center and resource panels' constants.
-- `launcher_config.h`: Every launcher data type and constant, no function bodies.
+- `bar_config.h`: `BarStyle` enum with name/label tables, bar geometry, spacing, Okinami layout, workspace/dock widget constants, and every bar panel's layout constants.
+- `launcher_config.h`: Every launcher data type and constant, including the `applications` launch-command names; no function bodies.
 - `osd_config.h`: OSD surface size/margin/duration/animation-owner constants.
 - `notification_config.h`: Notification card padding/size/timing constants.
 - `logout_config.h`: Ring-menu geometry, entry/exit hold/slash/burst/implode timings, `thunder_burst` constants, `{8/3}` star step, animation owner ids, and the 8-button action table.
@@ -38,6 +38,7 @@
 - `rain_config.h`: `RainMode`/`RainParams` types, shared rain window/timing constants, plus per-sim `kMatrixRain*` and `kStilettoRain*` tuning constants.
 - `idle_config.h`: Idle recent-activity pulse and idle-overlay fade, logo-speed, and layer-namespace constants.
 - `lock_config.h`: Lock-screen card ratio, three-column and side-panel geometry, fetch/media/resources/notification-dock constants, dot/input/avatar sizes, entrance/exit animation timings, and per-property animation owner ids.
+- `polkit_config.h`: Polkit card layer namespace, geometry, text line heights, animation timing, and animation owner ids.
 - `visualizer_config.h`: Audio visualizer canvas/capture/FFT/GPU-transform constants, bar geometry, and `VisualizerParams` runtime knobs with their clamp ranges.
 
 ## src/render
@@ -184,7 +185,7 @@
 - `tray_panel.h`+`.cpp`: On-demand tray grid panel plus its context menu, a separate `xdg_popup` grabbed to the panel layer surface.
 - `battery_panel.h`+`.cpp`: On-demand battery panel: every UPower device with its charge level.
 - `resource_panel.h`+`.cpp`: On-demand resource panel: side-by-side CPU/GPU cards, each a clock-over-usage gauge above a temperature gauge (over 100°C), then a "Memory" card (RAM/disk `used / cap` bars).
-- `control_center_panel.h`+`.cpp`: On-demand fixed top-right panel with its own layout constants: scrollable profile, battery, brightness, volume, and media cards.
+- `control_center_panel.h`+`.cpp`: On-demand fixed top-right panel: scrollable profile, battery, brightness, volume, and media cards.
 - `clock_panel.h`+`.cpp`: On-demand centered panel, two columns: today's weekday/month/year/day/ISO-week, and a `6x7` month grid (Monday-first) with its own prev/today/next nav row and today highlighted.
 
 ## src/modules/bar/widget

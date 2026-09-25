@@ -5,6 +5,8 @@
 #include <vector>
 #include <wayland-client.h>
 
+#include "config/bar_config.h"
+
 #include "render/overlay_panel.h"
 #include "render/panel_chrome.h"
 #include "render/rect.h"
@@ -16,23 +18,7 @@
 
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 
-constexpr float kClockPanelWidth = 504.0f;
-constexpr float kClockWeekdayRowHeight = 22.0f;
-constexpr float kClockGridTopGap = 2.0f;
-constexpr float kClockCellCirclePadding = 4.0f;
-constexpr float kClockNavButtonSize = 20.0f;
-constexpr float kClockNavButtonGap = 6.0f;
-constexpr float kClockColumnGap = 16.0f;
 constexpr float kClockLeftColWidth = (kClockPanelWidth - 2.0f * kPanelPadding - kClockColumnGap) / 2.0f;
-constexpr float kClockGridHeaderHeight = 24.0f;
-constexpr float kClockGridHeaderGap = 15.0f;
-constexpr float kClockWeekdayLineHeight = 26.0f;
-constexpr float kClockDateLineHeight = 18.0f;
-constexpr float kClockLeftLineGap = 2.0f;
-constexpr int kClockBigDayFontPx = 64;
-constexpr float kClockBigDayRowHeight = 74.0f;
-constexpr float kClockBigDayGap = 6.0f;
-constexpr float kClockWeekLineHeight = 16.0f;
 
 struct CalendarDay {
     int year;

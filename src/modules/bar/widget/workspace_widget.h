@@ -4,6 +4,8 @@
 #include <utility>
 #include <vector>
 
+#include "config/bar_config.h"
+
 #include "modules/bar/widget/widget_capsule.h"
 
 #include "render/animation.h"
@@ -20,11 +22,6 @@ struct WorkspaceWidgetState {
 };
 
 namespace bar_detail {
-constexpr float kWorkspacePillHeight = 12.0f;
-constexpr float kWorkspacePillSpacing = 5.0f;
-constexpr float kWorkspaceActiveWidthScale = 2.0f;
-constexpr float kWorkspacePillAnimMs = 100.0f;
-constexpr uint64_t kWorkspacePillOwnerBase = 200;
 float draw_workspace_row(Node *root, WorkspaceWidgetState &wstate, AnimationManager &animations, float x, float height, const std::vector<Workspace> &ws_list, int active_id, const BarStyleSpec &style, const Texture &overview_icon);
 
 int workspace_row_hit_workspace(const WorkspaceWidgetState &wstate, float x, float y);

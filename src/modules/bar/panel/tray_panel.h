@@ -7,6 +7,8 @@
 #include <vector>
 #include <wayland-client.h>
 
+#include "config/bar_config.h"
+
 #include "render/overlay_panel.h"
 #include "render/panel_chrome.h"
 #include "render/popup_window.h"
@@ -20,17 +22,6 @@
 
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include "xdg-shell-client-protocol.h"
-
-constexpr float kTrayMenuWidth = 220.0f;
-constexpr float kTrayMenuPadding = 4.0f;
-constexpr float kTrayMenuItemHeight = 28.0f;
-constexpr float kTrayMenuRowPaddingH = 8.0f;
-constexpr float kTrayMenuLabelWidthOffset = 24.0f;
-constexpr float kTrayMenuSeparatorHeight = 8.0f;
-constexpr float kTrayMenuSeparatorLineHeight = 1.0f;
-constexpr float kTrayMenuSeparatorWidthOffset = 12.0f;
-constexpr float kTrayMenuBorderWidth = 1.0f;
-constexpr float kTrayMenuRadius = 8.0f;
 
 struct TrayMenuState {
     PopupWindowBase base;
@@ -73,10 +64,6 @@ void tray_menu_handle_click(TrayMenuState &state, TrayState &tray, double px, do
 
 void tray_menu_handle_key_event(TrayMenuState &state, const KeyEvent &event);
 
-constexpr float kTrayCellSize = 40.0f;
-constexpr float kTrayIconTargetSize = 20.0f;
-constexpr int kTrayColumns = 4;
-constexpr float kTrayGridGap = 4.0f;
 constexpr float kTrayPanelWidth = kTrayColumns * kTrayCellSize + (kTrayColumns - 1) * kTrayGridGap + 2.0f * kPanelPadding;
 
 struct TrayPanelState {

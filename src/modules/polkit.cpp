@@ -7,6 +7,8 @@
 #include "app/monitor_output.h"
 #include "app/wayland_state.h"
 
+#include "config/polkit_config.h"
+
 #include "render/gl.h"
 #include "render/image.h"
 #include "render/marquee_text.h"
@@ -15,27 +17,6 @@
 #include "render/text.h"
 
 namespace {
-
-constexpr const char *kPolkitNamespace = "astralia-shell-polkit";
-
-constexpr float kPolkitAnimMs = 350.0f;
-constexpr float kPolkitScaleHidden = 0.0f;
-constexpr float kPolkitBorderWidth = 5.0f;
-constexpr float kPolkitCardPad = 30.0f;
-constexpr float kPolkitCardRadius = 20.0f;
-constexpr float kPolkitCardWidth = 480.0f;
-constexpr float kPolkitDotMargin = 8.0f;
-constexpr float kPolkitDotSize = 16.0f;
-constexpr float kPolkitFieldHeight = 55.0f;
-constexpr float kPolkitFieldRadius = 27.0f;
-constexpr float kPolkitSpacing = 16.0f;
-
-constexpr float kPolkitTitleLineH = 20.0f;
-constexpr float kPolkitMessageLineH = 16.0f;
-constexpr float kPolkitSupplementaryLineH = 14.0f;
-
-constexpr uint64_t kPolkitCardScaleOwner = 10;
-constexpr uint64_t kPolkitDotAnimBase = 1000;
 
 const Texture *tc_text(PolkitState &st, const std::string &s, int px, bool bold, int32_t scale, int max_width_px = 0) {
     if (s.empty())
