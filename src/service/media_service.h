@@ -22,6 +22,7 @@ struct MediaDrmFrame {
     int plane_count = 0;
     int width = 0;
     int height = 0;
+    uint64_t surface_id = 0;
     void *avframe_handle = nullptr;
 };
 

@@ -6,6 +6,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 #include <wayland-client.h>
 #include <wayland-egl.h>
@@ -51,7 +52,8 @@ struct WallpaperColumn {
     MediaDecodePlayback decode;
     std::string path;
     FillMode mode = FillMode::Crop;
-    VideoTexture video_tex;
+    std::unordered_map<uint64_t, VideoTexture> video_texs;
+    uint64_t video_surface = 0;
     void *pinned_frame = nullptr;
     void *pinned_frame_prev = nullptr;
     bool zero_copy = false;

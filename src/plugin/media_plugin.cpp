@@ -19,6 +19,8 @@ extern "C" {
 #include <chrono>
 #include <cstdio>
 #include <cstring>
+#include <unistd.h>
+#include <unordered_map>
 #include <vector>
 
 #include "core/log.h"
@@ -67,6 +69,17 @@ struct FilterGraphGuard {
     ~FilterGraphGuard() {
         if (graph)
             avfilter_graph_free(&graph);
+    }
+};
+
+struct SurfaceExports {
+    std::unordered_map<uintptr_t, MediaDrmFrame> frames;
+    ~SurfaceExports() {
+        for (auto &[id, frame] : frames) {
+            close(frame.planes[0].fd);
+            if (frame.planes[1].fd != frame.planes[0].fd)
+                close(frame.planes[1].fd);
+        }
     }
 };
 
@@ -266,8 +279,9 @@ void decode_loop(std::string path, std::string filter_desc, int fps, bool suppor
     FrameGuard decoded;
     FrameGuard downloaded;
     bool zero_copy_disabled = false;
+    SurfaceExports exports;
 
-    auto try_deliver_zero_copy = [&](AVFrame *hw_frame) -> bool {
+    auto export_surface = [&](AVFrame *hw_frame, MediaDrmFrame &out) -> bool {
         AVFrame *drm_frame = av_frame_alloc();
         if (!drm_frame)
             return false;
@@ -282,7 +296,6 @@ void decode_loop(std::string path, std::string filter_desc, int fps, bool suppor
             av_frame_free(&drm_frame);
             return false;
         }
-        MediaDrmFrame out;
         if (!fill_drm_frame(out, drm_frame)) {
             const auto *desc = reinterpret_cast<const AVDRMFrameDescriptor *>(drm_frame->data[0]);
             if (desc && desc->nb_layers >= 1)
@@ -297,7 +310,36 @@ void decode_loop(std::string path, std::string filter_desc, int fps, bool suppor
             av_frame_free(&drm_frame);
             return false;
         }
-        out.avframe_handle = drm_frame;
+        int y_fd = dup(out.planes[0].fd);
+        int uv_fd = out.planes[1].fd == out.planes[0].fd ? y_fd : dup(out.planes[1].fd);
+        av_frame_free(&drm_frame);
+        if (y_fd < 0 || uv_fd < 0) {
+            if (y_fd >= 0)
+                close(y_fd);
+            if (uv_fd >= 0 && uv_fd != y_fd)
+                close(uv_fd);
+            return false;
+        }
+        out.planes[0].fd = y_fd;
+        out.planes[1].fd = uv_fd;
+        return true;
+    };
+
+    auto try_deliver_zero_copy = [&](AVFrame *hw_frame) -> bool {
+        auto surface_id = reinterpret_cast<uintptr_t>(hw_frame->data[3]);
+        auto cached = exports.frames.find(surface_id);
+        if (cached == exports.frames.end()) {
+            MediaDrmFrame exported;
+            if (!export_surface(hw_frame, exported))
+                return false;
+            exported.surface_id = surface_id;
+            cached = exports.frames.emplace(surface_id, exported).first;
+        }
+        AVFrame *held = av_frame_clone(hw_frame);
+        if (!held)
+            return false;
+        MediaDrmFrame out = cached->second;
+        out.avframe_handle = held;
         on_drm_frame(out);
         return true;
     };

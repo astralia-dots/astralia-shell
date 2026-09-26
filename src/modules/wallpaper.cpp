@@ -45,12 +45,14 @@ void column_make_current(const WallpaperColumnGl &gl) {
 }
 
 void wallpaper_column_draw(const WallpaperColumn &col, Node *parent, float x, float column_w, float height) {
-    bool zero_copy = col.zero_copy && col.video_tex.tex;
+    auto video = col.video_texs.find(col.video_surface);
+    const VideoTexture *video_tex = video != col.video_texs.end() ? &video->second : nullptr;
+    bool zero_copy = col.zero_copy && video_tex;
     const Texture *tex = col.tex.id ? &col.tex : nullptr;
     if (!zero_copy && !tex)
         return;
-    int tex_w = zero_copy ? col.video_tex.width : tex->width;
-    int tex_h = zero_copy ? col.video_tex.height : tex->height;
+    int tex_w = zero_copy ? video_tex->width : tex->width;
+    int tex_h = zero_copy ? video_tex->height : tex->height;
 
     float scale = col.mode == FillMode::Fit ? std::min(column_w / tex_w, height / tex_h) : std::max(column_w / tex_w, height / tex_h);
     float draw_w = tex_w * scale;
@@ -64,7 +66,7 @@ void wallpaper_column_draw(const WallpaperColumn &col, Node *parent, float x, fl
     img->h = draw_h;
     if (zero_copy) {
         img->kind = NodeKind::VideoTexture;
-        img->video_tex = &col.video_tex;
+        img->video_tex = video_tex;
     } else {
         img->kind = NodeKind::Texture;
         img->tex = tex;
@@ -225,9 +227,10 @@ void wallpaper_column_clear(WallpaperColumn &col, const WallpaperColumnGl &gl) {
         media_decode_release_drm_frame(col.pinned_frame_prev);
         col.pinned_frame_prev = nullptr;
     }
-    if ((col.video_tex.tex || col.tex.id || col.tex_prev.id) && gl.surface != EGL_NO_SURFACE)
+    if ((!col.video_texs.empty() || col.tex.id || col.tex_prev.id) && gl.surface != EGL_NO_SURFACE)
         column_make_current(gl);
-    col.video_tex.reset();
+    col.video_texs.clear();
+    col.video_surface = 0;
     col.tex.reset();
     col.tex_prev.reset();
     col.transitioning = false;
@@ -328,11 +331,15 @@ void wallpaper_column_set_animated(WallpaperColumn &col, const WallpaperColumnGl
                                                                                                                                                                                                                                                                                                                                                                                        import.planes[i] = {frame.planes[i].fd, frame.planes[i].modifier, frame.planes[i].offset, frame.planes[i].pitch};
                                                                                                                                                                                                                                                                                                                                                                                    auto t0 = std::chrono::steady_clock::now();
                                                                                                                                                                                                                                                                                                                                                                                    column_make_current(gl);
-                                                                                                                                                                                                                                                                                                                                                                                   bool ok = video_texture_import(col.video_tex, gl.display, import);
+                                                                                                                                                                                                                                                                                                                                                                                   auto [slot, miss] = col.video_texs.try_emplace(frame.surface_id);
+                                                                                                                                                                                                                                                                                                                                                                                   bool ok = !miss || video_texture_import(slot->second, gl.display, import);
+                                                                                                                                                                                                                                                                                                                                                                                   if (!ok)
+                                                                                                                                                                                                                                                                                                                                                                                       col.video_texs.erase(slot);
                                                                                                                                                                                                                                                                                                                                                                                    float ms = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - t0).count();
                                                                                                                                                                                                                                                                                                                                                                                    if (ms > 5.0f)
                                                                                                                                                                                                                                                                                                                                                                                        klog("wallpaper: zero-copy import %.1fms", ms);
                                                                                                                                                                                                                                                                                                                                                                                    if (ok) {
+                                                                                                                                                                                                                                                                                                                                                                                       col.video_surface = frame.surface_id;
                                                                                                                                                                                                                                                                                                                                                                                        col.zero_copy = true;
                                                                                                                                                                                                                                                                                                                                                                                        if (col.pinned_frame_prev)
                                                                                                                                                                                                                                                                                                                                                                                            media_decode_release_drm_frame(col.pinned_frame_prev);
